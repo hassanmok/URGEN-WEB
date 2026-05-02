@@ -1,0 +1,30 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Cairo', ui-sans-serif, system-ui, sans-serif;
+
+  --color-urgen-navy: #1a237e;
+  --color-urgen-purple: #7b1fa2;
+  --color-urgen-magenta: #d81b60;
+  --color-urgen-sky: #03a9f4;
+  --color-urgen-sky-soft: #e1f5fe;
+  --color-urgen-muted: #5c6bc0;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply font-sans antialiased text-slate-800 bg-white;
+  }
+
+  ::selection {
+    @apply bg-urgen-purple/25 text-urgen-navy;
+  }
+}
+
+@utility container-urgen {
+  @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8;
+}
