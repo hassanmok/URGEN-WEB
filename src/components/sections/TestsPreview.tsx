@@ -1,20 +1,21 @@
-import { Link } from 'react-router-dom'
-import { useTests } from '../../hooks/useTests'
-import { useLocaleContext } from '../../i18n/useLocaleContext'
-import { SectionHeading } from '../ui/SectionHeading'
-import { TestCard } from '../ui/TestCard'
-import { Button } from '../ui/Button'
+import { Link } from "react-router-dom";
+import { useTests } from "../../hooks/useTests";
+import { useLocaleContext } from "../../i18n/useLocaleContext";
+import { SectionHeading } from "../ui/SectionHeading";
+import { TestCard } from "../ui/TestCard";
+import { Button } from "../ui/Button";
 
 export function TestsPreview() {
-  const { tests, loading } = useTests()
-  const { messages: m } = useLocaleContext()
-  const preview = tests.slice(0, 4)
+  const { tests, loading } = useTests();
+  const { messages: m } = useLocaleContext();
+  const preview = tests.slice(0, 4);
 
   return (
     <section className="py-16 lg:py-24">
       <div className="container-urgen">
         <SectionHeading
           eyebrow={m.testsPreview.eyebrow}
+          eyebrowClassName="mb-3 text-4xl font-bold tracking-wide text-[#a028c1] normal-case"
           title={m.testsPreview.title}
           subtitle={m.testsPreview.subtitle}
         />
@@ -30,7 +31,7 @@ export function TestsPreview() {
             ))}
           </div>
         ) : (
-          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {preview.map((t) => (
               <TestCard key={t.id} test={t} />
             ))}
@@ -46,5 +47,5 @@ export function TestsPreview() {
         </div>
       </div>
     </section>
-  )
+  );
 }

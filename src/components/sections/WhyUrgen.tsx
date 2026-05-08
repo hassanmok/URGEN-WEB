@@ -2,6 +2,38 @@ import { useLocaleContext } from '../../i18n/useLocaleContext'
 import { FeatureCard } from '../ui/FeatureCard'
 import { SectionHeading } from '../ui/SectionHeading'
 
+/** Eyebrow style: solid navy Arabic/English lead + gradient “URGEN” + punctuation (matches brand artwork). */
+function WhyUrgenEyebrow({
+  lead,
+  punct,
+  dir,
+}: {
+  lead: string
+  punct: string
+  dir: 'rtl' | 'ltr'
+}) {
+  return (
+    <p
+      className="mb-4 text-4xl font-semibold tracking-wide text-balance"
+      dir={dir}
+    >
+      <span className="text-urgen-navy">{lead}</span>
+      {/* dir=ltr isolates Latin wordmark so RTL پَرَنت does not reverse flex order (UR before GEN) */}
+      <span
+        dir="ltr"
+        className="inline-flex flex-row flex-wrap items-baseline gap-0 [unicode-bidi:embed]"
+      >
+        <span className="bg-linear-to-r from-[#5896f3] to-[#0D47A1] bg-clip-text font-black text-transparent">
+          UR
+        </span>
+        <span className="bg-linear-to-r from-[#0D47A1] to-[#bc2ee4] bg-clip-text font-normal text-transparent">
+          GEN
+        </span>
+      </span> <span className="text-[#bc2ee4]">{punct}</span>
+    </p>
+  )
+}
+
 const icons = [
   <svg key="support" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path
@@ -38,13 +70,19 @@ const icons = [
 ] as const
 
 export function WhyUrgen() {
-  const { messages: m } = useLocaleContext()
+  const { locale, messages: m } = useLocaleContext()
 
   return (
     <section className="bg-urgen-sky-soft py-16 lg:py-24">
       <div className="container-urgen">
         <SectionHeading
-          eyebrow={m.whyUrgen.eyebrow}
+          eyebrow={
+            <WhyUrgenEyebrow
+              lead={m.whyUrgen.eyebrowLead}
+              punct={m.whyUrgen.eyebrowPunct}
+              dir={locale === 'ar' ? 'rtl' : 'ltr'}
+            />
+          }
           title={m.whyUrgen.title}
           subtitle={m.whyUrgen.subtitle}
         />

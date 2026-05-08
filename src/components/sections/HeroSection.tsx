@@ -6,9 +6,10 @@ import { Button } from '../ui/Button'
 const HERO_IMAGE = '/hero-banner.png'
 
 export function HeroSection() {
-  const { locale, messages: m } = useLocaleContext()
-  const blockAlign =
-    locale === 'ar' ? 'max-w-3xl self-end text-right' : 'max-w-3xl self-start text-left'
+  const { messages: m } = useLocaleContext()
+
+  /** Logical alignment: `start` = right in RTL (Arabic), left in LTR (English) — same pattern as English. */
+  const blockAlign = 'max-w-3xl self-start text-start'
 
   return (
     <section className="relative min-h-[min(92vh,820px)] overflow-hidden">
@@ -28,11 +29,7 @@ export function HeroSection() {
       />
 
       <div className="container-urgen relative flex min-h-[min(92vh,820px)] flex-col justify-center py-20 lg:py-28">
-        {/* في واجهة RTL: self-end يضع الكتلة على اليسار البصري — فوق المنطقة الأغمق في الصورة */}
         <div className={blockAlign}>
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-urgen-sky/95">
-            {m.hero.kicker}
-          </p>
           <h1 className="mt-4 text-4xl font-extrabold leading-tight text-white drop-shadow-sm sm:text-5xl lg:text-6xl">
             {m.hero.title}
           </h1>
@@ -41,7 +38,7 @@ export function HeroSection() {
             <Link to="/tests">
               <Button
                 variant="outline"
-                className="border-white/50 bg-white/10 text-white backdrop-blur hover:bg-white/20"
+                className="border-white/50 bg-white/10 text-black backdrop-blur hover:bg-white/20"
               >
                 {m.hero.browseTests}
               </Button>

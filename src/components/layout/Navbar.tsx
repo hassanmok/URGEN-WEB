@@ -19,7 +19,7 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-slate-100/80 bg-white/90 backdrop-blur-md">
-      <div className="container-urgen flex h-16 items-center justify-between gap-4 lg:h-[4.25rem]">
+      <div className="container-urgen flex h-24 items-center justify-between gap-4 lg:h-[5.5rem]">
         <Link
           to="/"
           className="min-w-0 shrink-0 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-urgen-purple/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
@@ -34,7 +34,7 @@ export function Navbar() {
               key={l.to}
               to={l.to}
               className={({ isActive }) =>
-                `rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                `rounded-lg px-5 py-4 text-sm font-semibold transition ${
                   isActive
                     ? 'bg-urgen-purple/10 text-urgen-purple'
                     : 'text-slate-600 hover:bg-slate-50 hover:text-urgen-navy'

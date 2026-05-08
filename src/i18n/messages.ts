@@ -59,7 +59,8 @@ export const messagesAr = {
     },
   ],
   whyUrgen: {
-    eyebrow: 'لماذا URGEN؟',
+    eyebrowLead: 'لماذا تختار ',
+    eyebrowPunct: '؟',
     title: 'ثقة مبنية على العلم والإنسان',
     subtitle:
       'نؤمن أن الجودة ليست فقط في الأرقام، بل في تجربة هادئة وواضحة من أول استفسار حتى استلام التقرير.',
@@ -83,7 +84,7 @@ export const messagesAr = {
     ],
   },
   testsPreview: {
-    eyebrow: 'فحوصنا',
+    eyebrow: 'تحاليلنا',
     title: 'تحليلات تغطي احتياجاتك الوراثية',
     subtitle:
       'اختر الفئة المناسبة واطّلع على التفاصيل، أو تواصل معنا لنساعدك على اختيار الفحص الأنسب.',
@@ -335,7 +336,8 @@ export const messagesEn = {
     },
   ],
   whyUrgen: {
-    eyebrow: 'Why URGEN?',
+    eyebrowLead: 'Why ',
+    eyebrowPunct: '?',
     title: 'Trust built on science and care',
     subtitle:
       'We believe quality is not only in numbers, but in a calm, clear journey from first question to receiving your report.',
