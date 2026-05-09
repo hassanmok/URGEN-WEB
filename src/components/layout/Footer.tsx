@@ -32,8 +32,8 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link className="text-slate-300 hover:text-white" to="/prices">
-                  {m.nav.prices}
+                <Link className="text-slate-300 hover:text-white" to="/technology">
+                  {m.nav.technology}
                 </Link>
               </li>
               <li>

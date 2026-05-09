@@ -2,13 +2,14 @@ import { Link } from 'react-router-dom'
 import { useLocaleContext } from '../../i18n/useLocaleContext'
 import { getLocalizedTestCopy } from '../../i18n/localizedTest'
 import { Button } from './Button'
-import type { TestRow } from '../../types/database'
+import type { LabTest } from '../../types/labTest'
 
 type TestCardProps = {
-  test: TestRow
+  test: LabTest
+  categoryLabel?: string
 }
 
-export function TestCard({ test }: TestCardProps) {
+export function TestCard({ test, categoryLabel }: TestCardProps) {
   const { locale, messages: m } = useLocaleContext()
   const copy = getLocalizedTestCopy(test, locale, m)
   const img = test.image_url ?? '/placeholder-test.svg'
@@ -23,6 +24,11 @@ export function TestCard({ test }: TestCardProps) {
           loading="lazy"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-urgen-navy/70 via-transparent to-transparent opacity-90" />
+        {categoryLabel && (
+          <span className="absolute start-3 top-3 rounded-full bg-white/90 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-urgen-navy shadow-sm">
+            {categoryLabel}
+          </span>
+        )}
         <h3 className="absolute bottom-3 start-4 end-4 text-lg font-bold text-white drop-shadow">
           {copy.title}
         </h3>

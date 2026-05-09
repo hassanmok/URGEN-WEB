@@ -6,7 +6,8 @@ import { BookPage } from './pages/BookPage'
 import { ContactPage } from './pages/ContactPage'
 import { HomePage } from './pages/HomePage'
 import { NotFoundPage } from './pages/NotFoundPage'
-import { PricesPage } from './pages/PricesPage'
+import { SearchPage } from './pages/SearchPage'
+import { TechnologyPage } from './pages/TechnologyPage'
 import { TestDetailPage } from './pages/TestDetailPage'
 import { TestsPage } from './pages/TestsPage'
 
@@ -19,10 +20,11 @@ export default function App() {
           <Route index element={<HomePage />} />
           <Route path="tests" element={<TestsPage />} />
           <Route path="tests/:slug" element={<TestDetailPage />} />
-          <Route path="prices" element={<PricesPage />} />
+          <Route path="technology" element={<TechnologyPage />} />
           <Route path="about" element={<AboutPage />} />
           <Route path="contact" element={<ContactPage />} />
           <Route path="book" element={<BookPage />} />
+          <Route path="search" element={<SearchPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>

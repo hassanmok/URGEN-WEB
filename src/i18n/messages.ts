@@ -16,7 +16,7 @@ export const messagesAr = {
     mobile: 'التنقل للجوال',
     home: 'الرئيسية',
     tests: 'الفحوصات',
-    prices: 'الأسعار',
+    technology: 'التقنيات',
     about: 'من نحن',
     contact: 'اتصل بنا',
     book: 'احجز فحصاً',
@@ -54,8 +54,8 @@ export const messagesAr = {
       description: 'حماية بياناتك وفق مبادئ سرية طبية وأنظمة تخزين آمنة.',
     },
     {
-      title: 'أسعار مناسبة',
-      description: 'باقات واضحة بدون مفاجآت — واستشارة أولية تساعدك على الاختيار.',
+      title: 'تغطية تحليلية واسعة',
+      description: 'من التسلسل الجزيئي إلى الفحص الاستقلابي وعلم الأنسجة — منظومة تقنيات متعددة.',
     },
   ],
   whyUrgen: {
@@ -99,58 +99,20 @@ export const messagesAr = {
       'احجز فحصك الآن واحصل على استشارة توجيهية تساعدك على فهم الخطوات التالية — دون تعقيد، وبأسلوب يضع راحتك في المركز.',
     button: 'احجز الآن',
   },
-  home: {
-    pricingEyebrow: 'الأسعار',
-    pricingTitle: 'باقات واضحة تناسب مختلف الاحتياجات',
-    pricingSubtitle:
-      'الأسعار تقريبية وقد تختلف حسب نوع الفحص والعينة — وسنؤكد التكلفة النهائية قبل البدء.',
-  },
-  pricing: {
-    badge: 'الأكثر طلباً',
-    currency: 'د.ع',
-    choosePlan: 'اختر الباقة',
-    tiers: {
-      basic: {
-        name: 'الباقة الأساسية',
-        description: 'مناسبة للاستفسار الأولي والفحوص المستهدفة ذات النطاق المحدود.',
-        features: [
-          'استشارة توجيهية قصيرة',
-          'تقرير إلكتروني واضح',
-          'متابعة عبر القنوات الرسمية',
-        ],
-      },
-      advanced: {
-        name: 'الباقة المتقدمة',
-        description: 'توازن ممتاز بين التغطية والسرعة لمعظم الحالات الشائعة.',
-        features: [
-          'تحليل موسّع ضمن نطاق محدد مسبقاً',
-          'مراجعة جودة إضافية',
-          'أولوية في زمن الإنجاز للفحوص المؤهلة',
-        ],
-      },
-      comprehensive: {
-        name: 'الباقة الشاملة',
-        description: 'للحالات التي تحتاج تغطية أوسع ومتابعة أوضح مع الفريق الطبي.',
-        features: [
-          'خطة فحص أشمل وفق الاستشارة',
-          'شرح مبسّط للنتائج ضمن السياق',
-          'جلسة متابعة قصيرة بعد التقرير',
-        ],
-      },
-    },
-  },
-  pricesPage: {
-    eyebrow: 'الأسعار',
-    title: 'باقات شفافة تناسب مختلف الحالات',
-    subtitle:
-      'قيم العملة بالدينار العراقي. قد تتغير التكلفة النهائية حسب نوع العينة ونطاق التحليل — سنزودك بعرض واضح قبل البدء.',
-    faqTitle: 'أسئلة شائعة',
-    faq1q: 'هل يشمل السعر الاستشارة؟',
-    faq1a:
-      'تتضمن الباقات عنصراً توجيهياً بحسب النوع. الاستشارة الطبية المتخصصة قد تكون عبر الطبيب المعالج خارج المختبر.',
-    faq2q: 'متى أدفع؟',
-    faq2a:
-      'حالياً يتم التنسيق عبر الحجز والدفع في المختبر أو القنوات المعتمدة. ربط بوابة الدفع الإلكتروني مخطط للمرحلة القادمة دون تغيير تجربة المستخدم بشكل جذري.',
+  searchPage: {
+    eyebrow: 'بحث',
+    title: 'نتائج البحث',
+    placeholder: 'ابحث في الصفحات والفحوصات…',
+    submitLabel: 'بحث',
+    ariaSearch: 'بحث في الموقع',
+    hintEmpty: 'اكتب كلمة بحث ثم اضغط بحث أو Enter.',
+    hintNoQuery: 'لم يُدخل أي استعلام. استخدم مربع البحث أعلاه.',
+    noResults: 'لا توجد نتائج مطابقة.',
+    kindPage: 'صفحة',
+    kindTest: 'فحص',
+    resultsCount: 'عدد النتائج: {n}',
+    goTo: 'عرض الصفحة',
+    closeOverlay: 'إغلاق البحث',
   },
   about: {
     eyebrow: 'من نحن',
@@ -175,13 +137,71 @@ export const messagesAr = {
       },
     ],
   },
+  technologyPage: {
+    eyebrow: 'التقنيات',
+    title: 'منصات التحليل في مختبر URGEN',
+    subtitle:
+      'من التسلسل الجزيئي عالي الإنتاج إلى الكيمياء المناعية النسيجية والفحص الاستقلابي — نختار الطريقة المناسبة لنوع العينة والسؤال السريري.',
+    intro:
+      'يدمج مختبر URGEN عدة منصات تحليلية تحت ضبط جودة موحّد، بهدف تقارير موثوقة تدعم الطبيب المعالج في اتخاذ القرار. التفاصيل التالية تعرض التقنيات الأساسية المستخدمة في قائمة الفحوص.',
+    items: [
+      {
+        title: 'تسلسل الجيل التالي (NGS)',
+        description:
+          'للواحات الجينات والتحليل الجسيمي والجرثومي، وفحص ما قبل الولادة غير الجراحي (NIPT)، وبعض فحوص الأجنة والحديثي الولادة.',
+      },
+      {
+        title: 'PCR زمن حقيقي',
+        description:
+          'للكشف عن طفرات مستهدفة ودمج الجينات والأنماط الفيروسية (مثل HPV) مع دورة أسرع للنتائج في فحوص مختارة.',
+      },
+      {
+        title: 'الكيمياء المناعية النسيجية (IHC)',
+        description:
+          'لتقييم التعبير البروتيني في النسيج المضمن (FFPE) بما في ذلك المؤشرات مثل PD-L1 وفحص إصلاح عدم التطابق (MMR).',
+      },
+      {
+        title: 'طيف الكتلة السائل — LC-MS/MS',
+        description:
+          'لفحص حديثي الولادة الاستقلابي (NBS) والكشف المبكر عن اضطرابات أيضية وميتابولية مختارة.',
+      },
+      {
+        title: 'PCR والتحليل الكهربائي الشعري',
+        description:
+          'لفحص عدم استقرار المجهري المصغر (MSI) عند الحالات التي يقرّرها الطبيب المعالج.',
+      },
+      {
+        title: 'تحليل الكاريوتيب',
+        description:
+          'لرسم الصبغيات التقليدي في حالات الخصوبة والاشتباه بتشوهات عددية أو بنيوية كبيرة.',
+      },
+      {
+        title: 'انتشار كروماتين الحيوانات المنوية (SCD)',
+        description:
+          'لتقييم تكسر الحمض النووي للحيوانات المنوية ضمن تقييم العقم الذكوري.',
+      },
+      {
+        title: 'المناعة السطحية (مثل ImmunoCAP)',
+        description:
+          'لفحوص الحساسية من مصل الدم ضمن لوحات متعددة المسببات عند الحاجة السريرية.',
+      },
+    ],
+  },
   testsPage: {
     eyebrow: 'الفحوصات',
     title: 'اكتشف فحوص URGEN الوراثية',
     subtitle:
-      'اختر الفئة المناسبة واطّلع على نظرة عامة. للتفاصيل الطبية الدقيقة، يرافقكم الطبيب المعالج.',
+      'اضغط على أحد التصنيفات أدناه لعرض التحاليل — مع نوع العينة والطريقة وزمن الإنجاز والسعر كما في قائمة المختبر.',
     fallbackNotice:
-      'يتم عرض بيانات تجريبية محلياً. بعد ربط Supabase وإدخال الفحوص في الجدول، ستظهر القائمة من قاعدة البيانات تلقائياً.',
+      'يتم عرض قائمة المختبر الكاملة محلياً. بعد ربط Supabase وإدخال الفحوص في الجدول، ستُحمَّل القائمة من قاعدة البيانات إن وُجدت.',
+    categories: {
+      oncology_somatic: 'الأورام والجسيمي',
+      hereditary_cancer: 'السرطان الوراثي',
+      reproductive: 'الإنجاب وصحة المرأة/الرجل',
+      nipt: 'NIPT — قبل الولادة غير جراحي',
+      pediatric_newborn: 'الأطفال وحديثو الولادة',
+    },
+    uncategorized: 'فحوص أخرى',
   },
   testDetail: {
     notFound: 'الفحص غير موجود',
@@ -192,6 +212,15 @@ export const messagesAr = {
       'للحصول على تفاصيل سريرية دقيقة ومؤهلة، ننصح بمناقشة هذا الفحص مع الطبيب المعالج. نحن هنا لدعمك بخطوات واضحة من الحجز حتى استلام التقرير.',
     bookThis: 'احجز هذا الفحص',
     askBefore: 'استفسر قبل الحجز',
+    category: 'التصنيف',
+    clinicalUse: 'الاستخدام السريري / لمن يُنصح',
+    sample: 'العينة المطلوبة',
+    method: 'الطريقة والتقنية',
+    turnaround: 'زمن الإنجاز',
+    price: 'السعر',
+    preparation: 'التحضير وجمع العينة',
+    limitations: 'تنويهات وحدود',
+    currencyNote: 'الأسعار بالدينار العراقي (د.ع) كما في قائمة المختبر.',
   },
   bookPage: {
     eyebrow: 'حجز موعد',
@@ -293,7 +322,7 @@ export const messagesEn = {
     mobile: 'Mobile navigation',
     home: 'Home',
     tests: 'Tests',
-    prices: 'Pricing',
+    technology: 'Technology',
     about: 'About',
     contact: 'Contact',
     book: 'Book a test',
@@ -331,8 +360,8 @@ export const messagesEn = {
       description: 'Your data is protected with medical confidentiality and secure storage.',
     },
     {
-      title: 'Fair pricing',
-      description: 'Clear packages without surprises — plus guidance to help you choose.',
+      title: 'Broad analytical coverage',
+      description: 'From molecular sequencing to metabolic and tissue pathology — multiple platforms.',
     },
   ],
   whyUrgen: {
@@ -376,58 +405,20 @@ export const messagesEn = {
       'Book your test and get guidance on next steps — simple, clear, and centered on your comfort.',
     button: 'Book now',
   },
-  home: {
-    pricingEyebrow: 'Pricing',
-    pricingTitle: 'Clear packages for different needs',
-    pricingSubtitle:
-      'Prices are indicative and may vary by test type and sample — we confirm the final cost before starting.',
-  },
-  pricing: {
-    badge: 'Most popular',
-    currency: 'IQD',
-    choosePlan: 'Choose plan',
-    tiers: {
-      basic: {
-        name: 'Basic package',
-        description: 'Ideal for first inquiries and targeted tests with a limited scope.',
-        features: [
-          'Short orientation consult',
-          'Clear electronic report',
-          'Follow-up via official channels',
-        ],
-      },
-      advanced: {
-        name: 'Advanced package',
-        description: 'Great balance of coverage and speed for most common cases.',
-        features: [
-          'Expanded analysis within a predefined scope',
-          'Additional quality review',
-          'Priority turnaround for eligible tests',
-        ],
-      },
-      comprehensive: {
-        name: 'Comprehensive package',
-        description: 'For cases that need broader coverage and clearer medical follow-up.',
-        features: [
-          'Broader testing plan per consultation',
-          'Plain-language explanation in context',
-          'Short follow-up session after the report',
-        ],
-      },
-    },
-  },
-  pricesPage: {
-    eyebrow: 'Pricing',
-    title: 'Transparent packages for different situations',
-    subtitle:
-      'Amounts are in Iraqi dinar. Final cost may vary by sample type and analysis scope — we give you a clear quote before starting.',
-    faqTitle: 'FAQ',
-    faq1q: 'Does the price include consultation?',
-    faq1a:
-      'Packages include orientation elements by type. Specialized medical consultation may be with your treating physician outside the lab.',
-    faq2q: 'When do I pay?',
-    faq2a:
-      'Coordination is currently via booking and payment at the lab or approved channels. Online payment is planned next without a disruptive UX change.',
+  searchPage: {
+    eyebrow: 'Search',
+    title: 'Search results',
+    placeholder: 'Search pages and lab tests…',
+    submitLabel: 'Search',
+    ariaSearch: 'Search the site',
+    hintEmpty: 'Enter a keyword and press Search or Enter.',
+    hintNoQuery: 'No search query. Use the search box above.',
+    noResults: 'No matching results.',
+    kindPage: 'Page',
+    kindTest: 'Test',
+    resultsCount: 'Results: {n}',
+    goTo: 'View page',
+    closeOverlay: 'Close search',
   },
   about: {
     eyebrow: 'About us',
@@ -451,13 +442,71 @@ export const messagesEn = {
       },
     ],
   },
+  technologyPage: {
+    eyebrow: 'Technology',
+    title: 'Analytical platforms at URGEN Laboratory',
+    subtitle:
+      'From high-throughput sequencing to immunohistochemistry and metabolic screening — we align methods with sample type and clinical question.',
+    intro:
+      'URGEN integrates multiple analytical platforms under one quality framework to deliver dependable reports that support clinical decisions. Below are the core technologies used across our test menu.',
+    items: [
+      {
+        title: 'Next-generation sequencing (NGS)',
+        description:
+          'Gene panels, somatic and germline analysis, non-invasive prenatal testing (NIPT), selected preimplantation and newborn genetic assays.',
+      },
+      {
+        title: 'Real-time PCR',
+        description:
+          'Targeted mutation detection, fusion screening, and viral/genotype assays such as HPV genotyping — with faster turnaround for selected tests.',
+      },
+      {
+        title: 'Immunohistochemistry (IHC)',
+        description:
+          'Protein expression on FFPE tissue including markers such as PD-L1 and mismatch repair (MMR) screening.',
+      },
+      {
+        title: 'LC-MS/MS',
+        description:
+          'Newborn metabolic screening (NBS) and early detection of selected inherited metabolic disorders.',
+      },
+      {
+        title: 'PCR and capillary electrophoresis',
+        description:
+          'Microsatellite instability (MSI) testing when clinically indicated.',
+      },
+      {
+        title: 'Conventional karyotyping',
+        description:
+          'Chromosome analysis for infertility workups and suspected large numerical or structural abnormalities.',
+      },
+      {
+        title: 'Sperm chromatin dispersion (SCD)',
+        description:
+          'Sperm DNA fragmentation assessment within male infertility evaluation.',
+      },
+      {
+        title: 'Immunoassay platforms (e.g. ImmunoCAP)',
+        description:
+          'Serum-based allergy screening with multi-allergen panels when clinically appropriate.',
+      },
+    ],
+  },
   testsPage: {
     eyebrow: 'Tests',
     title: 'Explore URGEN genetic tests',
     subtitle:
-      'Choose a category for an overview. For precise medical detail, follow your treating physician’s guidance.',
+      'Tap a category below to expand its tests — sample type, method, turnaround, and pricing as in the lab menu.',
     fallbackNotice:
-      'Showing local demo data. After connecting Supabase and filling the tests table, the list loads from the database automatically.',
+      'Showing the full local catalog. After connecting Supabase, the list loads from the database when rows exist.',
+    categories: {
+      oncology_somatic: 'Oncology / Somatic',
+      hereditary_cancer: 'Hereditary cancer',
+      reproductive: 'Reproductive & women/men health',
+      nipt: 'NIPT (non-invasive prenatal testing)',
+      pediatric_newborn: 'Pediatric & newborn',
+    },
+    uncategorized: 'Other tests',
   },
   testDetail: {
     notFound: 'Test not found',
@@ -468,6 +517,15 @@ export const messagesEn = {
       'For qualified clinical detail, discuss this test with your physician. We support you with clear steps from booking to receiving your report.',
     bookThis: 'Book this test',
     askBefore: 'Ask before booking',
+    category: 'Category',
+    clinicalUse: 'Clinical use / who should consider',
+    sample: 'Sample required',
+    method: 'Method / technology',
+    turnaround: 'Turnaround time',
+    price: 'Price',
+    preparation: 'Preparation & collection',
+    limitations: 'Notes & limitations',
+    currencyNote: 'Prices in Iraqi Dinar (IQD) as per the lab menu.',
   },
   bookPage: {
     eyebrow: 'Book an appointment',

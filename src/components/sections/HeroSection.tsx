@@ -1,21 +1,36 @@
+import { useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useLocaleContext } from '../../i18n/useLocaleContext'
 import { Button } from '../ui/Button'
 
-/** صورة الهوية — مساحة داكنة على جانب النص */
-const HERO_IMAGE = '/hero-banner.png'
+const HERO_VIDEO = '/genetic.mp4'
 
 export function HeroSection() {
   const { messages: m } = useLocaleContext()
+  const videoRef = useRef<HTMLVideoElement>(null)
+
+  useEffect(() => {
+    const el = videoRef.current
+    if (!el) return
+    void el.play().catch(() => {
+      /* سياسات التشغيل التلقائي قد تمنع التشغيل حتى مع muted */
+    })
+  }, [])
 
   /** Logical alignment: `start` = right in RTL (Arabic), left in LTR (English) — same pattern as English. */
   const blockAlign = 'max-w-3xl self-start text-start'
 
   return (
     <section className="relative min-h-[min(92vh,820px)] overflow-hidden">
-      <div
-        className="absolute inset-0 bg-cover bg-position-[65%_center] sm:bg-center"
-        style={{ backgroundImage: `url(${HERO_IMAGE})` }}
+      <video
+        ref={videoRef}
+        className="absolute inset-0 h-full w-full scale-[1.01] object-cover object-[65%_center] sm:object-center"
+        src={HERO_VIDEO}
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="auto"
         aria-hidden
       />
       {/* تدرج يغمّق الجانب الأيسر (حيث النص) ويُبقي الجانب الأيمن أوضح للحمض النووي */}

@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { fallbackTests } from '../data/tests'
 import { supabase } from '../lib/supabase'
-import type { TestRow } from '../types/database'
+import type { LabTest } from '../types/labTest'
 
-function mapFallback(): TestRow[] {
+function mapFallback(): LabTest[] {
   return fallbackTests.map((t, i) => ({
     ...t,
     id: `local-${i}`,
@@ -12,7 +12,7 @@ function mapFallback(): TestRow[] {
 }
 
 export function useTests() {
-  const [tests, setTests] = useState<TestRow[]>([])
+  const [tests, setTests] = useState<LabTest[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [usingFallback, setUsingFallback] = useState(false)
@@ -46,7 +46,7 @@ export function useTests() {
         setTests(mapFallback())
         setUsingFallback(true)
       } else {
-        setTests(data as TestRow[])
+        setTests(data as LabTest[])
         setUsingFallback(false)
       }
 
