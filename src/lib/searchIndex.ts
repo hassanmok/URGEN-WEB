@@ -1,6 +1,6 @@
-import { labTestsCatalogEntries } from '../data/labTestsCatalog'
 import type { Locale } from '../i18n/messages'
 import type { Messages } from '../i18n/messages'
+import type { LabTest } from '../types/labTest'
 
 export type SearchDocKind = 'page' | 'test'
 
@@ -86,8 +86,8 @@ export function searchAndRank(docs: SearchDoc[], query: string): RankedSearchHit
   return hits
 }
 
-/** بناء جميع الوثائق القابلة للبحث للغة الحالية */
-export function buildSearchDocuments(locale: Locale, m: Messages): SearchDoc[] {
+/** بناء جميع الوثائق القابلة للبحث للغة الحالية (الفحوصات من Supabase عند التوفّر) */
+export function buildSearchDocuments(locale: Locale, m: Messages, tests: LabTest[]): SearchDoc[] {
   const docs: SearchDoc[] = []
 
   const join = (...parts: (string | undefined)[]) => parts.filter(Boolean).join(' \n ')
@@ -155,6 +155,14 @@ export function buildSearchDocuments(locale: Locale, m: Messages): SearchDoc[] {
   })
 
   docs.push({
+    id: 'page-events',
+    href: '/events',
+    title: locale === 'ar' ? 'الفعاليات' : 'Events',
+    haystack: join(m.eventsPage.title, m.eventsPage.subtitle),
+    kind: 'page',
+  })
+
+  docs.push({
     id: 'page-contact',
     href: '/contact',
     title: locale === 'ar' ? 'اتصل بنا' : 'Contact',
@@ -170,32 +178,36 @@ export function buildSearchDocuments(locale: Locale, m: Messages): SearchDoc[] {
     kind: 'page',
   })
 
-  for (const t of labTestsCatalogEntries) {
-    const title = locale === 'ar' ? t.title_ar : t.title_en
+  for (const t of tests) {
+    const title = locale === 'ar' ? t.title_ar : (t.title_en ?? t.title_ar)
+    const categoryLabel =
+      t.category && m.testsPage.categories[t.category as keyof typeof m.testsPage.categories]
+        ? m.testsPage.categories[t.category as keyof typeof m.testsPage.categories]
+        : ''
+
     const haystack = join(
       t.slug,
       t.title_ar,
-      t.title_en,
+      t.title_en ?? '',
       t.description_ar,
-      t.description_en,
+      t.description_en ?? '',
       t.long_description_ar ?? '',
-      t.clinical_use_ar,
-      t.clinical_use_en,
-      t.sample_ar,
-      t.sample_en,
-      t.method_ar,
-      t.method_en,
-      t.turnaround_ar,
-      t.turnaround_en,
-      t.price_display_ar,
-      t.price_display_en,
-      t.preparation_ar,
-      t.preparation_en,
-      t.limitation_note_ar,
-      t.limitation_note_en,
-      locale === 'ar'
-        ? m.testsPage.categories[t.category]
-        : m.testsPage.categories[t.category],
+      t.long_description_en ?? '',
+      t.clinical_use_ar ?? '',
+      t.clinical_use_en ?? '',
+      t.sample_ar ?? '',
+      t.sample_en ?? '',
+      t.method_ar ?? '',
+      t.method_en ?? '',
+      t.turnaround_ar ?? '',
+      t.turnaround_en ?? '',
+      t.price_display_ar ?? '',
+      t.price_display_en ?? '',
+      t.preparation_ar ?? '',
+      t.preparation_en ?? '',
+      t.limitation_note_ar ?? '',
+      t.limitation_note_en ?? '',
+      categoryLabel,
     )
 
     docs.push({

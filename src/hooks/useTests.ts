@@ -8,6 +8,7 @@ function mapFallback(): LabTest[] {
     ...t,
     id: `local-${i}`,
     created_at: null,
+    long_description_en: t.description_en ?? null,
   }))
 }
 

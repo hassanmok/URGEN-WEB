@@ -1,12 +1,15 @@
 import { useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useLocaleContext } from '../../i18n/useLocaleContext'
+import { pickLocale, useSiteContent } from '../../i18n/useSiteContent'
 import { Button } from '../ui/Button'
 
 const HERO_VIDEO = '/genetic.mp4'
 
 export function HeroSection() {
-  const { messages: m } = useLocaleContext()
+  const { locale } = useLocaleContext()
+  const { content } = useSiteContent()
+  const hero = pickLocale(content.hero, locale)
   const videoRef = useRef<HTMLVideoElement>(null)
 
   useEffect(() => {
@@ -46,20 +49,20 @@ export function HeroSection() {
       <div className="container-urgen relative flex min-h-[min(92vh,820px)] flex-col justify-center py-20 lg:py-28">
         <div className={blockAlign}>
           <h1 className="mt-4 text-4xl font-extrabold leading-tight text-white drop-shadow-sm sm:text-5xl lg:text-6xl">
-            {m.hero.title}
+            {hero.title}
           </h1>
-          <p className="mt-6 text-lg leading-relaxed text-slate-100/95 sm:text-xl">{m.hero.subtitle}</p>
+          <p className="mt-6 text-lg leading-relaxed text-slate-100/95 sm:text-xl">{hero.subtitle}</p>
           <div className="mt-10 flex flex-wrap gap-4">
             <Link to="/tests">
               <Button
                 variant="outline"
                 className="border-white/50 bg-white/10 text-black backdrop-blur hover:bg-white/20"
               >
-                {m.hero.browseTests}
+                {hero.browseTests}
               </Button>
             </Link>
             <Link to="/book">
-              <Button>{m.hero.bookNow}</Button>
+              <Button>{hero.bookNow}</Button>
             </Link>
           </div>
         </div>

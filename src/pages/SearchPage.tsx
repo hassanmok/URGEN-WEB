@@ -3,14 +3,16 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { SectionHeading } from '../components/ui/SectionHeading'
 import { SearchBar } from '../components/layout/SearchBar'
 import { useLocaleContext } from '../i18n/useLocaleContext'
+import { useTests } from '../hooks/useTests'
 import { buildSearchDocuments, searchAndRank } from '../lib/searchIndex'
 
 export function SearchPage() {
   const [searchParams] = useSearchParams()
   const query = searchParams.get('q')?.trim() ?? ''
   const { locale, messages: m } = useLocaleContext()
+  const { tests, loading } = useTests()
 
-  const docs = useMemo(() => buildSearchDocuments(locale, m), [locale, m])
+  const docs = useMemo(() => buildSearchDocuments(locale, m, tests), [locale, m, tests])
   const hits = useMemo(() => searchAndRank(docs, query), [docs, query])
 
   const subtitle = query
@@ -36,11 +38,17 @@ export function SearchPage() {
           </p>
         )}
 
-        {query && hits.length === 0 && (
+        {query && loading && (
+          <p className="mx-auto mt-10 max-w-2xl text-center text-sm text-slate-500">
+            {m.searchPage.loading}
+          </p>
+        )}
+
+        {query && !loading && hits.length === 0 && (
           <p className="mx-auto mt-10 max-w-2xl text-center text-slate-600">{m.searchPage.noResults}</p>
         )}
 
-        {query && hits.length > 0 && (
+        {query && !loading && hits.length > 0 && (
           <ul className="mx-auto mt-10 max-w-3xl space-y-4">
             {hits.map((hit) => (
               <li key={hit.doc.id}>

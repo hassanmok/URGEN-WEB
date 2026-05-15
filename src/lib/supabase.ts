@@ -9,8 +9,8 @@ const configured = Boolean(url && anonKey)
 export const supabase = configured
   ? createClient<Database>(url!, anonKey!, {
       auth: {
-        persistSession: false,
-        autoRefreshToken: false,
+        persistSession: true,
+        autoRefreshToken: true,
       },
     })
   : null

@@ -14,7 +14,7 @@ export function Footer() {
               to="/"
               className="inline-block rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-urgen-navy"
             >
-              <Logo light large />
+              <Logo light large footer />
             </Link>
             <p className="mt-4 max-w-md text-sm leading-relaxed text-slate-300">
               {m.footer.blurb}
@@ -34,6 +34,11 @@ export function Footer() {
               <li>
                 <Link className="text-slate-300 hover:text-white" to="/technology">
                   {m.nav.technology}
+                </Link>
+              </li>
+              <li>
+                <Link className="text-slate-300 hover:text-white" to="/events">
+                  {m.nav.events}
                 </Link>
               </li>
               <li>

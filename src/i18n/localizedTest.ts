@@ -20,7 +20,7 @@ export function getLocalizedTestCopy(test: LabTest, locale: Locale, m: Messages)
     return {
       title: test.title_en,
       description: test.description_en,
-      long: test.long_description_ar,
+      long: test.long_description_en ?? test.long_description_ar,
     }
   }
 

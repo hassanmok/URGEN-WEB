@@ -1,4 +1,5 @@
 import { useLocaleContext } from '../i18n/useLocaleContext'
+import { pickLocale, useSiteContent } from '../i18n/useSiteContent'
 import { SectionHeading } from '../components/ui/SectionHeading'
 import { FeatureCard } from '../components/ui/FeatureCard'
 
@@ -65,26 +66,24 @@ const techIcons = [
 ] as const
 
 export function TechnologyPage() {
-  const { locale, messages: m } = useLocaleContext()
+  const { locale } = useLocaleContext()
+  const { content } = useSiteContent()
+  const tech = pickLocale(content.technology, locale)
   const proseAlign = locale === 'ar' ? 'text-right' : 'text-left'
 
   return (
     <div className="bg-white py-14 lg:py-20">
       <div className="container-urgen">
-        <SectionHeading
-          eyebrow={m.technologyPage.eyebrow}
-          title={m.technologyPage.title}
-          subtitle={m.technologyPage.subtitle}
-        />
+        <SectionHeading eyebrow={tech.eyebrow} title={tech.title} subtitle={tech.subtitle} />
 
         <p
           className={`mx-auto mt-10 max-w-3xl text-base leading-relaxed text-slate-600 ${proseAlign}`}
         >
-          {m.technologyPage.intro}
+          {tech.intro}
         </p>
 
         <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {m.technologyPage.items.map((item, i) => (
+          {tech.items.map((item, i) => (
             <FeatureCard
               key={item.title}
               title={item.title}

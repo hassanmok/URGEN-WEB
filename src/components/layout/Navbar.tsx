@@ -60,6 +60,7 @@ export function Navbar() {
     { to: '/tests', label: m.nav.tests },
     { to: '/technology', label: m.nav.technology },
     { to: '/about', label: m.nav.about },
+    { to: '/events', label: m.nav.events },
     { to: '/contact', label: m.nav.contact },
   ]
 

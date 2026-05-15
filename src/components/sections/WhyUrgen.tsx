@@ -1,4 +1,5 @@
 import { useLocaleContext } from '../../i18n/useLocaleContext'
+import { pickLocale, useSiteContent } from '../../i18n/useSiteContent'
 import { FeatureCard } from '../ui/FeatureCard'
 import { SectionHeading } from '../ui/SectionHeading'
 
@@ -70,7 +71,9 @@ const icons = [
 ] as const
 
 export function WhyUrgen() {
-  const { locale, messages: m } = useLocaleContext()
+  const { locale } = useLocaleContext()
+  const { content } = useSiteContent()
+  const why = pickLocale(content.why_urgen, locale)
 
   return (
     <section className="bg-urgen-sky-soft py-16 lg:py-24">
@@ -78,16 +81,16 @@ export function WhyUrgen() {
         <SectionHeading
           eyebrow={
             <WhyUrgenEyebrow
-              lead={m.whyUrgen.eyebrowLead}
-              punct={m.whyUrgen.eyebrowPunct}
+              lead={why.eyebrowLead}
+              punct={why.eyebrowPunct}
               dir={locale === 'ar' ? 'rtl' : 'ltr'}
             />
           }
-          title={m.whyUrgen.title}
-          subtitle={m.whyUrgen.subtitle}
+          title={why.title}
+          subtitle={why.subtitle}
         />
         <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {m.whyUrgen.items.map((item, i) => (
+          {why.items.map((item, i) => (
             <FeatureCard
               key={item.title}
               title={item.title}

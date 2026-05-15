@@ -1,23 +1,25 @@
 import { Link } from "react-router-dom";
 import { useTests } from "../../hooks/useTests";
 import { useLocaleContext } from "../../i18n/useLocaleContext";
+import { pickLocale, useSiteContent } from "../../i18n/useSiteContent";
 import { SectionHeading } from "../ui/SectionHeading";
 import { TestCard } from "../ui/TestCard";
 import { Button } from "../ui/Button";
 
 export function TestsPreview() {
   const { tests, loading } = useTests();
-  const { messages: m } = useLocaleContext();
+  const { locale } = useLocaleContext();
+  const { content } = useSiteContent();
+  const previewCopy = pickLocale(content.tests_preview, locale);
   const preview = tests.slice(0, 4);
 
   return (
     <section className="py-16 lg:py-24">
       <div className="container-urgen">
         <SectionHeading
-          eyebrow={m.testsPreview.eyebrow}
-          eyebrowClassName="mb-3 text-4xl font-bold tracking-wide text-[#a028c1] normal-case"
-          title={m.testsPreview.title}
-          subtitle={m.testsPreview.subtitle}
+          eyebrow={previewCopy.eyebrow}
+          title={previewCopy.title}
+          subtitle={previewCopy.subtitle}
         />
 
         {loading ? (
@@ -41,7 +43,7 @@ export function TestsPreview() {
         <div className="mt-12 flex justify-center">
           <Link to="/tests">
             <Button variant="outline" className="min-w-[220px]">
-              {m.testsPreview.viewAll}
+              {previewCopy.viewAll}
             </Button>
           </Link>
         </div>

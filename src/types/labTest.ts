@@ -32,7 +32,11 @@ export type LabTestMeta = {
 export type LabTest = TestRow & Partial<LabTestMeta>
 
 /** عنصر كامل في القائمة المحلية قبل إضافة id من الخادم */
-export type LabTestCatalogEntry = Omit<TestRow, 'id' | 'created_at'> & LabTestMeta
+export type LabTestCatalogEntry = Omit<
+  TestRow,
+  'id' | 'created_at' | 'long_description_en' | 'category'
+> &
+  LabTestMeta
 
 export function isFullLabTest(t: LabTest): t is TestRow & LabTestMeta {
   return Boolean(

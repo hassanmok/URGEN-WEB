@@ -1,4 +1,5 @@
 import { useLocaleContext } from '../i18n/useLocaleContext'
+import { pickLocale, useSiteContent } from '../i18n/useSiteContent'
 import { SectionHeading } from '../components/ui/SectionHeading'
 import { FeatureCard } from '../components/ui/FeatureCard'
 
@@ -25,27 +26,25 @@ const valueIcons = [
 ] as const
 
 export function AboutPage() {
-  const { locale, messages: m } = useLocaleContext()
+  const { locale } = useLocaleContext()
+  const { content } = useSiteContent()
+  const about = pickLocale(content.about, locale)
   const proseAlign = locale === 'ar' ? 'text-right' : 'text-left'
 
   return (
     <div className="bg-white py-14 lg:py-20">
       <div className="container-urgen">
-        <SectionHeading
-          eyebrow={m.about.eyebrow}
-          title={m.about.title}
-          subtitle={m.about.subtitle}
-        />
+        <SectionHeading eyebrow={about.eyebrow} title={about.title} subtitle={about.subtitle} />
 
         <div
           className={`mx-auto mt-12 max-w-3xl space-y-4 text-base leading-relaxed text-slate-600 ${proseAlign}`}
         >
-          <p>{m.about.p1}</p>
-          <p>{m.about.p2}</p>
+          <p>{about.p1}</p>
+          <p>{about.p2}</p>
         </div>
 
         <div className="mt-14 grid gap-6 md:grid-cols-3">
-          {m.about.values.map((v, i) => (
+          {about.values.map((v, i) => (
             <FeatureCard
               key={v.title}
               title={v.title}

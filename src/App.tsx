@@ -10,6 +10,8 @@ import { SearchPage } from './pages/SearchPage'
 import { TechnologyPage } from './pages/TechnologyPage'
 import { TestDetailPage } from './pages/TestDetailPage'
 import { TestsPage } from './pages/TestsPage'
+import { EventsPage } from './pages/EventsPage'
+import { AdminPage } from './pages/admin/AdminPage'
 
 export default function App() {
   return (
@@ -23,10 +25,12 @@ export default function App() {
           <Route path="technology" element={<TechnologyPage />} />
           <Route path="about" element={<AboutPage />} />
           <Route path="contact" element={<ContactPage />} />
+          <Route path="events" element={<EventsPage />} />
           <Route path="book" element={<BookPage />} />
           <Route path="search" element={<SearchPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
+        <Route path="admin" element={<AdminPage />} />
       </Routes>
     </BrowserRouter>
   )
