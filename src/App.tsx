@@ -1,8 +1,7 @@
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { MainLayout } from './components/layout/MainLayout'
 import { ScrollRestoration } from './components/ScrollRestoration'
 import { AboutPage } from './pages/AboutPage'
-import { BookPage } from './pages/BookPage'
 import { ContactPage } from './pages/ContactPage'
 import { HomePage } from './pages/HomePage'
 import { NotFoundPage } from './pages/NotFoundPage'
@@ -12,6 +11,7 @@ import { TestDetailPage } from './pages/TestDetailPage'
 import { TestsPage } from './pages/TestsPage'
 import { EventsPage } from './pages/EventsPage'
 import { AdminPage } from './pages/admin/AdminPage'
+import { PartnerPortalPage } from './pages/partner/PartnerPortalPage'
 
 export default function App() {
   return (
@@ -26,11 +26,12 @@ export default function App() {
           <Route path="about" element={<AboutPage />} />
           <Route path="contact" element={<ContactPage />} />
           <Route path="events" element={<EventsPage />} />
-          <Route path="book" element={<BookPage />} />
+          <Route path="book" element={<Navigate to="/contact" replace />} />
           <Route path="search" element={<SearchPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
         <Route path="admin" element={<AdminPage />} />
+        <Route path="partner" element={<PartnerPortalPage />} />
       </Routes>
     </BrowserRouter>
   )

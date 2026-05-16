@@ -170,14 +170,6 @@ export function buildSearchDocuments(locale: Locale, m: Messages, tests: LabTest
     kind: 'page',
   })
 
-  docs.push({
-    id: 'page-book',
-    href: '/book',
-    title: locale === 'ar' ? 'حجز موعد' : 'Book an appointment',
-    haystack: join(m.bookPage.title, m.bookPage.subtitle),
-    kind: 'page',
-  })
-
   for (const t of tests) {
     const title = locale === 'ar' ? t.title_ar : (t.title_en ?? t.title_ar)
     const categoryLabel =
@@ -201,8 +193,6 @@ export function buildSearchDocuments(locale: Locale, m: Messages, tests: LabTest
       t.method_en ?? '',
       t.turnaround_ar ?? '',
       t.turnaround_en ?? '',
-      t.price_display_ar ?? '',
-      t.price_display_en ?? '',
       t.preparation_ar ?? '',
       t.preparation_en ?? '',
       t.limitation_note_ar ?? '',

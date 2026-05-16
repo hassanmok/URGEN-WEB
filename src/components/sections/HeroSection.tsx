@@ -61,9 +61,6 @@ export function HeroSection() {
                 {hero.browseTests}
               </Button>
             </Link>
-            <Link to="/book">
-              <Button>{hero.bookNow}</Button>
-            </Link>
           </div>
         </div>
       </div>

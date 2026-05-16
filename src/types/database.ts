@@ -157,9 +157,76 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['contact_messages']['Insert']>
         Relationships: []
       }
+      partner_lab_users: {
+        Row: {
+          user_id: string
+          lab_display_name: string
+          partner_username: string | null
+          created_at: string | null
+        }
+        Insert: {
+          user_id: string
+          lab_display_name: string
+          partner_username?: string | null
+          created_at?: string | null
+        }
+        Update: Partial<Database['public']['Tables']['partner_lab_users']['Insert']>
+        Relationships: []
+      }
+      partner_submissions: {
+        Row: {
+          id: string
+          partner_user_id: string
+          patient_full_name: string
+          age_value: number
+          age_unit: string
+          test_slug: string
+          status: string
+          pdf_storage_path: string | null
+          pdf_expires_at: string | null
+          rejection_reason: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          partner_user_id: string
+          patient_full_name: string
+          age_value: number
+          age_unit: string
+          test_slug: string
+          status?: string
+          pdf_storage_path?: string | null
+          pdf_expires_at?: string | null
+          rejection_reason?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: Partial<Database['public']['Tables']['partner_submissions']['Insert']>
+        Relationships: []
+      }
     }
     Views: Record<string, never>
-    Functions: Record<string, never>
+    Functions: {
+      get_my_partner_lab: {
+        Args: Record<PropertyKey, never>
+        Returns: { lab_display_name: string }[]
+      }
+      partner_resolve_login: {
+        Args: { p_username: string }
+        Returns: { email: string }[]
+      }
+      partner_lab_users_admin_list: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          user_id: string
+          email: string
+          lab_display_name: string
+          partner_username: string | null
+          created_at: string | null
+        }[]
+      }
+    }
     Enums: Record<string, never>
     CompositeTypes: Record<string, never>
   }

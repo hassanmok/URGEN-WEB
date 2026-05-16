@@ -13,7 +13,6 @@ function detailFields(test: LabTest, locale: 'ar' | 'en') {
     sample: ar ? test.sample_ar : test.sample_en,
     method: ar ? test.method_ar : test.method_en,
     turnaround: ar ? test.turnaround_ar : test.turnaround_en,
-    price: ar ? test.price_display_ar : test.price_display_en,
     preparation: ar ? test.preparation_ar : test.preparation_en,
     limitation: ar ? test.limitation_note_ar : test.limitation_note_en,
   }
@@ -109,21 +108,12 @@ export function TestDetailPage() {
                 </dt>
                 <dd className="mt-1 leading-relaxed">{d.method}</dd>
               </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                    {m.testDetail.turnaround}
-                  </dt>
-                  <dd className="mt-1">{d.turnaround}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                    {m.testDetail.price}
-                  </dt>
-                  <dd className="mt-1">{d.price}</dd>
-                </div>
+              <div>
+                <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                  {m.testDetail.turnaround}
+                </dt>
+                <dd className="mt-1">{d.turnaround}</dd>
               </div>
-              <p className="text-xs text-slate-500">{m.testDetail.currencyNote}</p>
               <div>
                 <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">
                   {m.testDetail.preparation}
@@ -147,11 +137,8 @@ export function TestDetailPage() {
           )}
 
           <div className="mt-8 flex flex-wrap gap-4">
-            <Link to="/book">
-              <Button>{m.testDetail.bookThis}</Button>
-            </Link>
             <Link to="/contact">
-              <Button variant="outline">{m.testDetail.askBefore}</Button>
+              <Button>{m.testDetail.askBefore}</Button>
             </Link>
           </div>
         </div>

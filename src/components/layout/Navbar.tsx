@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react'
 import { NavLink, Link, useLocation } from 'react-router-dom'
 import { useLocaleContext } from '../../i18n/useLocaleContext'
 import { Logo } from '../Logo'
-import { Button } from '../ui/Button'
 import { LanguageSwitcher } from './LanguageSwitcher'
 import { SearchBar } from './SearchBar'
 
@@ -173,9 +172,6 @@ export function Navbar() {
             )}
           </button>
           <LanguageSwitcher />
-          <Link to="/book" className="hidden sm:inline-flex">
-            <Button className="px-4 py-2 text-sm">{m.nav.book}</Button>
-          </Link>
           <button
             type="button"
             className="inline-flex rounded-lg p-2 text-urgen-navy hover:bg-slate-100 md:hidden"
@@ -221,9 +217,6 @@ export function Navbar() {
                 {l.label}
               </NavLink>
             ))}
-            <Link to="/book" onClick={() => setOpen(false)} className="mt-2">
-              <Button className="w-full">{m.nav.book}</Button>
-            </Link>
           </nav>
         </div>
       )}

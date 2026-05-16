@@ -42,7 +42,7 @@ export function CtaBanner() {
           <h2 className="text-2xl font-extrabold leading-snug sm:text-3xl">{cta.title}</h2>
           <p className="mt-4 text-base leading-relaxed text-slate-200">{cta.subtitle}</p>
         </div>
-        <Link to="/book">
+        <Link to="/contact">
           <Button className="shadow-xl shadow-black/20">{cta.button}</Button>
         </Link>
       </div>

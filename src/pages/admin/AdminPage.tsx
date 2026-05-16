@@ -16,8 +16,12 @@ import {
   updateEvent,
 } from '../../lib/eventsStore'
 import { AdminDataPanel } from '../../components/admin/AdminDataPanel'
+import { AdminPartnerLabUsersPanel } from '../../components/admin/AdminPartnerLabUsersPanel'
+import { AdminPartnerSubmissionsPanel } from '../../components/admin/AdminPartnerSubmissionsPanel'
 import { EventImageField, type EventImageFieldHandle } from '../../components/admin/EventImageField'
+import { LanguageSwitcher } from '../../components/layout/LanguageSwitcher'
 import { useLocaleContext } from '../../i18n/useLocaleContext'
+import { fetchPartnerLabProfile } from '../../lib/partnerAccess'
 import type { EventInput, EventRecord } from '../../types/event'
 
 const Box = ({ className, children }: { className?: string; children?: React.ReactNode }) =>
@@ -51,7 +55,8 @@ export function AdminPage() {
   const [loginError, setLoginError] = useState<string | null>(null)
   const [loginSubmitting, setLoginSubmitting] = useState(false)
   const imageFieldRef = useRef<EventImageFieldHandle>(null)
-  const [tab, setTab] = useState<'events' | 'data'>('events')
+  const [tab, setTab] = useState<'events' | 'data' | 'partnerAccounts' | 'partnerLabs'>('events')
+  const [isPartnerStaffBlocked, setIsPartnerStaffBlocked] = useState<boolean | null>(null)
 
   const useSupabaseAuth = Boolean(supabase)
 
@@ -62,6 +67,27 @@ export function AdminPage() {
       setChecking(false)
     })()
   }, [])
+
+  useEffect(() => {
+    if (!authed || !supabase) {
+      setIsPartnerStaffBlocked(null)
+      return
+    }
+    let cancelled = false
+    void (async () => {
+      const { data } = await supabase.auth.getUser()
+      const uid = data.user?.id
+      if (!uid) {
+        if (!cancelled) setIsPartnerStaffBlocked(false)
+        return
+      }
+      const profile = await fetchPartnerLabProfile(supabase, uid)
+      if (!cancelled) setIsPartnerStaffBlocked(profile !== null)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [authed])
 
   async function loadEvents() {
     setLoadingEvents(true)
@@ -182,8 +208,13 @@ export function AdminPage() {
 
   if (checking) {
     return (
-      <Box className="flex min-h-screen items-center justify-center bg-slate-50">
-        <p className="text-slate-500">{m.admin.checking}</p>
+      <Box className="flex min-h-screen flex-col bg-slate-50">
+        <Box className="flex justify-end border-b border-slate-200 bg-white px-4 py-3">
+          <LanguageSwitcher />
+        </Box>
+        <Box className="flex flex-1 items-center justify-center">
+          <p className="text-slate-500">{m.admin.checking}</p>
+        </Box>
       </Box>
     )
   }
@@ -192,9 +223,12 @@ export function AdminPage() {
     return (
       <Box className="flex min-h-screen flex-col bg-slate-50">
         <Box className="border-b border-slate-200 bg-white px-4 py-4">
-          <Link to="/" className="inline-block">
-            <Logo />
-          </Link>
+          <Box className="flex flex-wrap items-center justify-between gap-4">
+            <Link to="/" className="inline-block">
+              <Logo />
+            </Link>
+            <LanguageSwitcher />
+          </Box>
         </Box>
         <Box className="flex flex-1 items-center justify-center px-4 py-12">
           <Box className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
@@ -242,6 +276,48 @@ export function AdminPage() {
     )
   }
 
+  if (authed && useSupabaseAuth && isPartnerStaffBlocked === null) {
+    return (
+      <Box className="flex min-h-screen flex-col bg-slate-50">
+        <Box className="flex justify-end border-b border-slate-200 bg-white px-4 py-3">
+          <LanguageSwitcher />
+        </Box>
+        <Box className="flex flex-1 items-center justify-center">
+          <p className="text-slate-500">{m.admin.checking}</p>
+        </Box>
+      </Box>
+    )
+  }
+
+  if (authed && useSupabaseAuth && isPartnerStaffBlocked) {
+    return (
+      <Box className="min-h-screen bg-slate-50">
+        <header className="border-b border-slate-200 bg-white px-4 py-4">
+          <Box className="container-urgen flex flex-wrap items-center justify-between gap-4">
+            <Link to="/">
+              <Logo />
+            </Link>
+            <Box className="flex flex-wrap items-center gap-2">
+              <LanguageSwitcher />
+              <Button variant="secondary" className="text-sm" onClick={() => void onLogout()}>
+                {m.admin.signOut}
+              </Button>
+            </Box>
+          </Box>
+        </header>
+        <Box className="container-urgen py-16">
+          <Box className="mx-auto max-w-lg rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+            <h1 className="text-xl font-bold text-urgen-navy">{m.admin.partnerBlockedTitle}</h1>
+            <p className="mt-3 text-sm leading-relaxed text-slate-600">{m.admin.partnerBlockedBody}</p>
+            <Link to="/partner" className="mt-6 inline-block">
+              <Button>{m.admin.partnerBlockedLink}</Button>
+            </Link>
+          </Box>
+        </Box>
+      </Box>
+    )
+  }
+
   const session = getAdminSession()
 
   return (
@@ -255,6 +331,7 @@ export function AdminPage() {
             )}
           </Box>
           <Box className="flex flex-wrap items-center gap-2">
+            <LanguageSwitcher />
             <Link to="/events">
               <Button variant="outline" className="text-sm">
                 {m.admin.viewEvents}
@@ -296,9 +373,35 @@ export function AdminPage() {
           >
             {m.admin.tabData}
           </button>
+          <button
+            type="button"
+            onClick={() => setTab('partnerAccounts')}
+            className={`rounded-xl px-4 py-2 text-sm font-semibold ${
+              tab === 'partnerAccounts'
+                ? 'bg-urgen-purple text-white'
+                : 'bg-white text-slate-600 ring-1 ring-slate-200'
+            }`}
+          >
+            {m.admin.tabPartnerAccounts}
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab('partnerLabs')}
+            className={`rounded-xl px-4 py-2 text-sm font-semibold ${
+              tab === 'partnerLabs'
+                ? 'bg-urgen-purple text-white'
+                : 'bg-white text-slate-600 ring-1 ring-slate-200'
+            }`}
+          >
+            {m.admin.tabPartnerLabs}
+          </button>
         </Box>
 
-        {tab === 'data' ? (
+        {tab === 'partnerLabs' ? (
+          <AdminPartnerSubmissionsPanel m={m.admin} />
+        ) : tab === 'partnerAccounts' ? (
+          <AdminPartnerLabUsersPanel m={m.admin} />
+        ) : tab === 'data' ? (
           <AdminDataPanel m={m.admin} />
         ) : (
         <Box className="grid gap-8 lg:grid-cols-[1fr_1.1fr]">

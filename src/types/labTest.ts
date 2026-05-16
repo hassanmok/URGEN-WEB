@@ -51,8 +51,6 @@ export function isFullLabTest(t: LabTest): t is TestRow & LabTestMeta {
     t.method_en &&
     t.turnaround_ar &&
     t.turnaround_en &&
-    t.price_display_ar &&
-    t.price_display_en &&
     t.preparation_ar &&
     t.preparation_en,
   )
