@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useLocaleContext } from '../../i18n/useLocaleContext'
 import type { Messages } from '../../i18n/messages'
 import { getUnseenSubmissionGroups } from '../../lib/adminPartnerSubmissionSeen'
@@ -16,6 +17,53 @@ type Props = {
   refreshToken?: number
 }
 
+/** عرض الشاشة الذي يُستخدم فيه نمط القائمة الثابت (portal) بدل المنسدلة العادية */
+export const ADMIN_NOTIFICATION_OVERLAY_MQ = '(max-width: 901px)'
+
+type OverlayMenuLayout = {
+  top: number
+  left: number
+  width: number
+  maxHeight: number
+}
+
+function useOverlayMenuLayout(open: boolean, anchorRef: React.RefObject<HTMLElement | null>) {
+  const [layout, setLayout] = useState<OverlayMenuLayout | null>(null)
+
+  useLayoutEffect(() => {
+    if (!open) {
+      setLayout(null)
+      return
+    }
+
+    const mq = window.matchMedia(ADMIN_NOTIFICATION_OVERLAY_MQ)
+
+    function update() {
+      if (!mq.matches || !anchorRef.current) {
+        setLayout(null)
+        return
+      }
+      const rect = anchorRef.current.getBoundingClientRect()
+      const margin = 16
+      const width = Math.min(window.innerWidth - margin * 2, 352)
+      const left = Math.max(margin, Math.min(rect.left, window.innerWidth - margin - width))
+      const top = rect.bottom + 8
+      const maxHeight = Math.min(360, window.innerHeight - top - margin)
+      setLayout({ top, left, width, maxHeight: Math.max(120, maxHeight) })
+    }
+
+    update()
+    window.addEventListener('resize', update)
+    window.addEventListener('scroll', update, true)
+    return () => {
+      window.removeEventListener('resize', update)
+      window.removeEventListener('scroll', update, true)
+    }
+  }, [open, anchorRef])
+
+  return layout
+}
+
 export function AdminPartnerSubmissionNotifications({
   m,
   onOpenGroup,
@@ -28,6 +76,10 @@ export function AdminPartnerSubmissionNotifications({
   const [unseen, setUnseen] = useState<PartnerSubmissionGroup[]>([])
   const [labNames, setLabNames] = useState<Map<string, string>>(new Map())
   const panelRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+  const overlayLayout = useOverlayMenuLayout(open, buttonRef)
+  const useOverlayMenu = overlayLayout !== null
 
   const refresh = useCallback(async () => {
     if (!supabase) {
@@ -59,15 +111,15 @@ export function AdminPartnerSubmissionNotifications({
   }, [refresh, refreshToken])
 
   useEffect(() => {
-    if (!open) return
+    if (!open || useOverlayMenu) return
     function onDocClick(e: MouseEvent) {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        setOpen(false)
-      }
+      const target = e.target as Node
+      if (panelRef.current?.contains(target) || buttonRef.current?.contains(target)) return
+      setOpen(false)
     }
     document.addEventListener('mousedown', onDocClick)
     return () => document.removeEventListener('mousedown', onDocClick)
-  }, [open])
+  }, [open, useOverlayMenu])
 
   const count = unseen.length
 
@@ -80,20 +132,70 @@ export function AdminPartnerSubmissionNotifications({
   }
 
   function handlePick(groupKey: string) {
-    setOpen(false)
+    onOpenGroup(groupKey)
     setUnseen((prev) => {
       const next = prev.filter((g) => g.groupKey !== groupKey)
       onUnseenCountChange?.(next.length)
       return next
     })
-    onOpenGroup(groupKey)
+    setOpen(false)
   }
+
+  const menuContent = (
+    <>
+      <div className="border-b border-slate-100 px-4 py-3">
+        <p className="text-sm font-bold text-urgen-navy">{m.notificationsTitle}</p>
+        {count > 0 && (
+          <p className="mt-0.5 text-xs text-slate-500">
+            {m.notificationsCount.replace('{n}', String(count))}
+          </p>
+        )}
+      </div>
+      <ul
+        className="overflow-y-auto overscroll-contain"
+        style={{ maxHeight: overlayLayout ? overlayLayout.maxHeight - 56 : 320 }}
+      >
+        {loading && unseen.length === 0 ? (
+          <li className="px-4 py-6 text-center text-sm text-slate-500">{m.notificationsLoading}</li>
+        ) : unseen.length === 0 ? (
+          <li className="px-4 py-6 text-center text-sm text-slate-500">{m.notificationsEmpty}</li>
+        ) : (
+          unseen.map((group) => {
+            const lab = labNames.get(group.partner_user_id) ?? group.partner_user_id.slice(0, 8)
+            return (
+              <li key={group.groupKey}>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="w-full border-b border-slate-50 px-4 py-3 text-start transition hover:bg-urgen-purple/5"
+                  onClick={() => handlePick(group.groupKey)}
+                >
+                  <p className="font-semibold text-urgen-navy">{group.patient_full_name}</p>
+                  <p className="mt-0.5 text-xs text-slate-600">
+                    {m.notificationsLab}: {lab}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {m.notificationsTests.replace('{n}', String(group.items.length))}
+                    {' · '}
+                    <span dir="ltr" className="tabular-nums">
+                      {formatDate(group.created_at)}
+                    </span>
+                  </p>
+                </button>
+              </li>
+            )
+          })
+        )}
+      </ul>
+    </>
+  )
 
   if (!supabase) return null
 
   return (
     <div ref={panelRef} className="relative">
       <button
+        ref={buttonRef}
         type="button"
         onClick={() => {
           setOpen((v) => !v)
@@ -118,53 +220,41 @@ export function AdminPartnerSubmissionNotifications({
         )}
       </button>
 
-      {open && (
+      {open && overlayLayout && typeof document !== 'undefined'
+        ? createPortal(
+            <>
+              <button
+                type="button"
+                className="fixed inset-0 z-[200] bg-slate-900/30"
+                aria-label={m.notificationsClose}
+                onClick={() => setOpen(false)}
+              />
+              <div
+                ref={menuRef}
+                className="fixed z-[201] flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl"
+                role="menu"
+                onMouseDown={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
+                style={{
+                  top: overlayLayout.top,
+                  left: overlayLayout.left,
+                  width: overlayLayout.width,
+                  maxHeight: overlayLayout.maxHeight,
+                }}
+              >
+                {menuContent}
+              </div>
+            </>,
+            document.body,
+          )
+        : null}
+
+      {open && !overlayLayout && (
         <div
-          className="absolute end-0 top-full z-50 mt-2 w-[min(100vw-2rem,22rem)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg"
+          className="absolute end-0 top-full z-50 mt-2 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg"
           role="menu"
         >
-          <div className="border-b border-slate-100 px-4 py-3">
-            <p className="text-sm font-bold text-urgen-navy">{m.notificationsTitle}</p>
-            {count > 0 && (
-              <p className="mt-0.5 text-xs text-slate-500">
-                {m.notificationsCount.replace('{n}', String(count))}
-              </p>
-            )}
-          </div>
-          <ul className="max-h-80 overflow-y-auto">
-            {loading && unseen.length === 0 ? (
-              <li className="px-4 py-6 text-center text-sm text-slate-500">{m.notificationsLoading}</li>
-            ) : unseen.length === 0 ? (
-              <li className="px-4 py-6 text-center text-sm text-slate-500">{m.notificationsEmpty}</li>
-            ) : (
-              unseen.map((group) => {
-                const lab =
-                  labNames.get(group.partner_user_id) ?? group.partner_user_id.slice(0, 8)
-                return (
-                  <li key={group.groupKey}>
-                    <button
-                      type="button"
-                      role="menuitem"
-                      className="w-full border-b border-slate-50 px-4 py-3 text-start transition hover:bg-urgen-purple/5"
-                      onClick={() => handlePick(group.groupKey)}
-                    >
-                      <p className="font-semibold text-urgen-navy">{group.patient_full_name}</p>
-                      <p className="mt-0.5 text-xs text-slate-600">
-                        {m.notificationsLab}: {lab}
-                      </p>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {m.notificationsTests.replace('{n}', String(group.items.length))}
-                        {' · '}
-                        <span dir="ltr" className="tabular-nums">
-                          {formatDate(group.created_at)}
-                        </span>
-                      </p>
-                    </button>
-                  </li>
-                )
-              })
-            )}
-          </ul>
+          {menuContent}
         </div>
       )}
     </div>

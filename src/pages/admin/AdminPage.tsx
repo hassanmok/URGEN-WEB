@@ -336,7 +336,7 @@ export function AdminPage() {
 
   return (
     <Box className="min-h-screen bg-slate-50">
-      <header className="border-b border-slate-200 bg-white">
+      <header className="overflow-visible border-b border-slate-200 bg-white">
         <Box className="container-urgen flex flex-wrap items-center justify-between gap-4 py-4">
           <Box>
             <h1 className="text-xl font-bold text-urgen-navy">{m.admin.dashboardTitle}</h1>
@@ -344,7 +344,7 @@ export function AdminPage() {
               <p className="text-xs text-slate-500">{session.email}</p>
             )}
           </Box>
-          <Box className="flex flex-wrap items-center gap-2">
+          <Box className="flex flex-wrap items-center gap-2 overflow-visible">
             <LanguageSwitcher />
             <AdminPartnerSubmissionNotifications
               m={m.admin}

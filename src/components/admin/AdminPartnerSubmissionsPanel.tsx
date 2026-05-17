@@ -373,12 +373,18 @@ export function AdminPartnerSubmissionsPanel({
     setActiveHighlight(highlightGroupKey)
     setSearchQuery('')
 
-    const scroll = () => {
+    const scrollToTarget = (attempt = 0) => {
       const el = document.getElementById(`submission-group-${highlightGroupKey}`)
-      el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        return
+      }
+      if (attempt < 24) {
+        window.setTimeout(() => scrollToTarget(attempt + 1), 100)
+      }
     }
 
-    const t1 = window.setTimeout(scroll, 50)
+    const t1 = window.setTimeout(() => scrollToTarget(0), 80)
     const t2 = window.setTimeout(() => {
       void markSubmissionGroupSeen(highlightGroupKey).then(() => {
         onSeenChange?.()

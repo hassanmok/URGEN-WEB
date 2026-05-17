@@ -397,6 +397,7 @@ export const messagesAr = {
     notificationsLoading: 'جاري التحديث…',
     notificationsLab: 'المختبر',
     notificationsTests: '{n} فحص/فحوصات',
+    notificationsClose: 'إغلاق الإشعارات',
     partnerBlockedTitle: 'هذا القسم للموظفين فقط',
     partnerBlockedBody:
       'حسابك مسجّل كمختبر شريك. استخدم الرابط أدناه لإرسال الطلبات ومتابعة التقارير.',
@@ -1006,6 +1007,7 @@ export const messagesEn = {
     notificationsLoading: 'Updating…',
     notificationsLab: 'Laboratory',
     notificationsTests: '{n} test(s)',
+    notificationsClose: 'Close notifications',
     partnerBlockedTitle: 'Staff area only',
     partnerBlockedBody:
       'Your account is registered as a partner laboratory. Use the partner portal link below to submit requests and download reports.',
