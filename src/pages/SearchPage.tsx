@@ -4,6 +4,7 @@ import { SectionHeading } from '../components/ui/SectionHeading'
 import { SearchBar } from '../components/layout/SearchBar'
 import { useLocaleContext } from '../i18n/useLocaleContext'
 import { useTests } from '../hooks/useTests'
+import { useTestCategories } from '../hooks/useTestCategories'
 import { buildSearchDocuments, searchAndRank } from '../lib/searchIndex'
 
 export function SearchPage() {
@@ -11,8 +12,12 @@ export function SearchPage() {
   const query = searchParams.get('q')?.trim() ?? ''
   const { locale, messages: m } = useLocaleContext()
   const { tests, loading } = useTests()
+  const { categories } = useTestCategories()
 
-  const docs = useMemo(() => buildSearchDocuments(locale, m, tests), [locale, m, tests])
+  const docs = useMemo(
+    () => buildSearchDocuments(locale, m, tests, categories),
+    [locale, m, tests, categories],
+  )
   const hits = useMemo(() => searchAndRank(docs, query), [docs, query])
 
   const subtitle = query

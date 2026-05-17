@@ -9,6 +9,26 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
+      test_categories: {
+        Row: {
+          id: string
+          slug: string
+          title_ar: string
+          title_en: string | null
+          sort_order: number
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          slug: string
+          title_ar: string
+          title_en?: string | null
+          sort_order?: number
+          created_at?: string | null
+        }
+        Update: Partial<Database['public']['Tables']['test_categories']['Insert']>
+        Relationships: []
+      }
       tests: {
         Row: {
           id: string

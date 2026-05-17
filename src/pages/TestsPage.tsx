@@ -1,19 +1,13 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { useTests } from '../hooks/useTests'
+import { useTestCategories } from '../hooks/useTestCategories'
 import { useLocaleContext } from '../i18n/useLocaleContext'
+import { getCategoryLabel, sortCategories } from '../lib/categoryLabels'
 import { SectionHeading } from '../components/ui/SectionHeading'
 import { TestCard } from '../components/ui/TestCard'
-import type { LabTest, TestCategoryId } from '../types/labTest'
+import type { LabTest } from '../types/labTest'
 
-const CATEGORY_ORDER: TestCategoryId[] = [
-  'oncology_somatic',
-  'hereditary_cancer',
-  'reproductive',
-  'nipt',
-  'pediatric_newborn',
-]
-
-type OpenSection = TestCategoryId | 'uncategorized' | null
+type OpenSection = string | 'uncategorized' | null
 
 function ChevronIcon({ open }: { open: boolean }) {
   return (
@@ -88,21 +82,23 @@ function CategoryAccordionRow({
 
 export function TestsPage() {
   const { tests, loading, error, usingFallback } = useTests()
+  const { categories } = useTestCategories()
   const { locale, messages: m } = useLocaleContext()
   const [openSection, setOpenSection] = useState<OpenSection>(null)
 
+  const sortedCategories = useMemo(() => sortCategories(categories), [categories])
+
   const { grouped, uncategorized } = useMemo(() => {
-    const buckets = Object.fromEntries(
-      CATEGORY_ORDER.map((c) => [c, [] as LabTest[]]),
-    ) as Record<TestCategoryId, LabTest[]>
+    const buckets = new Map<string, LabTest[]>()
+    for (const cat of sortedCategories) buckets.set(cat.slug, [])
     const other: LabTest[] = []
     for (const t of tests) {
       const cat = t.category
-      if (cat && buckets[cat]) buckets[cat].push(t)
+      if (cat && buckets.has(cat)) buckets.get(cat)!.push(t)
       else other.push(t)
     }
     return { grouped: buckets, uncategorized: other }
-  }, [tests])
+  }, [tests, sortedCategories])
 
   const toggleSection = (key: Exclude<OpenSection, null>) => {
     setOpenSection((prev) => (prev === key ? null : key))
@@ -110,6 +106,8 @@ export function TestsPage() {
 
   const testsInSectionLine = (n: number) =>
     locale === 'ar' ? `${n} تحليلاً في هذا القسم` : `${n} tests in this section`
+
+  const categorySections = sortedCategories.filter((cat) => (grouped.get(cat.slug)?.length ?? 0) > 0)
 
   return (
     <div className="bg-white py-14 lg:py-20">
@@ -140,20 +138,18 @@ export function TestsPage() {
           </div>
         ) : (
           <div className="mt-14 space-y-4">
-            {CATEGORY_ORDER.map((cat) => {
-              const list = grouped[cat]
-              if (!list.length) return null
-              const catLabel =
-                m.testsPage.categories[cat as keyof typeof m.testsPage.categories]
-              const open = openSection === cat
+            {categorySections.map((cat) => {
+              const list = grouped.get(cat.slug) ?? []
+              const catLabel = getCategoryLabel(cat.slug, locale, categories) ?? cat.slug
+              const open = openSection === cat.slug
               return (
                 <CategoryAccordionRow
-                  key={cat}
-                  sectionId={`cat-${cat}`}
+                  key={cat.slug}
+                  sectionId={`cat-${cat.slug}`}
                   title={catLabel}
                   countLabel={testsInSectionLine(list.length)}
                   open={open}
-                  onToggle={() => toggleSection(cat)}
+                  onToggle={() => toggleSection(cat.slug)}
                 >
                   <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     {list.map((t) => (

@@ -1,6 +1,8 @@
 import type { Locale } from '../i18n/messages'
 import type { Messages } from '../i18n/messages'
+import { getCategoryLabel } from './categoryLabels'
 import type { LabTest } from '../types/labTest'
+import type { TestCategoryRecord } from '../types/testCategory'
 
 export type SearchDocKind = 'page' | 'test'
 
@@ -87,7 +89,12 @@ export function searchAndRank(docs: SearchDoc[], query: string): RankedSearchHit
 }
 
 /** بناء جميع الوثائق القابلة للبحث للغة الحالية (الفحوصات من Supabase عند التوفّر) */
-export function buildSearchDocuments(locale: Locale, m: Messages, tests: LabTest[]): SearchDoc[] {
+export function buildSearchDocuments(
+  locale: Locale,
+  m: Messages,
+  tests: LabTest[],
+  categories: Pick<TestCategoryRecord, 'slug' | 'title_ar' | 'title_en'>[] = [],
+): SearchDoc[] {
   const docs: SearchDoc[] = []
 
   const join = (...parts: (string | undefined)[]) => parts.filter(Boolean).join(' \n ')
@@ -172,10 +179,7 @@ export function buildSearchDocuments(locale: Locale, m: Messages, tests: LabTest
 
   for (const t of tests) {
     const title = locale === 'ar' ? t.title_ar : (t.title_en ?? t.title_ar)
-    const categoryLabel =
-      t.category && m.testsPage.categories[t.category as keyof typeof m.testsPage.categories]
-        ? m.testsPage.categories[t.category as keyof typeof m.testsPage.categories]
-        : ''
+    const categoryLabel = getCategoryLabel(t.category, locale, categories) ?? ''
 
     const haystack = join(
       t.slug,

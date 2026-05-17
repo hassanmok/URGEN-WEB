@@ -1,5 +1,7 @@
 import { Link, useParams } from 'react-router-dom'
 import { useTestBySlug } from '../hooks/useTests'
+import { useTestCategories } from '../hooks/useTestCategories'
+import { getCategoryLabel } from '../lib/categoryLabels'
 import { useLocaleContext } from '../i18n/useLocaleContext'
 import { getLocalizedTestCopy } from '../i18n/localizedTest'
 import { getTestGradientClass } from '../lib/testGradients'
@@ -21,6 +23,7 @@ function detailFields(test: LabTest, locale: 'ar' | 'en') {
 export function TestDetailPage() {
   const { slug } = useParams()
   const { test, loading } = useTestBySlug(slug)
+  const { categories } = useTestCategories()
   const { locale, messages: m } = useLocaleContext()
 
   if (loading) {
@@ -48,9 +51,7 @@ export function TestDetailPage() {
   const full = isFullLabTest(test)
   const d = detailFields(test, locale)
 
-  const categoryLabel =
-    test.category &&
-    m.testsPage.categories[test.category as keyof typeof m.testsPage.categories]
+  const categoryLabel = getCategoryLabel(test.category, locale, categories)
 
   return (
     <article className="bg-white pb-16 pt-10 lg:pb-24 lg:pt-14">

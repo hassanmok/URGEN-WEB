@@ -119,6 +119,46 @@ drop policy if exists "tests_admin_delete" on public.tests;
 create policy "tests_admin_delete" on public.tests
   for delete using (auth.role() = 'authenticated');
 
+-- تصنيفات الفحوصات (قابلة للإدارة من لوحة الإدارة)
+create table if not exists public.test_categories (
+  id uuid primary key default gen_random_uuid(),
+  slug text not null unique,
+  title_ar text not null,
+  title_en text,
+  sort_order int not null default 0,
+  created_at timestamptz default now()
+);
+
+alter table public.test_categories enable row level security;
+
+drop policy if exists "test_categories_select_public" on public.test_categories;
+create policy "test_categories_select_public" on public.test_categories
+  for select using (true);
+
+drop policy if exists "test_categories_admin_insert" on public.test_categories;
+create policy "test_categories_admin_insert" on public.test_categories
+  for insert with check (auth.role() = 'authenticated');
+
+drop policy if exists "test_categories_admin_update" on public.test_categories;
+create policy "test_categories_admin_update" on public.test_categories
+  for update using (auth.role() = 'authenticated');
+
+drop policy if exists "test_categories_admin_delete" on public.test_categories;
+create policy "test_categories_admin_delete" on public.test_categories
+  for delete using (auth.role() = 'authenticated');
+
+insert into public.test_categories (slug, title_ar, title_en, sort_order)
+values
+  ('oncology_somatic', 'الأورام والجسيمي', 'Oncology / Somatic', 1),
+  ('hereditary_cancer', 'السرطان الوراثي', 'Hereditary cancer', 2),
+  ('reproductive', 'الإنجاب وصحة المرأة/الرجل', 'Reproductive & women/men health', 3),
+  ('nipt', 'NIPT — قبل الولادة غير جراحي', 'NIPT (non-invasive prenatal testing)', 4),
+  ('pediatric_newborn', 'الأطفال وحديثو الولادة', 'Pediatric & newborn', 5)
+on conflict (slug) do update set
+  title_ar = excluded.title_ar,
+  title_en = excluded.title_en,
+  sort_order = excluded.sort_order;
+
 drop policy if exists "appointments_admin_select" on public.appointments;
 create policy "appointments_admin_select" on public.appointments
   for select using (auth.role() = 'authenticated');

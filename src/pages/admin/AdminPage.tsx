@@ -20,6 +20,7 @@ import { AdminPartnerLabUsersPanel } from '../../components/admin/AdminPartnerLa
 import { AdminPartnerSubmissionsPanel } from '../../components/admin/AdminPartnerSubmissionsPanel'
 import { AdminPartnerSubmissionNotifications } from '../../components/admin/AdminPartnerSubmissionNotifications'
 import { AdminNewsPanel } from '../../components/admin/AdminNewsPanel'
+import { AdminTestsPanel } from '../../components/admin/AdminTestsPanel'
 import { EventImageField, type EventImageFieldHandle } from '../../components/admin/EventImageField'
 import { LanguageSwitcher } from '../../components/layout/LanguageSwitcher'
 import { useLocaleContext } from '../../i18n/useLocaleContext'
@@ -59,9 +60,9 @@ export function AdminPage() {
   const [loginError, setLoginError] = useState<string | null>(null)
   const [loginSubmitting, setLoginSubmitting] = useState(false)
   const imageFieldRef = useRef<EventImageFieldHandle>(null)
-  const [tab, setTab] = useState<'events' | 'news' | 'data' | 'partnerAccounts' | 'partnerLabs'>(
-    'events',
-  )
+  const [tab, setTab] = useState<
+    'events' | 'news' | 'tests' | 'data' | 'partnerAccounts' | 'partnerLabs'
+  >('events')
   const [highlightSubmission, setHighlightSubmission] = useState<{
     groupKey: string
     token: number
@@ -403,6 +404,17 @@ export function AdminPage() {
           </button>
           <button
             type="button"
+            onClick={() => setTab('tests')}
+            className={`rounded-xl px-4 py-2 text-sm font-semibold ${
+              tab === 'tests'
+                ? 'bg-urgen-purple text-white'
+                : 'bg-white text-slate-600 ring-1 ring-slate-200'
+            }`}
+          >
+            {m.admin.tabTests}
+          </button>
+          <button
+            type="button"
             onClick={() => setTab('data')}
             className={`rounded-xl px-4 py-2 text-sm font-semibold ${
               tab === 'data'
@@ -453,6 +465,8 @@ export function AdminPage() {
           <AdminPartnerLabUsersPanel m={m.admin} />
         ) : tab === 'data' ? (
           <AdminDataPanel m={m.admin} />
+        ) : tab === 'tests' ? (
+          <AdminTestsPanel m={m.admin} />
         ) : tab === 'news' ? (
           <AdminNewsPanel m={m.admin} />
         ) : (
