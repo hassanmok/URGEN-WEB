@@ -316,6 +316,10 @@ export interface Database {
           created_at: string | null
         }[]
       }
+      partner_submissions_admin_list: {
+        Args: Record<PropertyKey, never>
+        Returns: Database['public']['Tables']['partner_submissions']['Row'][]
+      }
       partner_submission_mark_group_seen: {
         Args: { p_group_key: string }
         Returns: undefined

@@ -8,9 +8,9 @@ import {
   adminUploadSubmissionPdf,
   fetchAllPartnerSubmissionsAdmin,
   fetchPartnerLabNamesMap,
-  groupPartnerSubmissions,
+  filterPartnerSubmissionGroups,
+  partnerSubmissionsAdminListErrorMessage,
   isPartnerPdfExpired,
-  partnerSubmissionMatchesSearch,
   type PartnerSubmissionGroup,
   type PartnerSubmissionRow,
 } from '../../lib/partnerSubmissionsStore'
@@ -41,6 +41,9 @@ type AdminMsgs = {
   partnerLabsPdfExpiredNotice: string
   partnerLabsReplacePdf: string
   partnerLabsErr: string
+  partnerLabsNoSupabase: string
+  partnerLabsNotSignedIn: string
+  partnerLabsRpcMissing: string
   partnerLabsRefresh: string
   partnerLabsSearchPlaceholder: string
   partnerLabsSearchNoResults: string
@@ -97,7 +100,7 @@ function SubmissionTestRow({
   }
 
   return (
-    <li className="rounded-lg border border-slate-200 bg-white p-3 text-sm">
+    <li className="rounded-xl border border-slate-300 bg-white p-3 text-sm shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <p className="font-semibold text-urgen-navy">{testTitle}</p>
         <span
@@ -242,10 +245,10 @@ function GroupCard({
   return (
     <li
       id={`submission-group-${group.groupKey}`}
-      className={`scroll-mt-24 rounded-xl border p-4 text-sm transition-shadow duration-300 ${
+      className={`scroll-mt-24 rounded-2xl border-2 p-5 text-sm shadow-md transition-shadow duration-300 ${
         highlighted
-          ? 'border-urgen-purple bg-urgen-purple/5 ring-4 ring-urgen-purple/40 ring-offset-2'
-          : 'border-slate-100 bg-slate-50/80'
+          ? 'border-urgen-purple bg-urgen-purple/10 ring-4 ring-urgen-purple/40 ring-offset-2'
+          : 'border-slate-300 bg-slate-100'
       }`}
     >
       <div
@@ -323,6 +326,7 @@ export function AdminPartnerSubmissionsPanel({
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const [listError, setListError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [activeHighlight, setActiveHighlight] = useState<string | null>(null)
 
@@ -333,13 +337,18 @@ export function AdminPartnerSubmissionsPanel({
 
   async function reload() {
     setLoading(true)
+    setListError(null)
     const [list, names] = await Promise.all([
       fetchAllPartnerSubmissionsAdmin(),
       fetchPartnerLabNamesMap(),
     ])
     setLabNames(names)
-    if (list.ok && list.rows) setRows(list.rows)
-    else setMessage(list.error ?? m.partnerLabsErr)
+    if (list.ok && list.rows) {
+      setRows(list.rows)
+    } else {
+      setRows([])
+      setListError(partnerSubmissionsAdminListErrorMessage(list.error, m))
+    }
     setLoading(false)
   }
 
@@ -353,16 +362,10 @@ export function AdminPartnerSubmissionsPanel({
     return locale === 'ar' ? t.title_ar : (t.title_en ?? t.title_ar)
   }
 
-  const filteredGroups = useMemo(() => {
-    const filtered = rows.filter((row) => {
-      const t = tests.find((x) => x.slug === row.test_slug)
-      const extras = t ? ([t.title_ar, t.title_en ?? ''].filter(Boolean) as string[]) : []
-      const labName = labNames.get(row.partner_user_id)
-      const labExtras = labName ? [labName] : []
-      return partnerSubmissionMatchesSearch(row, searchQuery, [...extras, ...labExtras])
-    })
-    return groupPartnerSubmissions(filtered)
-  }, [rows, searchQuery, tests, labNames])
+  const filteredGroups = useMemo(
+    () => filterPartnerSubmissionGroups(rows, searchQuery, tests, labNames),
+    [rows, searchQuery, tests, labNames],
+  )
 
   useEffect(() => {
     if (!highlightGroupKey || !highlightToken || loading) return
@@ -490,6 +493,8 @@ export function AdminPartnerSubmissionsPanel({
 
       {loading ? (
         <p className="mt-6 text-sm text-slate-500">{m.partnerLabsLoading}</p>
+      ) : listError ? (
+        <p className="mt-6 text-sm leading-relaxed text-red-600">{listError}</p>
       ) : rows.length === 0 ? (
         <p className="mt-6 text-sm text-slate-500">{m.partnerLabsEmpty}</p>
       ) : (

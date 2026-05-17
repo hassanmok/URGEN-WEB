@@ -472,6 +472,12 @@ export const messagesAr = {
     partnerLabsPdfExpiredNotice: 'انتهت صلاحية التحميل للمختبر في',
     partnerLabsReplacePdf: 'استبدال التقرير PDF (صلاحية تحميل جديدة 30 يوماً)',
     partnerLabsErr: 'حدث خطأ. تحقق من الصلاحيات أو Storage.',
+    partnerLabsNoSupabase:
+      'لا يمكن تحميل الطلبات بدون Supabase. سجّل الدخول بحساب Supabase (بريد وكلمة مرور) وليس كلمة مرور الموقع المحلية فقط.',
+    partnerLabsNotSignedIn:
+      'جلسة Supabase غير نشطة. سجّل الخروج ثم الدخول مرة أخرى بحساب إدارة (ليس حساب مختبر شريك).',
+    partnerLabsRpcMissing:
+      'نفّذ في SQL Editor الدالة partner_submissions_admin_list من ملف supabase/schema.sql ثم حدّث الصفحة.',
     partnerLabsRefresh: 'تحديث',
     partnerLabsSearchPlaceholder: 'ابحث باسم المريض أو الفحص أو العمر أو اسم المختبر…',
     partnerLabsSearchNoResults: 'لا توجد طلبات تطابق البحث.',
@@ -1127,6 +1133,12 @@ export const messagesEn = {
     partnerLabsPdfExpiredNotice: 'Partner download expired on',
     partnerLabsReplacePdf: 'Replace PDF report (new 30-day download window)',
     partnerLabsErr: 'Something went wrong. Check permissions or Storage.',
+    partnerLabsNoSupabase:
+      'Cannot load requests without Supabase. Sign in with your Supabase admin email and password (not local site password only).',
+    partnerLabsNotSignedIn:
+      'Supabase session is not active. Sign out and sign in again with an admin account (not a partner lab account).',
+    partnerLabsRpcMissing:
+      'Run partner_submissions_admin_list from supabase/schema.sql in the SQL Editor, then refresh this page.',
     partnerLabsRefresh: 'Refresh',
     partnerLabsSearchPlaceholder: 'Search by patient name, test, age, or laboratory…',
     partnerLabsSearchNoResults: 'No requests match your search.',

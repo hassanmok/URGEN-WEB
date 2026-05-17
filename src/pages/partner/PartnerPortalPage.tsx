@@ -8,10 +8,9 @@ import { fetchPartnerLabProfile, resolvePartnerLoginEmail } from '../../lib/part
 import {
   createPartnerPdfDownloadUrl,
   fetchPartnerSubmissionsForLab,
-  groupPartnerSubmissions,
+  filterPartnerSubmissionGroups,
   insertPartnerSubmissionBatch,
   isPartnerPdfExpired,
-  partnerSubmissionMatchesSearch,
   type PartnerAgeUnit,
   type PartnerSubmissionRow,
 } from '../../lib/partnerSubmissionsStore'
@@ -266,14 +265,10 @@ export function PartnerPortalPage() {
       : (a.title_en ?? a.title_ar).localeCompare(b.title_en ?? b.title_ar, 'en'),
   )
 
-  const filteredGroups = useMemo(() => {
-    const filtered = rows.filter((row) => {
-      const t = tests.find((x) => x.slug === row.test_slug)
-      const extras = t ? ([t.title_ar, t.title_en ?? ''].filter(Boolean) as string[]) : []
-      return partnerSubmissionMatchesSearch(row, requestsSearchQuery, extras)
-    })
-    return groupPartnerSubmissions(filtered)
-  }, [rows, requestsSearchQuery, tests])
+  const filteredGroups = useMemo(
+    () => filterPartnerSubmissionGroups(rows, requestsSearchQuery, tests),
+    [rows, requestsSearchQuery, tests],
+  )
 
   if (!supabase) {
     return (
@@ -597,7 +592,7 @@ export function PartnerPortalPage() {
                 {filteredGroups.map((group) => (
                   <li
                     key={group.groupKey}
-                    className="rounded-xl border border-slate-100 bg-slate-50/80 p-4 text-sm"
+                    className="rounded-2xl border-2 border-slate-300 bg-slate-100 p-5 text-sm shadow-md"
                   >
                     <div className="space-y-1 border-b border-slate-200 pb-3">
                       <p className="font-semibold text-urgen-navy">{group.patient_full_name}</p>
@@ -624,7 +619,7 @@ export function PartnerPortalPage() {
                   return (
                     <li
                       key={row.id}
-                      className="rounded-lg border border-slate-200/80 bg-white p-3"
+                      className="rounded-xl border border-slate-300 bg-white p-3 shadow-sm"
                     >
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <p className="font-medium text-urgen-navy">{testTitle(row.test_slug)}</p>

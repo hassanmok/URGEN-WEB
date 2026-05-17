@@ -563,6 +563,29 @@ create policy "partner_submissions_staff_update" on public.partner_submissions
   using (not public.auth_is_partner_lab_user())
   with check (not public.auth_is_partner_lab_user());
 
+-- قائمة طلبات المختبرات لموظفي الإدارة (ليس للشركاء) — يتجاوز RLS عند الحاجة
+create or replace function public.partner_submissions_admin_list()
+returns setof public.partner_submissions
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select ps.*
+  from public.partner_submissions ps
+  where auth.uid() is not null
+    and not exists (
+      select 1 from public.partner_lab_users pl where pl.user_id = auth.uid()
+    )
+  order by ps.created_at desc nulls last;
+$$;
+
+revoke all on function public.partner_submissions_admin_list() from public;
+grant execute on function public.partner_submissions_admin_list() to authenticated;
+
+comment on function public.partner_submissions_admin_list() is
+  'لوحة الإدارة: جميع طلبات المختبرات. مرفوض للمستخدمين المسجّلين كشركاء.';
+
 create or replace function public.partner_submissions_set_updated_at()
 returns trigger language plpgsql as $$
 begin

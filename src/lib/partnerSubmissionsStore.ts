@@ -1,5 +1,8 @@
 import { supabase } from './supabase'
+import { fetchPartnerLabUsersAdmin } from './partnerLabUsersAdmin'
+import { tokenize } from './searchIndex'
 import type { Database } from '../types/database'
+import type { LabTest } from '../types/labTest'
 
 export type PartnerSubmissionRow = Database['public']['Tables']['partner_submissions']['Row']
 export type PartnerAgeUnit = 'days' | 'months' | 'years'
@@ -16,6 +19,76 @@ export function isPartnerPdfExpired(row: Pick<PartnerSubmissionRow, 'pdf_expires
   return new Date(row.pdf_expires_at).getTime() <= Date.now()
 }
 
+/** تطبيع نص البحث (عربي/لاتيني) لمطابقة أسماء التحاليل والمرضى */
+export function normalizePartnerSearchText(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, '')
+    .replace(/[أإآٱ]/g, 'ا')
+    .replace(/ى/g, 'ي')
+    .replace(/ؤ/g, 'و')
+    .replace(/ئ/g, 'ي')
+    .replace(/[-_]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+export function findTestBySlug(tests: LabTest[], slug: string): LabTest | undefined {
+  const key = slug.trim().toLowerCase()
+  if (!key) return undefined
+  const keyCompact = key.replace(/[-_\s]/g, '')
+  return tests.find((t) => {
+    const s = t.slug.toLowerCase()
+    if (s === key) return true
+    return s.replace(/[-_\s]/g, '') === keyCompact
+  })
+}
+
+/** كل النصوص القابلة للبحث لتحليل (عناوين، وصف، slug بصيغ مختلفة) */
+export function buildTestSearchNeedles(test: LabTest | undefined, slug: string): string[] {
+  const slugVariants = [
+    slug,
+    slug.replace(/-/g, '_'),
+    slug.replace(/_/g, '-'),
+    slug.replace(/[-_]/g, ' '),
+  ]
+  if (!test) return [...new Set(slugVariants.filter((s) => s.trim().length > 0))]
+
+  return [
+    ...slugVariants,
+    test.slug,
+    test.title_ar,
+    test.title_en ?? '',
+    test.description_ar,
+    test.description_en ?? '',
+    test.long_description_ar ?? '',
+    test.long_description_en ?? '',
+    test.clinical_use_ar ?? '',
+    test.clinical_use_en ?? '',
+    test.sample_ar ?? '',
+    test.sample_en ?? '',
+    test.method_ar ?? '',
+    test.method_en ?? '',
+  ].filter((s) => Boolean(s?.trim()))
+}
+
+function needlesMatchQuery(needles: readonly string[], rawQuery: string): boolean {
+  const q = rawQuery.trim()
+  if (!q) return true
+
+  const tokens = tokenize(q)
+  if (!tokens.length) return true
+
+  const haystack = normalizePartnerSearchText(needles.filter(Boolean).join(' '))
+  if (!haystack) return false
+
+  return tokens.every((token) => {
+    const nt = normalizePartnerSearchText(token)
+    return nt.length > 0 && haystack.includes(nt)
+  })
+}
+
 /** بحث محلي في الطلبات: اسم المريض، slug الفحص، العمر، أو عناوين إضافية (عنوان الفحص المعروض). */
 export function partnerSubmissionMatchesSearch(
   row: PartnerSubmissionRow,
@@ -25,8 +98,7 @@ export function partnerSubmissionMatchesSearch(
   const q = rawQuery.trim()
   if (!q) return true
 
-  const ql = q.toLowerCase()
-  const buckets: string[] = [
+  const needles = [
     row.patient_full_name,
     row.test_slug,
     String(row.age_value),
@@ -35,12 +107,7 @@ export function partnerSubmissionMatchesSearch(
     ...extraNeedles,
   ]
 
-  for (const raw of buckets) {
-    const s = raw?.trim()
-    if (!s) continue
-    if (s.includes(q)) return true
-    if (s.toLowerCase().includes(ql)) return true
-  }
+  if (needlesMatchQuery(needles, q)) return true
 
   const digitsOnly = q.replace(/\D/g, '')
   if (digitsOnly.length > 0) {
@@ -49,6 +116,39 @@ export function partnerSubmissionMatchesSearch(
   }
 
   return false
+}
+
+/** تصفية مجموعات الطلبات: يظهر الطلب إذا تطابق أي تحليل فيه أو بيانات المريض/المختبر */
+export function filterPartnerSubmissionGroups(
+  rows: PartnerSubmissionRow[],
+  rawQuery: string,
+  tests: LabTest[],
+  labNames?: Map<string, string>,
+): PartnerSubmissionGroup[] {
+  const groups = groupPartnerSubmissions(rows)
+  const q = rawQuery.trim()
+  if (!q) return groups
+
+  return groups.filter((group) => {
+    const labName = labNames?.get(group.partner_user_id)
+    const groupNeedles = [
+      group.patient_full_name,
+      String(group.age_value),
+      group.age_unit,
+      `${group.age_value} ${group.age_unit}`,
+      labName ?? '',
+    ]
+    if (needlesMatchQuery(groupNeedles, q)) return true
+
+    return group.items.some((item) => {
+      const test = findTestBySlug(tests, item.test_slug)
+      return partnerSubmissionMatchesSearch(
+        item,
+        q,
+        buildTestSearchNeedles(test, item.test_slug),
+      )
+    })
+  })
 }
 
 export async function fetchPartnerSubmissionsForLab(): Promise<{
@@ -66,26 +166,60 @@ export async function fetchPartnerSubmissionsForLab(): Promise<{
   return { ok: true, rows: (data ?? []) as PartnerSubmissionRow[] }
 }
 
+export type PartnerSubmissionsAdminListMsgs = {
+  partnerLabsErr: string
+  partnerLabsNoSupabase: string
+  partnerLabsNotSignedIn: string
+  partnerLabsRpcMissing: string
+}
+
+export function partnerSubmissionsAdminListErrorMessage(
+  code: string | undefined,
+  m: PartnerSubmissionsAdminListMsgs,
+): string {
+  switch (code) {
+    case 'no_supabase':
+      return m.partnerLabsNoSupabase
+    case 'not_signed_in':
+      return m.partnerLabsNotSignedIn
+    case 'rpc_missing':
+      return m.partnerLabsRpcMissing
+    default:
+      return code?.trim() ? code : m.partnerLabsErr
+  }
+}
+
 export async function fetchAllPartnerSubmissionsAdmin(): Promise<{
   ok: boolean
   rows?: PartnerSubmissionRow[]
   error?: string
 }> {
   if (!supabase) return { ok: false, error: 'no_supabase' }
-  const { data, error } = await supabase
-    .from('partner_submissions')
-    .select('*')
-    .order('created_at', { ascending: false })
 
-  if (error) return { ok: false, error: error.message }
+  const { data: userData } = await supabase.auth.getUser()
+  if (!userData.user) return { ok: false, error: 'not_signed_in' }
+
+  const { data, error } = await supabase.rpc('partner_submissions_admin_list')
+
+  if (error) {
+    const msg = error.message ?? ''
+    if (
+      msg.includes('partner_submissions_admin_list') ||
+      error.code === '42883' ||
+      error.code === 'PGRST202'
+    ) {
+      return { ok: false, error: 'rpc_missing' }
+    }
+    return { ok: false, error: msg || 'fetch_failed' }
+  }
   return { ok: true, rows: (data ?? []) as PartnerSubmissionRow[] }
 }
 
 export async function fetchPartnerLabNamesMap(): Promise<Map<string, string>> {
   const map = new Map<string, string>()
-  if (!supabase) return map
-  const { data } = await supabase.from('partner_lab_users').select('user_id, lab_display_name')
-  for (const row of data ?? []) {
+  const list = await fetchPartnerLabUsersAdmin()
+  if (!list.ok || !list.rows) return map
+  for (const row of list.rows) {
     map.set(row.user_id, row.lab_display_name)
   }
   return map
