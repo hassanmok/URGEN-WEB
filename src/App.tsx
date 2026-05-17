@@ -10,6 +10,9 @@ import { TechnologyPage } from './pages/TechnologyPage'
 import { TestDetailPage } from './pages/TestDetailPage'
 import { TestsPage } from './pages/TestsPage'
 import { EventsPage } from './pages/EventsPage'
+import { EventDetailPage } from './pages/EventDetailPage'
+import { NewsPage } from './pages/NewsPage'
+import { NewsDetailPage } from './pages/NewsDetailPage'
 import { AdminPage } from './pages/admin/AdminPage'
 import { PartnerPortalPage } from './pages/partner/PartnerPortalPage'
 
@@ -26,6 +29,9 @@ export default function App() {
           <Route path="about" element={<AboutPage />} />
           <Route path="contact" element={<ContactPage />} />
           <Route path="events" element={<EventsPage />} />
+          <Route path="events/:id" element={<EventDetailPage />} />
+          <Route path="news" element={<NewsPage />} />
+          <Route path="news/:id" element={<NewsDetailPage />} />
           <Route path="book" element={<Navigate to="/contact" replace />} />
           <Route path="search" element={<SearchPage />} />
           <Route path="*" element={<NotFoundPage />} />

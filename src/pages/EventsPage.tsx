@@ -36,6 +36,7 @@ export function EventsPage() {
                 event={event}
                 locale={locale}
                 dateLabel={m.eventsPage.dateLabel}
+                readMore={m.eventsPage.readMore}
               />
             ))}
           </Box>

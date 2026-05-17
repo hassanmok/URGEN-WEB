@@ -18,6 +18,8 @@ import {
 import { AdminDataPanel } from '../../components/admin/AdminDataPanel'
 import { AdminPartnerLabUsersPanel } from '../../components/admin/AdminPartnerLabUsersPanel'
 import { AdminPartnerSubmissionsPanel } from '../../components/admin/AdminPartnerSubmissionsPanel'
+import { AdminPartnerSubmissionNotifications } from '../../components/admin/AdminPartnerSubmissionNotifications'
+import { AdminNewsPanel } from '../../components/admin/AdminNewsPanel'
 import { EventImageField, type EventImageFieldHandle } from '../../components/admin/EventImageField'
 import { LanguageSwitcher } from '../../components/layout/LanguageSwitcher'
 import { useLocaleContext } from '../../i18n/useLocaleContext'
@@ -32,6 +34,8 @@ const emptyForm: EventInput = {
   title_en: '',
   description_ar: '',
   description_en: '',
+  body_ar: '',
+  body_en: '',
   event_date: '',
   location_ar: '',
   location_en: '',
@@ -55,7 +59,15 @@ export function AdminPage() {
   const [loginError, setLoginError] = useState<string | null>(null)
   const [loginSubmitting, setLoginSubmitting] = useState(false)
   const imageFieldRef = useRef<EventImageFieldHandle>(null)
-  const [tab, setTab] = useState<'events' | 'data' | 'partnerAccounts' | 'partnerLabs'>('events')
+  const [tab, setTab] = useState<'events' | 'news' | 'data' | 'partnerAccounts' | 'partnerLabs'>(
+    'events',
+  )
+  const [highlightSubmission, setHighlightSubmission] = useState<{
+    groupKey: string
+    token: number
+  } | null>(null)
+  const [unseenSubmissionCount, setUnseenSubmissionCount] = useState(0)
+  const [submissionSeenRefresh, setSubmissionSeenRefresh] = useState(0)
   const [isPartnerStaffBlocked, setIsPartnerStaffBlocked] = useState<boolean | null>(null)
 
   const useSupabaseAuth = Boolean(supabase)
@@ -134,6 +146,8 @@ export function AdminPage() {
       title_en: event.title_en,
       description_ar: event.description_ar,
       description_en: event.description_en,
+      body_ar: event.body_ar,
+      body_en: event.body_en,
       event_date: event.event_date,
       location_ar: event.location_ar ?? '',
       location_en: event.location_en ?? '',
@@ -332,9 +346,23 @@ export function AdminPage() {
           </Box>
           <Box className="flex flex-wrap items-center gap-2">
             <LanguageSwitcher />
+            <AdminPartnerSubmissionNotifications
+              m={m.admin}
+              refreshToken={submissionSeenRefresh}
+              onOpenGroup={(groupKey) => {
+                setTab('partnerLabs')
+                setHighlightSubmission({ groupKey, token: Date.now() })
+              }}
+              onUnseenCountChange={setUnseenSubmissionCount}
+            />
             <Link to="/events">
               <Button variant="outline" className="text-sm">
                 {m.admin.viewEvents}
+              </Button>
+            </Link>
+            <Link to="/news">
+              <Button variant="outline" className="text-sm">
+                {m.admin.viewNews}
               </Button>
             </Link>
             <Link to="/">
@@ -364,6 +392,17 @@ export function AdminPage() {
           </button>
           <button
             type="button"
+            onClick={() => setTab('news')}
+            className={`rounded-xl px-4 py-2 text-sm font-semibold ${
+              tab === 'news'
+                ? 'bg-urgen-purple text-white'
+                : 'bg-white text-slate-600 ring-1 ring-slate-200'
+            }`}
+          >
+            {m.admin.tabNews}
+          </button>
+          <button
+            type="button"
             onClick={() => setTab('data')}
             className={`rounded-xl px-4 py-2 text-sm font-semibold ${
               tab === 'data'
@@ -387,22 +426,35 @@ export function AdminPage() {
           <button
             type="button"
             onClick={() => setTab('partnerLabs')}
-            className={`rounded-xl px-4 py-2 text-sm font-semibold ${
+            className={`relative rounded-xl px-4 py-2 text-sm font-semibold ${
               tab === 'partnerLabs'
                 ? 'bg-urgen-purple text-white'
                 : 'bg-white text-slate-600 ring-1 ring-slate-200'
             }`}
           >
             {m.admin.tabPartnerLabs}
+            {unseenSubmissionCount > 0 && tab !== 'partnerLabs' && (
+              <span className="absolute -end-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[9px] font-bold text-white">
+                {unseenSubmissionCount > 99 ? '99+' : unseenSubmissionCount}
+              </span>
+            )}
           </button>
         </Box>
 
         {tab === 'partnerLabs' ? (
-          <AdminPartnerSubmissionsPanel m={m.admin} />
+          <AdminPartnerSubmissionsPanel
+            m={m.admin}
+            highlightGroupKey={highlightSubmission?.groupKey ?? null}
+            highlightToken={highlightSubmission?.token ?? 0}
+            onHighlightHandled={() => setHighlightSubmission(null)}
+            onSeenChange={() => setSubmissionSeenRefresh((n) => n + 1)}
+          />
         ) : tab === 'partnerAccounts' ? (
           <AdminPartnerLabUsersPanel m={m.admin} />
         ) : tab === 'data' ? (
           <AdminDataPanel m={m.admin} />
+        ) : tab === 'news' ? (
+          <AdminNewsPanel m={m.admin} />
         ) : (
         <Box className="grid gap-8 lg:grid-cols-[1fr_1.1fr]">
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -439,6 +491,23 @@ export function AdminPage() {
                   value={form.description_en}
                   onChange={(e) => setForm((f) => ({ ...f, description_en: e.target.value }))}
                   className={`${inputClass} min-h-[88px]`}
+                  dir="ltr"
+                />
+              </FormRow>
+              <p className="text-xs text-slate-500">{m.admin.descHint}</p>
+              <FormRow label={m.admin.bodyAr}>
+                <textarea
+                  value={form.body_ar}
+                  onChange={(e) => setForm((f) => ({ ...f, body_ar: e.target.value }))}
+                  className={`${inputClass} min-h-[140px]`}
+                  dir="rtl"
+                />
+              </FormRow>
+              <FormRow label={m.admin.bodyEn}>
+                <textarea
+                  value={form.body_en}
+                  onChange={(e) => setForm((f) => ({ ...f, body_en: e.target.value }))}
+                  className={`${inputClass} min-h-[140px]`}
                   dir="ltr"
                 />
               </FormRow>

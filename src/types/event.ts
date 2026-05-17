@@ -4,6 +4,8 @@ export type EventRecord = {
   title_en: string
   description_ar: string
   description_en: string
+  body_ar: string
+  body_en: string
   event_date: string
   location_ar: string | null
   location_en: string | null

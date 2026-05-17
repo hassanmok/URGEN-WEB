@@ -102,6 +102,8 @@ export interface Database {
           title_en: string
           description_ar: string
           description_en: string
+          body_ar: string
+          body_en: string
           event_date: string
           location_ar: string | null
           location_en: string | null
@@ -115,6 +117,8 @@ export interface Database {
           title_en: string
           description_ar: string
           description_en: string
+          body_ar?: string
+          body_en?: string
           event_date: string
           location_ar?: string | null
           location_en?: string | null
@@ -123,6 +127,58 @@ export interface Database {
           created_at?: string | null
         }
         Update: Partial<Database['public']['Tables']['events']['Insert']>
+        Relationships: []
+      }
+      news: {
+        Row: {
+          id: string
+          title_ar: string
+          title_en: string
+          summary_ar: string
+          summary_en: string
+          body_ar: string
+          body_en: string
+          cover_image_url: string | null
+          published: boolean
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          title_ar: string
+          title_en: string
+          summary_ar: string
+          summary_en: string
+          body_ar: string
+          body_en: string
+          cover_image_url?: string | null
+          published?: boolean
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: Partial<Database['public']['Tables']['news']['Insert']>
+        Relationships: []
+      }
+      news_images: {
+        Row: {
+          id: string
+          news_id: string
+          image_url: string
+          sort_order: number
+          caption_ar: string | null
+          caption_en: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          news_id: string
+          image_url: string
+          sort_order?: number
+          caption_ar?: string | null
+          caption_en?: string | null
+          created_at?: string | null
+        }
+        Update: Partial<Database['public']['Tables']['news_images']['Insert']>
         Relationships: []
       }
       site_content: {
@@ -162,12 +218,20 @@ export interface Database {
           user_id: string
           lab_display_name: string
           partner_username: string | null
+          country_code: string | null
+          governorate_id: string | null
+          region_id: string | null
+          is_locked: boolean
           created_at: string | null
         }
         Insert: {
           user_id: string
           lab_display_name: string
           partner_username?: string | null
+          country_code?: string | null
+          governorate_id?: string | null
+          region_id?: string | null
+          is_locked?: boolean
           created_at?: string | null
         }
         Update: Partial<Database['public']['Tables']['partner_lab_users']['Insert']>
@@ -177,6 +241,7 @@ export interface Database {
         Row: {
           id: string
           partner_user_id: string
+          batch_id: string | null
           patient_full_name: string
           age_value: number
           age_unit: string
@@ -191,6 +256,7 @@ export interface Database {
         Insert: {
           id?: string
           partner_user_id: string
+          batch_id?: string | null
           patient_full_name: string
           age_value: number
           age_unit: string
@@ -223,8 +289,20 @@ export interface Database {
           email: string
           lab_display_name: string
           partner_username: string | null
+          country_code: string | null
+          governorate_id: string | null
+          region_id: string | null
+          is_locked: boolean
           created_at: string | null
         }[]
+      }
+      partner_submission_mark_group_seen: {
+        Args: { p_group_key: string }
+        Returns: undefined
+      }
+      partner_submission_seen_group_keys: {
+        Args: Record<PropertyKey, never>
+        Returns: string[]
       }
     }
     Enums: Record<string, never>

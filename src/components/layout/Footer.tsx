@@ -49,6 +49,11 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link className="text-slate-300 hover:text-white" to="/news">
+                  {m.nav.news}
+                </Link>
+              </li>
+              <li>
                 <Link className="text-slate-300 hover:text-white" to="/contact">
                   {m.nav.contact}
                 </Link>

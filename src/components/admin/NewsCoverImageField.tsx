@@ -1,38 +1,37 @@
 import { forwardRef, useEffect, useId, useImperativeHandle, useRef, useState } from 'react'
 import { compressEventImage, formatImageSize } from '../../lib/compressEventImage'
 import {
-  blobToLocalImageUrl,
-  deleteEventImageByUrl,
-  isStoredEventImage,
-  uploadEventImage,
-} from '../../lib/eventImageStorage'
+  blobToLocalNewsImageUrl,
+  deleteNewsImageByUrl,
+  isStoredNewsImage,
+  uploadNewsImage,
+} from '../../lib/newsImageStorage'
 import { supabase } from '../../lib/supabase'
 import type { Messages } from '../../i18n/messages'
 
-export type EventImageFieldHandle = {
+export type NewsCoverImageFieldHandle = {
   resolveImageUrl: (
-    forEventId: string,
+    forNewsId: string,
   ) => Promise<{ ok: true; url: string | null } | { ok: false; error: string }>
 }
 
-type EventImageFieldProps = {
+type Props = {
   m: Messages['admin']
-  eventId: string | null
+  newsId: string | null
   currentUrl: string | null
   disabled?: boolean
 }
 
-export const EventImageField = forwardRef<EventImageFieldHandle, EventImageFieldProps>(
-  function EventImageField({ m, eventId, currentUrl, disabled }, ref) {
+export const NewsCoverImageField = forwardRef<NewsCoverImageFieldHandle, Props>(
+  function NewsCoverImageField({ m, newsId, currentUrl, disabled }, ref) {
     const inputId = useId()
     const inputRef = useRef<HTMLInputElement>(null)
     const [preview, setPreview] = useState<string | null>(currentUrl)
     const [pendingBlob, setPendingBlob] = useState<Blob | null>(null)
-    const [pendingMime, setPendingMime] = useState('image/webp')
+    const [pendingMime] = useState('image/webp')
     const [meta, setMeta] = useState<string | null>(null)
     const [busy, setBusy] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    const [removeOnSave, setRemoveOnSave] = useState(false)
     const storedUrlRef = useRef(currentUrl)
     const pendingBlobRef = useRef<Blob | null>(null)
     const pendingMimeRef = useRef('image/webp')
@@ -44,22 +43,16 @@ export const EventImageField = forwardRef<EventImageFieldHandle, EventImageField
       pendingBlobRef.current = null
       setPendingBlob(null)
       removeOnSaveRef.current = false
-      setRemoveOnSave(false)
       setMeta(null)
       setError(null)
-    }, [currentUrl, eventId])
+    }, [currentUrl, newsId])
 
     useEffect(() => {
       pendingBlobRef.current = pendingBlob
     }, [pendingBlob])
-
     useEffect(() => {
       pendingMimeRef.current = pendingMime
     }, [pendingMime])
-
-    useEffect(() => {
-      removeOnSaveRef.current = removeOnSave
-    }, [removeOnSave])
 
     useEffect(() => {
       return () => {
@@ -68,32 +61,30 @@ export const EventImageField = forwardRef<EventImageFieldHandle, EventImageField
     }, [preview])
 
     useImperativeHandle(ref, () => ({
-      async resolveImageUrl(forEventId: string) {
+      async resolveImageUrl(forNewsId: string) {
         const blob = pendingBlobRef.current
         const remove = removeOnSaveRef.current
 
         if (remove && !blob) {
-          if (storedUrlRef.current && isStoredEventImage(storedUrlRef.current)) {
-            await deleteEventImageByUrl(storedUrlRef.current)
+          if (storedUrlRef.current && isStoredNewsImage(storedUrlRef.current)) {
+            await deleteNewsImageByUrl(storedUrlRef.current)
           }
           return { ok: true, url: null }
         }
 
-        if (!blob) {
-          return { ok: true, url: storedUrlRef.current }
-        }
+        if (!blob) return { ok: true, url: storedUrlRef.current }
 
-        if (storedUrlRef.current && isStoredEventImage(storedUrlRef.current)) {
-          await deleteEventImageByUrl(storedUrlRef.current)
+        if (storedUrlRef.current && isStoredNewsImage(storedUrlRef.current)) {
+          await deleteNewsImageByUrl(storedUrlRef.current)
         }
 
         if (supabase) {
-          const uploaded = await uploadEventImage(blob, forEventId, pendingMimeRef.current)
+          const uploaded = await uploadNewsImage(blob, forNewsId, pendingMimeRef.current, 'cover')
           if (!uploaded.ok) return { ok: false, error: uploaded.error }
           return { ok: true, url: uploaded.url }
         }
 
-        const local = await blobToLocalImageUrl(blob)
+        const local = await blobToLocalNewsImageUrl(blob)
         if (!local.ok) return { ok: false, error: local.error }
         return { ok: true, url: local.url }
       },
@@ -104,7 +95,6 @@ export const EventImageField = forwardRef<EventImageFieldHandle, EventImageField
       setError(null)
       setBusy(true)
       removeOnSaveRef.current = false
-      setRemoveOnSave(false)
 
       try {
         const compressed = await compressEventImage(file)
@@ -113,7 +103,6 @@ export const EventImageField = forwardRef<EventImageFieldHandle, EventImageField
         pendingBlobRef.current = compressed.blob
         setPendingBlob(compressed.blob)
         pendingMimeRef.current = compressed.mime
-        setPendingMime(compressed.mime)
         setMeta(
           `${compressed.width}×${compressed.height} · ${formatImageSize(compressed.bytes)} · ${compressed.mime.includes('webp') ? 'WebP' : 'JPEG'}`,
         )
@@ -134,25 +123,25 @@ export const EventImageField = forwardRef<EventImageFieldHandle, EventImageField
       setPendingBlob(null)
       setMeta(null)
       removeOnSaveRef.current = true
-      setRemoveOnSave(true)
       if (inputRef.current) inputRef.current.value = ''
     }
 
     return (
       <div className="space-y-2">
-        <span className="text-sm font-medium text-slate-700">{m.imageUpload}</span>
+        <span className="text-sm font-medium text-slate-700">{m.newsCoverImage}</span>
         {preview ? (
-          <div className="overflow-hidden rounded-xl border border-slate-200">
-            <img src={preview} alt="" className="aspect-[16/10] w-full object-contain bg-slate-50" />
+          <div className="flex aspect-[16/10] w-full items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white">
+            <img src={preview} alt="" className="max-h-full max-w-full object-contain" />
           </div>
         ) : (
           <div className="flex aspect-[16/10] items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 text-sm text-slate-400">
             {m.imageNoPreview}
           </div>
         )}
-        {meta && <p className="text-xs text-slate-500">{m.imageOptimized} {meta}</p>}
-        {!supabase && (
-          <p className="text-xs leading-relaxed text-amber-800/90">{m.imageLocalWarning}</p>
+        {meta && (
+          <p className="text-xs text-slate-500">
+            {m.imageOptimized} {meta}
+          </p>
         )}
         <div className="flex flex-wrap gap-2">
           <label
@@ -182,8 +171,9 @@ export const EventImageField = forwardRef<EventImageFieldHandle, EventImageField
           onChange={(e) => void onPickFile(e.target.files?.[0] ?? null)}
         />
         {error && <p className="text-sm text-red-600">{error}</p>}
-        {supabase && <p className="text-xs text-slate-500">{m.imageStorageHint}</p>}
       </div>
     )
   },
 )
+
+

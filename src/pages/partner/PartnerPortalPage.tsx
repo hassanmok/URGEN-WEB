@@ -8,7 +8,8 @@ import { fetchPartnerLabProfile, resolvePartnerLoginEmail } from '../../lib/part
 import {
   createPartnerPdfDownloadUrl,
   fetchPartnerSubmissionsForLab,
-  insertPartnerSubmission,
+  groupPartnerSubmissions,
+  insertPartnerSubmissionBatch,
   isPartnerPdfExpired,
   partnerSubmissionMatchesSearch,
   type PartnerAgeUnit,
@@ -16,6 +17,7 @@ import {
 } from '../../lib/partnerSubmissionsStore'
 import { useLocaleContext } from '../../i18n/useLocaleContext'
 import { useTests } from '../../hooks/useTests'
+import { buildPatientFullName, isPatientNameComplete } from '../../lib/patientName'
 
 export function PartnerPortalPage() {
   const navigate = useNavigate()
@@ -34,10 +36,13 @@ export function PartnerPortalPage() {
   const [loginBusy, setLoginBusy] = useState(false)
 
   const [tab, setTab] = useState<'submit' | 'list'>('submit')
-  const [patientName, setPatientName] = useState('')
+  const [patientName1, setPatientName1] = useState('')
+  const [patientName2, setPatientName2] = useState('')
+  const [patientName3, setPatientName3] = useState('')
+  const [patientName4, setPatientName4] = useState('')
   const [ageValue, setAgeValue] = useState('')
   const [ageUnit, setAgeUnit] = useState<PartnerAgeUnit>('years')
-  const [testSlug, setTestSlug] = useState('')
+  const [selectedTests, setSelectedTests] = useState<Set<string>>(new Set())
   const [submitBusy, setSubmitBusy] = useState(false)
   const [submitMsg, setSubmitMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
@@ -147,29 +152,57 @@ export function PartnerPortalPage() {
   async function onSubmitRequest(e: FormEvent) {
     e.preventDefault()
     setSubmitMsg(null)
-    const name = patientName.trim()
+    const nameParts = [patientName1, patientName2, patientName3, patientName4] as const
+    if (!isPatientNameComplete(nameParts)) {
+      setSubmitMsg({ ok: false, text: m.patientNameRequired })
+      return
+    }
+    const name = buildPatientFullName(nameParts)
     const ageNum = Number.parseInt(ageValue, 10)
-    if (!name || name.length < 4) return
     if (!Number.isFinite(ageNum) || ageNum <= 0) return
-    if (!testSlug) return
+    if (selectedTests.size === 0) {
+      setSubmitMsg({ ok: false, text: m.selectAtLeastOneTest })
+      return
+    }
 
     setSubmitBusy(true)
-    const res = await insertPartnerSubmission({
+    const res = await insertPartnerSubmissionBatch({
       patient_full_name: name,
       age_value: ageNum,
       age_unit: ageUnit,
-      test_slug: testSlug,
+      test_slugs: [...selectedTests],
     })
     setSubmitBusy(false)
     if (!res.ok) {
       setSubmitMsg({ ok: false, text: `${m.submitErr}${res.error ? `: ${res.error}` : ''}` })
       return
     }
-    setSubmitMsg({ ok: true, text: m.submitOk })
-    setPatientName('')
+    setSubmitMsg({
+      ok: true,
+      text: m.submitOkBatch.replace('{n}', String(res.count ?? selectedTests.size)),
+    })
+    setPatientName1('')
+    setPatientName2('')
+    setPatientName3('')
+    setPatientName4('')
     setAgeValue('')
-    setTestSlug('')
+    setSelectedTests(new Set())
     void loadRows()
+  }
+
+  function toggleTest(slug: string) {
+    setSelectedTests((prev) => {
+      const next = new Set(prev)
+      if (next.has(slug)) next.delete(slug)
+      else next.add(slug)
+      return next
+    })
+  }
+
+  function testTitle(slug: string) {
+    const t = tests.find((x) => x.slug === slug)
+    if (!t) return slug
+    return locale === 'ar' ? t.title_ar : (t.title_en ?? t.title_ar)
   }
 
   async function downloadPdf(row: PartnerSubmissionRow) {
@@ -233,12 +266,13 @@ export function PartnerPortalPage() {
       : (a.title_en ?? a.title_ar).localeCompare(b.title_en ?? b.title_ar, 'en'),
   )
 
-  const filteredRequestRows = useMemo(() => {
-    return rows.filter((row) => {
+  const filteredGroups = useMemo(() => {
+    const filtered = rows.filter((row) => {
       const t = tests.find((x) => x.slug === row.test_slug)
       const extras = t ? ([t.title_ar, t.title_en ?? ''].filter(Boolean) as string[]) : []
       return partnerSubmissionMatchesSearch(row, requestsSearchQuery, extras)
     })
+    return groupPartnerSubmissions(filtered)
   }, [rows, requestsSearchQuery, tests])
 
   if (!supabase) {
@@ -413,17 +447,48 @@ export function PartnerPortalPage() {
           <section className="mx-auto max-w-xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-bold text-urgen-navy">{m.tabSubmit}</h2>
             <form className="mt-6 space-y-4" onSubmit={onSubmitRequest}>
-              <label className="block text-sm font-semibold text-urgen-navy">
-                {m.patientName}
-                <span className="mt-1 block text-xs font-normal text-slate-500">{m.patientNameHint}</span>
-                <input
-                  value={patientName}
-                  onChange={(e) => setPatientName(e.target.value)}
-                  className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-urgen-purple focus:outline-none focus:ring-2 focus:ring-urgen-purple/20"
-                  required
-                  minLength={4}
-                />
-              </label>
+              <fieldset className="block">
+                <legend className="text-sm font-semibold text-urgen-navy">{m.patientName}</legend>
+                <p className="mt-1 text-xs font-normal text-slate-500">{m.patientNameHint}</p>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <label className="block text-sm text-slate-700">
+                    {m.patientNamePart1}
+                    <input
+                      value={patientName1}
+                      onChange={(e) => setPatientName1(e.target.value)}
+                      className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-urgen-purple focus:outline-none focus:ring-2 focus:ring-urgen-purple/20"
+                      required
+                    />
+                  </label>
+                  <label className="block text-sm text-slate-700">
+                    {m.patientNamePart2}
+                    <input
+                      value={patientName2}
+                      onChange={(e) => setPatientName2(e.target.value)}
+                      className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-urgen-purple focus:outline-none focus:ring-2 focus:ring-urgen-purple/20"
+                      required
+                    />
+                  </label>
+                  <label className="block text-sm text-slate-700">
+                    {m.patientNamePart3}
+                    <input
+                      value={patientName3}
+                      onChange={(e) => setPatientName3(e.target.value)}
+                      className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-urgen-purple focus:outline-none focus:ring-2 focus:ring-urgen-purple/20"
+                      required
+                    />
+                  </label>
+                  <label className="block text-sm text-slate-700">
+                    {m.patientNamePart4}
+                    <input
+                      value={patientName4}
+                      onChange={(e) => setPatientName4(e.target.value)}
+                      className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-urgen-purple focus:outline-none focus:ring-2 focus:ring-urgen-purple/20"
+                      required
+                    />
+                  </label>
+                </div>
+              </fieldset>
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block text-sm font-semibold text-urgen-navy">
@@ -452,23 +517,34 @@ export function PartnerPortalPage() {
                 </label>
               </div>
 
-              <label className="block text-sm font-semibold text-urgen-navy">
-                {m.testSelect}
-                <select
-                  value={testSlug}
-                  onChange={(e) => setTestSlug(e.target.value)}
-                  className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-urgen-purple focus:outline-none focus:ring-2 focus:ring-urgen-purple/20"
-                  required
-                  disabled={loadingTests || sortedTests.length === 0}
-                >
-                  <option value="">{m.testPlaceholder}</option>
-                  {sortedTests.map((t) => (
-                    <option key={t.slug} value={t.slug}>
-                      {locale === 'ar' ? t.title_ar : (t.title_en ?? t.title_ar)} ({t.slug})
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <fieldset className="block">
+                <legend className="text-sm font-semibold text-urgen-navy">{m.testSelect}</legend>
+                <p className="mt-1 text-xs text-slate-500">{m.testSelectHint}</p>
+                <div className="mt-3 max-h-64 space-y-2 overflow-y-auto rounded-xl border border-slate-200 p-3">
+                  {loadingTests ? (
+                    <p className="text-sm text-slate-500">{m.loadingTests}</p>
+                  ) : sortedTests.length === 0 ? (
+                    <p className="text-sm text-slate-500">{m.testPlaceholder}</p>
+                  ) : (
+                    sortedTests.map((t) => (
+                      <label
+                        key={t.slug}
+                        className="flex cursor-pointer items-start gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-50"
+                      >
+                        <input
+                          type="checkbox"
+                          className="mt-1 rounded border-slate-300 text-urgen-purple focus:ring-urgen-purple"
+                          checked={selectedTests.has(t.slug)}
+                          onChange={() => toggleTest(t.slug)}
+                        />
+                        <span className="text-sm text-slate-800">
+                          {locale === 'ar' ? t.title_ar : (t.title_en ?? t.title_ar)}
+                        </span>
+                      </label>
+                    ))
+                  )}
+                </div>
+              </fieldset>
 
               {submitMsg && (
                 <p className={submitMsg.ok ? 'text-sm text-green-700' : 'text-sm text-red-600'}>
@@ -514,38 +590,44 @@ export function PartnerPortalPage() {
               <p className="mt-6 text-sm text-slate-500">{m.loadingMyRequests}</p>
             ) : rows.length === 0 ? (
               <p className="mt-6 text-sm text-slate-500">{m.emptyRequests}</p>
-            ) : filteredRequestRows.length === 0 ? (
+            ) : filteredGroups.length === 0 ? (
               <p className="mt-6 text-sm text-slate-500">{m.searchNoResults}</p>
             ) : (
               <ul className="mt-6 space-y-4">
-                {filteredRequestRows.map((row) => {
-                  const expired = isPartnerPdfExpired(row)
+                {filteredGroups.map((group) => (
+                  <li
+                    key={group.groupKey}
+                    className="rounded-xl border border-slate-100 bg-slate-50/80 p-4 text-sm"
+                  >
+                    <div className="space-y-1 border-b border-slate-200 pb-3">
+                      <p className="font-semibold text-urgen-navy">{group.patient_full_name}</p>
+                      <p className="text-slate-600">
+                        {agePretty({
+                          age_value: group.age_value,
+                          age_unit: group.age_unit,
+                        } as PartnerSubmissionRow)}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {m.dateSubmitted}:{' '}
+                        {group.created_at
+                          ? new Date(group.created_at).toLocaleString(
+                              locale === 'ar' ? 'ar-IQ' : 'en-US',
+                            )
+                          : '—'}
+                      </p>
+                    </div>
+                    <ul className="mt-3 space-y-3">
+                      {group.items.map((row) => {
+                        const expired = isPartnerPdfExpired(row)
                   const pdfReady = row.status === 'done' && row.pdf_storage_path && !expired
 
                   return (
                     <li
                       key={row.id}
-                      className="rounded-xl border border-slate-100 bg-slate-50/80 p-4 text-sm"
+                      className="rounded-lg border border-slate-200/80 bg-white p-3"
                     >
                       <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div className="space-y-1">
-                          <p className="font-semibold text-urgen-navy">{row.patient_full_name}</p>
-                          <p className="text-slate-600">{agePretty(row)}</p>
-                          <p dir="ltr" className="text-slate-700">
-                            {row.test_slug}
-                          </p>
-                          <p className="text-xs text-slate-500">
-                            {m.dateSubmitted}:{' '}
-                            {row.created_at
-                              ? new Date(row.created_at).toLocaleString(locale === 'ar' ? 'ar-IQ' : 'en-US')
-                              : '—'}
-                          </p>
-                          {row.status === 'rejected' && row.rejection_reason && (
-                            <p className="text-red-700">
-                              {m.rejectionReason}: {row.rejection_reason}
-                            </p>
-                          )}
-                        </div>
+                        <p className="font-medium text-urgen-navy">{testTitle(row.test_slug)}</p>
                         <span
                           className={`rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset ${statusBadgeClass(row.status)}`}
                         >
@@ -581,20 +663,23 @@ export function PartnerPortalPage() {
                         {row.status === 'done' && expired && (
                           <p className="text-xs text-slate-600">{m.pdfExpired}</p>
                         )}
-                        {row.status === 'done' && !expired && row.pdf_storage_path && (
-                          <Button
-                            type="button"
-                            className="text-sm"
-                            disabled={pdfBusyId === row.id}
-                            onClick={() => void downloadPdf(row)}
-                          >
-                            {pdfBusyId === row.id ? '…' : m.pdfDownload}
-                          </Button>
-                        )}
-                      </div>
-                    </li>
-                  )
-                })}
+                              {pdfReady && (
+                                <Button
+                                  type="button"
+                                  className="text-sm"
+                                  disabled={pdfBusyId === row.id}
+                                  onClick={() => void downloadPdf(row)}
+                                >
+                                  {pdfBusyId === row.id ? '…' : m.pdfDownload}
+                                </Button>
+                              )}
+                            </div>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </li>
+                ))}
               </ul>
             )}
           </section>

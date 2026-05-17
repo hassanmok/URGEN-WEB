@@ -57,6 +57,9 @@ serve(async (req) => {
     password?: string
     lab_display_name?: string
     partner_username?: string
+    country_code?: string
+    governorate_id?: string
+    region_id?: string
   }
 
   try {
@@ -65,16 +68,18 @@ serve(async (req) => {
     return json({ error: 'invalid_json' }, 400)
   }
 
-  const email = body.email?.trim() ?? ''
+  const emailInput = body.email?.trim() ?? ''
   const password = body.password ?? ''
   const lab_display_name = body.lab_display_name?.trim() ?? ''
   const partner_username = body.partner_username?.trim() ?? ''
 
-  if (!email || !password || !lab_display_name || !partner_username) {
+  if (!password || !lab_display_name || !partner_username) {
     return json({ error: 'missing_fields' }, 400)
   }
 
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  const email = emailInput || partnerPlaceholderEmail(partner_username)
+
+  if (emailInput && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput)) {
     return json({ error: 'invalid_email' }, 400)
   }
 
@@ -110,6 +115,10 @@ serve(async (req) => {
     user_id: created.user.id,
     lab_display_name,
     partner_username,
+    country_code: body.country_code?.trim() || null,
+    governorate_id: body.governorate_id?.trim() || null,
+    region_id: body.region_id?.trim() || null,
+    is_locked: false,
   })
 
   if (insertErr) {
@@ -119,6 +128,11 @@ serve(async (req) => {
 
   return json({ ok: true, user_id: created.user.id }, 200)
 })
+
+function partnerPlaceholderEmail(username: string): string {
+  const safe = username.toLowerCase().replace(/[^a-z0-9._-]/g, '') || 'partner'
+  return `${safe}@partner.urgen.local`
+}
 
 function json(payload: Record<string, unknown>, status: number) {
   return new Response(JSON.stringify(payload), {

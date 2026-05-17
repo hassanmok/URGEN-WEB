@@ -10,7 +10,7 @@ function rpcMissingError(code: string | undefined, message: string | undefined):
 export async function fetchPartnerLabProfile(
   supabase: SupabaseClient<Database>,
   userId: string,
-): Promise<{ lab_display_name: string } | null> {
+): Promise<{ lab_display_name: string; is_locked?: boolean } | null> {
   const rpcRes = await supabase.rpc('get_my_partner_lab')
 
   if (!rpcRes.error && rpcRes.data?.length) {
@@ -34,7 +34,7 @@ export async function fetchPartnerLabProfile(
 
   const { data, error } = await supabase
     .from('partner_lab_users')
-    .select('lab_display_name')
+    .select('lab_display_name, is_locked')
     .eq('user_id', userId)
     .maybeSingle()
 
@@ -48,7 +48,8 @@ export async function fetchPartnerLabProfile(
     })
     return null
   }
-  return { lab_display_name: data.lab_display_name }
+  if (data.is_locked) return null
+  return { lab_display_name: data.lab_display_name, is_locked: data.is_locked }
 }
 
 /** يحوّل اسم المستخدم المعرف للمختبر إلى البريد؛ أو يقبل البريد كما هو (توافق مع البيانات القديمة). */

@@ -91,32 +91,94 @@ export async function fetchPartnerLabNamesMap(): Promise<Map<string, string>> {
   return map
 }
 
+export async function insertPartnerSubmissionBatch(input: {
+  patient_full_name: string
+  age_value: number
+  age_unit: PartnerAgeUnit
+  test_slugs: string[]
+}): Promise<{ ok: boolean; batch_id?: string; count?: number; error?: string }> {
+  if (!supabase) return { ok: false, error: 'no_supabase' }
+  const slugs = [...new Set(input.test_slugs.map((s) => s.trim()).filter(Boolean))]
+  if (slugs.length === 0) return { ok: false, error: 'no_tests' }
+
+  const { data: userData } = await supabase.auth.getUser()
+  const uid = userData.user?.id
+  if (!uid) return { ok: false, error: 'not_signed_in' }
+
+  const batch_id = crypto.randomUUID()
+  const rows = slugs.map((test_slug) => ({
+    partner_user_id: uid,
+    batch_id,
+    patient_full_name: input.patient_full_name.trim(),
+    age_value: input.age_value,
+    age_unit: input.age_unit,
+    test_slug,
+    status: 'sent' as const,
+  }))
+
+  const { error } = await supabase.from('partner_submissions').insert(rows)
+  if (error) return { ok: false, error: error.message }
+  return { ok: true, batch_id, count: slugs.length }
+}
+
+/** @deprecated استخدم insertPartnerSubmissionBatch */
 export async function insertPartnerSubmission(input: {
   patient_full_name: string
   age_value: number
   age_unit: PartnerAgeUnit
   test_slug: string
 }): Promise<{ ok: boolean; id?: string; error?: string }> {
-  if (!supabase) return { ok: false, error: 'no_supabase' }
-  const { data: userData } = await supabase.auth.getUser()
-  const uid = userData.user?.id
-  if (!uid) return { ok: false, error: 'not_signed_in' }
+  const res = await insertPartnerSubmissionBatch({
+    ...input,
+    test_slugs: [input.test_slug],
+  })
+  if (!res.ok) return { ok: false, error: res.error }
+  return { ok: true }
+}
 
-  const { data, error } = await supabase
-    .from('partner_submissions')
-    .insert({
-      partner_user_id: uid,
-      patient_full_name: input.patient_full_name.trim(),
-      age_value: input.age_value,
-      age_unit: input.age_unit,
-      test_slug: input.test_slug.trim(),
-      status: 'sent',
-    })
-    .select('id')
-    .single()
+export type PartnerSubmissionGroup = {
+  groupKey: string
+  batch_id: string | null
+  partner_user_id: string
+  patient_full_name: string
+  age_value: number
+  age_unit: string
+  created_at: string | null
+  items: PartnerSubmissionRow[]
+}
 
-  if (error) return { ok: false, error: error.message }
-  return { ok: true, id: data?.id }
+export function groupPartnerSubmissions(rows: PartnerSubmissionRow[]): PartnerSubmissionGroup[] {
+  const map = new Map<string, PartnerSubmissionGroup>()
+
+  for (const row of rows) {
+    const key = row.batch_id
+      ? `batch:${row.batch_id}`
+      : `solo:${row.id}`
+    let group = map.get(key)
+    if (!group) {
+      group = {
+        groupKey: key,
+        batch_id: row.batch_id,
+        partner_user_id: row.partner_user_id,
+        patient_full_name: row.patient_full_name,
+        age_value: row.age_value,
+        age_unit: row.age_unit,
+        created_at: row.created_at,
+        items: [],
+      }
+      map.set(key, group)
+    }
+    group.items.push(row)
+    if (row.created_at && (!group.created_at || row.created_at < group.created_at)) {
+      group.created_at = row.created_at
+    }
+  }
+
+  return [...map.values()].sort((a, b) => {
+    const ta = a.created_at ? new Date(a.created_at).getTime() : 0
+    const tb = b.created_at ? new Date(b.created_at).getTime() : 0
+    return tb - ta
+  })
 }
 
 export async function adminUpdateSubmissionStatus(

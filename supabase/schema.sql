@@ -141,6 +141,8 @@ create table if not exists public.events (
   title_en text not null,
   description_ar text not null,
   description_en text not null,
+  body_ar text not null default '',
+  body_en text not null default '',
   event_date date not null,
   location_ar text,
   location_en text,
@@ -148,6 +150,9 @@ create table if not exists public.events (
   published boolean default true,
   created_at timestamptz default now()
 );
+
+alter table public.events add column if not exists body_ar text not null default '';
+alter table public.events add column if not exists body_en text not null default '';
 
 alter table public.events enable row level security;
 
@@ -169,6 +174,78 @@ create policy "events_update_admin" on public.events
 
 drop policy if exists "events_delete_admin" on public.events;
 create policy "events_delete_admin" on public.events
+  for delete using (auth.role() = 'authenticated');
+
+-- أخبار المختبر (صفحة News + لوحة الإدارة)
+create table if not exists public.news (
+  id uuid primary key default gen_random_uuid(),
+  title_ar text not null,
+  title_en text not null,
+  summary_ar text not null,
+  summary_en text not null,
+  body_ar text not null,
+  body_en text not null,
+  cover_image_url text,
+  published boolean default true,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create table if not exists public.news_images (
+  id uuid primary key default gen_random_uuid(),
+  news_id uuid not null references public.news (id) on delete cascade,
+  image_url text not null,
+  sort_order int not null default 0,
+  caption_ar text,
+  caption_en text,
+  created_at timestamptz default now()
+);
+
+create index if not exists news_images_news_idx on public.news_images (news_id, sort_order);
+
+alter table public.news enable row level security;
+alter table public.news_images enable row level security;
+
+drop policy if exists "news_select_public" on public.news;
+create policy "news_select_public" on public.news
+  for select using (published = true);
+
+drop policy if exists "news_select_admin" on public.news;
+create policy "news_select_admin" on public.news
+  for select using (auth.role() = 'authenticated');
+
+drop policy if exists "news_insert_admin" on public.news;
+create policy "news_insert_admin" on public.news
+  for insert with check (auth.role() = 'authenticated');
+
+drop policy if exists "news_update_admin" on public.news;
+create policy "news_update_admin" on public.news
+  for update using (auth.role() = 'authenticated');
+
+drop policy if exists "news_delete_admin" on public.news;
+create policy "news_delete_admin" on public.news
+  for delete using (auth.role() = 'authenticated');
+
+drop policy if exists "news_images_select_public" on public.news_images;
+create policy "news_images_select_public" on public.news_images
+  for select using (
+    exists (select 1 from public.news n where n.id = news_id and n.published = true)
+  );
+
+drop policy if exists "news_images_select_admin" on public.news_images;
+create policy "news_images_select_admin" on public.news_images
+  for select using (auth.role() = 'authenticated');
+
+drop policy if exists "news_images_insert_admin" on public.news_images;
+create policy "news_images_insert_admin" on public.news_images
+  for insert with check (auth.role() = 'authenticated');
+
+drop policy if exists "news_images_update_admin" on public.news_images;
+create policy "news_images_update_admin" on public.news_images
+  for update using (auth.role() = 'authenticated');
+
+drop policy if exists "news_images_delete_admin" on public.news_images;
+create policy "news_images_delete_admin" on public.news_images
   for delete using (auth.role() = 'authenticated');
 
 -- أنشئ مستخدم إدارة من Supabase → Authentication → Users ثم سجّل الدخول من /admin
@@ -206,6 +283,39 @@ create policy "event_images_admin_delete" on storage.objects
   for delete to authenticated
   using (bucket_id = 'event-images');
 
+-- Storage: صور الأخبار
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'news-images',
+  'news-images',
+  true,
+  524288,
+  array['image/webp', 'image/jpeg', 'image/jpg', 'image/png']
+)
+on conflict (id) do update set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "news_images_public_read" on storage.objects;
+create policy "news_images_public_read" on storage.objects
+  for select using (bucket_id = 'news-images');
+
+drop policy if exists "news_images_admin_insert" on storage.objects;
+create policy "news_images_admin_insert" on storage.objects
+  for insert to authenticated
+  with check (bucket_id = 'news-images');
+
+drop policy if exists "news_images_admin_update" on storage.objects;
+create policy "news_images_admin_update" on storage.objects
+  for update to authenticated
+  using (bucket_id = 'news-images');
+
+drop policy if exists "news_images_admin_delete" on storage.objects;
+create policy "news_images_admin_delete" on storage.objects
+  for delete to authenticated
+  using (bucket_id = 'news-images');
+
 -- ─── بوابة المختبرات الشريكة (/partner) ───
 -- أنشئ مستخدم Auth لكل مختبر من Authentication → Users ثم أضف صفاً هنا:
 -- insert into public.partner_lab_users (user_id, lab_display_name, partner_username)
@@ -215,8 +325,17 @@ create table if not exists public.partner_lab_users (
   user_id uuid primary key references auth.users (id) on delete cascade,
   lab_display_name text not null,
   partner_username text,
+  country_code text,
+  governorate_id text,
+  region_id text,
+  is_locked boolean not null default false,
   created_at timestamptz default now()
 );
+
+alter table public.partner_lab_users add column if not exists country_code text;
+alter table public.partner_lab_users add column if not exists governorate_id text;
+alter table public.partner_lab_users add column if not exists region_id text;
+alter table public.partner_lab_users add column if not exists is_locked boolean not null default false;
 
 alter table public.partner_lab_users enable row level security;
 
@@ -288,11 +407,14 @@ as $$
   select u.email::text
   from auth.users u
   inner join public.partner_lab_users pl on pl.user_id = u.id
-  where (
-      pl.partner_username is not null
-      and lower(trim(pl.partner_username)) = lower(trim(p_username))
+  where pl.is_locked is not true
+    and (
+      (
+        pl.partner_username is not null
+        and lower(trim(pl.partner_username)) = lower(trim(p_username))
+      )
+      or lower(trim(u.email::text)) = lower(trim(p_username))
     )
-    or lower(trim(u.email::text)) = lower(trim(p_username))
   limit 1;
 $$;
 
@@ -310,6 +432,10 @@ returns table (
   email text,
   lab_display_name text,
   partner_username text,
+  country_code text,
+  governorate_id text,
+  region_id text,
+  is_locked boolean,
   created_at timestamptz
 )
 language sql
@@ -317,7 +443,16 @@ stable
 security definer
 set search_path = public
 as $$
-  select pl.user_id, u.email::text, pl.lab_display_name, pl.partner_username, pl.created_at
+  select
+    pl.user_id,
+    u.email::text,
+    pl.lab_display_name,
+    pl.partner_username,
+    pl.country_code,
+    pl.governorate_id,
+    pl.region_id,
+    pl.is_locked,
+    pl.created_at
   from public.partner_lab_users pl
   inner join auth.users u on u.id = pl.user_id
   where not exists (
@@ -335,6 +470,7 @@ comment on function public.partner_lab_users_admin_list() is
 create table if not exists public.partner_submissions (
   id uuid primary key default gen_random_uuid(),
   partner_user_id uuid not null references auth.users (id) on delete cascade,
+  batch_id uuid,
   patient_full_name text not null,
   age_value int not null check (age_value > 0 and age_value < 100000),
   age_unit text not null check (age_unit in ('days', 'months', 'years')),
@@ -348,8 +484,14 @@ create table if not exists public.partner_submissions (
   updated_at timestamptz default now()
 );
 
+alter table public.partner_submissions add column if not exists batch_id uuid;
+
 create index if not exists partner_submissions_partner_idx
   on public.partner_submissions (partner_user_id, created_at desc);
+
+create index if not exists partner_submissions_batch_idx
+  on public.partner_submissions (batch_id)
+  where batch_id is not null;
 
 alter table public.partner_submissions enable row level security;
 
@@ -471,3 +613,72 @@ $$;
 revoke all on function public.partner_cleanup_expired_partner_pdfs() from public;
 comment on function public.partner_cleanup_expired_partner_pdfs() is
   'تشغيل دوري (مثلاً يومياً عبر pg_cron): حذف PDF منتهية الصلاحية من التخزين ومسح المرجع من partner_submissions.';
+
+-- تتبع طلبات المختبرات التي شاهدها موظف الإدارة (مزامنة بين الأجهزة)
+create table if not exists public.partner_submission_admin_seen (
+  staff_user_id uuid not null references auth.users (id) on delete cascade,
+  group_key text not null,
+  seen_at timestamptz not null default now(),
+  primary key (staff_user_id, group_key)
+);
+
+create index if not exists partner_submission_admin_seen_staff_idx
+  on public.partner_submission_admin_seen (staff_user_id, seen_at desc);
+
+alter table public.partner_submission_admin_seen enable row level security;
+
+drop policy if exists "partner_submission_admin_seen_staff" on public.partner_submission_admin_seen;
+create policy "partner_submission_admin_seen_staff" on public.partner_submission_admin_seen
+  for all to authenticated
+  using (
+    staff_user_id = auth.uid()
+    and not public.auth_is_partner_lab_user()
+  )
+  with check (
+    staff_user_id = auth.uid()
+    and not public.auth_is_partner_lab_user()
+  );
+
+create or replace function public.partner_submission_mark_group_seen(p_group_key text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if public.auth_is_partner_lab_user() then
+    raise exception 'forbidden';
+  end if;
+  if length(trim(coalesce(p_group_key, ''))) = 0 then
+    return;
+  end if;
+  insert into public.partner_submission_admin_seen (staff_user_id, group_key, seen_at)
+  values (auth.uid(), trim(p_group_key), now())
+  on conflict (staff_user_id, group_key) do update set seen_at = excluded.seen_at;
+end;
+$$;
+
+revoke all on function public.partner_submission_mark_group_seen(text) from public;
+grant execute on function public.partner_submission_mark_group_seen(text) to authenticated;
+
+comment on function public.partner_submission_mark_group_seen(text) is
+  'لوحة الإدارة: تسجيل أن موظف الإدارة شاهد مجموعة طلب (batch أو طلب منفرد).';
+
+create or replace function public.partner_submission_seen_group_keys()
+returns setof text
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select s.group_key
+  from public.partner_submission_admin_seen s
+  where s.staff_user_id = auth.uid()
+    and not public.auth_is_partner_lab_user();
+$$;
+
+revoke all on function public.partner_submission_seen_group_keys() from public;
+grant execute on function public.partner_submission_seen_group_keys() to authenticated;
+
+comment on function public.partner_submission_seen_group_keys() is
+  'لوحة الإدارة: مفاتيح مجموعات الطلبات التي شاهدها المستخدم الحالي.';
