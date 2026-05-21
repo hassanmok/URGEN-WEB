@@ -291,6 +291,110 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['partner_submissions']['Insert']>
         Relationships: []
       }
+      doctor_users: {
+        Row: {
+          user_id: string
+          display_name: string
+          doctor_username: string | null
+          is_locked: boolean
+          created_at: string | null
+        }
+        Insert: {
+          user_id: string
+          display_name: string
+          doctor_username?: string | null
+          is_locked?: boolean
+          created_at?: string | null
+        }
+        Update: Partial<Database['public']['Tables']['doctor_users']['Insert']>
+        Relationships: []
+      }
+      doctor_cases: {
+        Row: {
+          id: string
+          doctor_user_id: string
+          patient_name1: string
+          patient_name2: string
+          patient_name3: string
+          patient_name4: string
+          patient_full_name: string
+          age_value: number
+          age_unit: string
+          gender: string
+          diagnosis: string
+          disease_type: string
+          oncology_tumor_type: string | null
+          oncology_stage: string | null
+          oncology_treatment: string | null
+          status: string
+          rejection_reason: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          doctor_user_id: string
+          patient_name1: string
+          patient_name2: string
+          patient_name3: string
+          patient_name4: string
+          patient_full_name: string
+          age_value: number
+          age_unit: string
+          gender: string
+          diagnosis: string
+          disease_type: string
+          oncology_tumor_type?: string | null
+          oncology_stage?: string | null
+          oncology_treatment?: string | null
+          status?: string
+          rejection_reason?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: Partial<Database['public']['Tables']['doctor_cases']['Insert']>
+        Relationships: []
+      }
+      doctor_case_tests: {
+        Row: {
+          id: string
+          case_id: string
+          test_slug: string
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          case_id: string
+          test_slug: string
+          created_at?: string | null
+        }
+        Update: Partial<Database['public']['Tables']['doctor_case_tests']['Insert']>
+        Relationships: []
+      }
+      doctor_case_files: {
+        Row: {
+          id: string
+          case_id: string
+          doctor_user_id: string
+          storage_path: string
+          file_name: string
+          mime_type: string | null
+          byte_size: number | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          case_id: string
+          doctor_user_id: string
+          storage_path: string
+          file_name: string
+          mime_type?: string | null
+          byte_size?: number | null
+          created_at?: string | null
+        }
+        Update: Partial<Database['public']['Tables']['doctor_case_files']['Insert']>
+        Relationships: []
+      }
     }
     Views: Record<string, never>
     Functions: {
@@ -327,6 +431,33 @@ export interface Database {
       partner_submission_seen_group_keys: {
         Args: Record<PropertyKey, never>
         Returns: string[]
+      }
+      get_my_doctor_profile: {
+        Args: Record<PropertyKey, never>
+        Returns: { display_name: string }[]
+      }
+      doctor_resolve_login: {
+        Args: { p_username: string }
+        Returns: { email: string }[]
+      }
+      doctor_users_admin_list: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          user_id: string
+          email: string
+          display_name: string
+          doctor_username: string | null
+          is_locked: boolean
+          created_at: string | null
+        }[]
+      }
+      doctor_case_admin_set_status: {
+        Args: {
+          p_case_id: string
+          p_status: string
+          p_rejection_reason?: string | null
+        }
+        Returns: undefined
       }
     }
     Enums: Record<string, never>

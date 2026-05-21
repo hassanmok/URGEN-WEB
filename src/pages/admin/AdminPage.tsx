@@ -17,6 +17,8 @@ import {
 } from '../../lib/eventsStore'
 import { AdminDataPanel } from '../../components/admin/AdminDataPanel'
 import { AdminPartnerLabUsersPanel } from '../../components/admin/AdminPartnerLabUsersPanel'
+import { AdminDoctorUsersPanel } from '../../components/admin/AdminDoctorUsersPanel'
+import { AdminDoctorCasesPanel } from '../../components/admin/AdminDoctorCasesPanel'
 import { AdminPartnerSubmissionsPanel } from '../../components/admin/AdminPartnerSubmissionsPanel'
 import { AdminPartnerSubmissionNotifications } from '../../components/admin/AdminPartnerSubmissionNotifications'
 import { AdminNewsPanel } from '../../components/admin/AdminNewsPanel'
@@ -25,6 +27,7 @@ import { EventImageField, type EventImageFieldHandle } from '../../components/ad
 import { LanguageSwitcher } from '../../components/layout/LanguageSwitcher'
 import { useLocaleContext } from '../../i18n/useLocaleContext'
 import { fetchPartnerLabProfile } from '../../lib/partnerAccess'
+import { fetchDoctorProfile } from '../../lib/doctorAccess'
 import type { EventInput, EventRecord } from '../../types/event'
 
 const Box = ({ className, children }: { className?: string; children?: React.ReactNode }) =>
@@ -61,7 +64,14 @@ export function AdminPage() {
   const [loginSubmitting, setLoginSubmitting] = useState(false)
   const imageFieldRef = useRef<EventImageFieldHandle>(null)
   const [tab, setTab] = useState<
-    'events' | 'news' | 'tests' | 'data' | 'partnerAccounts' | 'partnerLabs'
+    | 'events'
+    | 'news'
+    | 'tests'
+    | 'data'
+    | 'partnerAccounts'
+    | 'partnerLabs'
+    | 'doctorAccounts'
+    | 'doctorRequests'
   >('events')
   const [highlightSubmission, setHighlightSubmission] = useState<{
     groupKey: string
@@ -94,8 +104,11 @@ export function AdminPage() {
         if (!cancelled) setIsPartnerStaffBlocked(false)
         return
       }
-      const profile = await fetchPartnerLabProfile(supabase, uid)
-      if (!cancelled) setIsPartnerStaffBlocked(profile !== null)
+      const [partnerProfile, doctorProfile] = await Promise.all([
+        fetchPartnerLabProfile(supabase, uid),
+        fetchDoctorProfile(supabase, uid),
+      ])
+      if (!cancelled) setIsPartnerStaffBlocked(partnerProfile !== null || doctorProfile !== null)
     })()
     return () => {
       cancelled = true
@@ -324,9 +337,14 @@ export function AdminPage() {
           <Box className="mx-auto max-w-lg rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
             <h1 className="text-xl font-bold text-urgen-navy">{m.admin.partnerBlockedTitle}</h1>
             <p className="mt-3 text-sm leading-relaxed text-slate-600">{m.admin.partnerBlockedBody}</p>
-            <Link to="/partner" className="mt-6 inline-block">
-              <Button>{m.admin.partnerBlockedLink}</Button>
-            </Link>
+            <div className="mt-6 flex flex-wrap gap-2">
+              <Link to="/partner">
+                <Button variant="outline">{m.admin.partnerBlockedLink}</Button>
+              </Link>
+              <Link to="/doctor">
+                <Button>{m.admin.doctorBlockedLink}</Button>
+              </Link>
+            </div>
           </Box>
         </Box>
       </Box>
@@ -437,6 +455,28 @@ export function AdminPage() {
           </button>
           <button
             type="button"
+            onClick={() => setTab('doctorAccounts')}
+            className={`rounded-xl px-4 py-2 text-sm font-semibold ${
+              tab === 'doctorAccounts'
+                ? 'bg-urgen-purple text-white'
+                : 'bg-white text-slate-600 ring-1 ring-slate-200'
+            }`}
+          >
+            {m.admin.tabDoctorAccounts}
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab('doctorRequests')}
+            className={`rounded-xl px-4 py-2 text-sm font-semibold ${
+              tab === 'doctorRequests'
+                ? 'bg-urgen-purple text-white'
+                : 'bg-white text-slate-600 ring-1 ring-slate-200'
+            }`}
+          >
+            {m.admin.tabDoctorRequests}
+          </button>
+          <button
+            type="button"
             onClick={() => setTab('partnerLabs')}
             className={`relative rounded-xl px-4 py-2 text-sm font-semibold ${
               tab === 'partnerLabs'
@@ -463,6 +503,10 @@ export function AdminPage() {
           />
         ) : tab === 'partnerAccounts' ? (
           <AdminPartnerLabUsersPanel m={m.admin} />
+        ) : tab === 'doctorAccounts' ? (
+          <AdminDoctorUsersPanel m={m.admin} />
+        ) : tab === 'doctorRequests' ? (
+          <AdminDoctorCasesPanel m={m.admin} />
         ) : tab === 'data' ? (
           <AdminDataPanel m={m.admin} />
         ) : tab === 'tests' ? (

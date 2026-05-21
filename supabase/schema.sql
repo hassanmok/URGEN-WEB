@@ -745,3 +745,471 @@ grant execute on function public.partner_submission_seen_group_keys() to authent
 
 comment on function public.partner_submission_seen_group_keys() is
   'لوحة الإدارة: مفاتيح مجموعات الطلبات التي شاهدها المستخدم الحالي.';
+
+-- ─── بوابة الأطباء (/doctor) ───
+
+create table if not exists public.doctor_users (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  display_name text not null,
+  doctor_username text,
+  is_locked boolean not null default false,
+  created_at timestamptz default now()
+);
+
+alter table public.doctor_users add column if not exists doctor_username text;
+alter table public.doctor_users add column if not exists is_locked boolean not null default false;
+
+alter table public.doctor_users enable row level security;
+
+create or replace function public.auth_is_doctor_user()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.doctor_users d
+    where d.user_id = auth.uid()
+  );
+$$;
+
+grant execute on function public.auth_is_doctor_user() to authenticated;
+
+drop policy if exists "doctor_users_select" on public.doctor_users;
+create policy "doctor_users_select" on public.doctor_users
+  for select to authenticated
+  using (
+    user_id = auth.uid()
+    or (
+      not public.auth_is_partner_lab_user()
+      and not public.auth_is_doctor_user()
+    )
+  );
+
+drop policy if exists "doctor_users_staff_insert" on public.doctor_users;
+create policy "doctor_users_staff_insert" on public.doctor_users
+  for insert to authenticated
+  with check (
+    not public.auth_is_partner_lab_user()
+    and not public.auth_is_doctor_user()
+  );
+
+drop policy if exists "doctor_users_staff_delete" on public.doctor_users;
+create policy "doctor_users_staff_delete" on public.doctor_users
+  for delete to authenticated
+  using (
+    not public.auth_is_partner_lab_user()
+    and not public.auth_is_doctor_user()
+  );
+
+create unique index if not exists doctor_users_doctor_username_key
+  on public.doctor_users ((lower(trim(doctor_username))))
+  where doctor_username is not null and length(trim(doctor_username)) > 0;
+
+create or replace function public.get_my_doctor_profile()
+returns table (display_name text)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select d.display_name
+  from public.doctor_users d
+  where d.user_id = auth.uid()
+    and d.is_locked is not true
+  limit 1;
+$$;
+
+grant execute on function public.get_my_doctor_profile() to authenticated;
+
+create or replace function public.doctor_resolve_login(p_username text)
+returns table (email text)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select u.email::text
+  from auth.users u
+  inner join public.doctor_users d on d.user_id = u.id
+  where d.is_locked is not true
+    and (
+      (
+        d.doctor_username is not null
+        and lower(trim(d.doctor_username)) = lower(trim(p_username))
+      )
+      or lower(trim(u.email::text)) = lower(trim(p_username))
+    )
+  limit 1;
+$$;
+
+revoke all on function public.doctor_resolve_login(text) from public;
+grant execute on function public.doctor_resolve_login(text) to anon;
+grant execute on function public.doctor_resolve_login(text) to authenticated;
+
+create or replace function public.doctor_users_admin_list()
+returns table (
+  user_id uuid,
+  email text,
+  display_name text,
+  doctor_username text,
+  is_locked boolean,
+  created_at timestamptz
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select
+    d.user_id,
+    u.email::text,
+    d.display_name,
+    d.doctor_username,
+    d.is_locked,
+    d.created_at
+  from public.doctor_users d
+  inner join auth.users u on u.id = d.user_id
+  where not public.auth_is_partner_lab_user()
+    and not public.auth_is_doctor_user()
+  order by d.created_at desc nulls last;
+$$;
+
+revoke all on function public.doctor_users_admin_list() from public;
+grant execute on function public.doctor_users_admin_list() to authenticated;
+
+create table if not exists public.doctor_cases (
+  id uuid primary key default gen_random_uuid(),
+  doctor_user_id uuid not null references auth.users (id) on delete cascade,
+  patient_name1 text not null,
+  patient_name2 text not null,
+  patient_name3 text not null,
+  patient_name4 text not null,
+  patient_full_name text not null,
+  age_value int not null check (age_value > 0 and age_value < 100000),
+  age_unit text not null check (age_unit in ('days', 'months', 'years')),
+  gender text not null check (gender in ('male', 'female', 'other')),
+  diagnosis text not null,
+  disease_type text not null check (disease_type in ('oncology', 'reproductive', 'pediatric')),
+  oncology_tumor_type text,
+  oncology_stage text,
+  oncology_treatment text,
+  status text not null default 'sent'
+    check (status in ('sent', 'accepted', 'rejected')),
+  rejection_reason text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  constraint doctor_cases_oncology_fields check (
+    disease_type <> 'oncology'
+    or (
+      oncology_tumor_type is not null
+      and length(trim(oncology_tumor_type)) > 0
+      and oncology_stage is not null
+      and length(trim(oncology_stage)) > 0
+      and oncology_treatment is not null
+      and length(trim(oncology_treatment)) > 0
+    )
+  )
+);
+
+alter table public.doctor_cases add column if not exists status text;
+alter table public.doctor_cases add column if not exists rejection_reason text;
+alter table public.doctor_cases alter column status set default 'sent';
+update public.doctor_cases set status = 'sent' where status is null;
+alter table public.doctor_cases alter column status set not null;
+
+alter table public.doctor_cases drop constraint if exists doctor_cases_status_check;
+update public.doctor_cases set status = 'accepted' where status = 'pending';
+alter table public.doctor_cases add constraint doctor_cases_status_check
+  check (status in ('sent', 'accepted', 'rejected'));
+
+create index if not exists doctor_cases_doctor_idx
+  on public.doctor_cases (doctor_user_id, created_at desc);
+
+alter table public.doctor_cases enable row level security;
+
+drop policy if exists "doctor_cases_doctor_select" on public.doctor_cases;
+create policy "doctor_cases_doctor_select" on public.doctor_cases
+  for select to authenticated
+  using (
+    doctor_user_id = auth.uid()
+    and public.auth_is_doctor_user()
+  );
+
+drop policy if exists "doctor_cases_doctor_insert" on public.doctor_cases;
+create policy "doctor_cases_doctor_insert" on public.doctor_cases
+  for insert to authenticated
+  with check (
+    doctor_user_id = auth.uid()
+    and public.auth_is_doctor_user()
+    and status = 'sent'
+  );
+
+drop policy if exists "doctor_cases_doctor_update" on public.doctor_cases;
+create policy "doctor_cases_doctor_update" on public.doctor_cases
+  for update to authenticated
+  using (
+    doctor_user_id = auth.uid()
+    and public.auth_is_doctor_user()
+    and status = 'sent'
+  )
+  with check (
+    doctor_user_id = auth.uid()
+    and public.auth_is_doctor_user()
+    and status = 'sent'
+  );
+
+drop policy if exists "doctor_cases_staff_select" on public.doctor_cases;
+create policy "doctor_cases_staff_select" on public.doctor_cases
+  for select to authenticated
+  using (
+    not public.auth_is_partner_lab_user()
+    and not public.auth_is_doctor_user()
+  );
+
+drop policy if exists "doctor_cases_staff_update" on public.doctor_cases;
+create policy "doctor_cases_staff_update" on public.doctor_cases
+  for update to authenticated
+  using (
+    not public.auth_is_partner_lab_user()
+    and not public.auth_is_doctor_user()
+  )
+  with check (
+    not public.auth_is_partner_lab_user()
+    and not public.auth_is_doctor_user()
+  );
+
+-- قبول/رفض حالة الطبيب من الإدارة (يتجاوز فشل RLS الصامت على update)
+create or replace function public.doctor_case_admin_set_status(
+  p_case_id uuid,
+  p_status text,
+  p_rejection_reason text default null
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_id uuid;
+begin
+  if auth.uid() is null then
+    raise exception 'not_authenticated';
+  end if;
+  if public.auth_is_partner_lab_user() or public.auth_is_doctor_user() then
+    raise exception 'forbidden';
+  end if;
+  if p_status not in ('sent', 'accepted', 'rejected') then
+    raise exception 'invalid_status';
+  end if;
+
+  update public.doctor_cases
+  set
+    status = p_status,
+    rejection_reason = case
+      when p_status = 'rejected' then coalesce(nullif(trim(p_rejection_reason), ''), 'Rejected')
+      else null
+    end,
+    updated_at = now()
+  where id = p_case_id
+  returning id into v_id;
+
+  if v_id is null then
+    raise exception 'not_found';
+  end if;
+end;
+$$;
+
+revoke all on function public.doctor_case_admin_set_status(uuid, text, text) from public;
+grant execute on function public.doctor_case_admin_set_status(uuid, text, text) to authenticated;
+
+comment on function public.doctor_case_admin_set_status(uuid, text, text) is
+  'لوحة الإدارة: تحديث حالة طلب الطبيب (sent / accepted / rejected).';
+
+grant select, update on table public.doctor_cases to authenticated;
+
+-- تحاليل مرتبطة بطلب الطبيب (اختيار متعدد من جدول tests)
+create table if not exists public.doctor_case_tests (
+  id uuid primary key default gen_random_uuid(),
+  case_id uuid not null references public.doctor_cases (id) on delete cascade,
+  test_slug text not null,
+  created_at timestamptz default now(),
+  unique (case_id, test_slug)
+);
+
+create index if not exists doctor_case_tests_case_idx
+  on public.doctor_case_tests (case_id);
+
+alter table public.doctor_case_tests enable row level security;
+
+drop policy if exists "doctor_case_tests_doctor_select" on public.doctor_case_tests;
+create policy "doctor_case_tests_doctor_select" on public.doctor_case_tests
+  for select to authenticated
+  using (
+    exists (
+      select 1 from public.doctor_cases c
+      where c.id = case_id
+        and c.doctor_user_id = auth.uid()
+        and public.auth_is_doctor_user()
+    )
+  );
+
+drop policy if exists "doctor_case_tests_doctor_insert" on public.doctor_case_tests;
+create policy "doctor_case_tests_doctor_insert" on public.doctor_case_tests
+  for insert to authenticated
+  with check (
+    exists (
+      select 1 from public.doctor_cases c
+      where c.id = case_id
+        and c.doctor_user_id = auth.uid()
+        and public.auth_is_doctor_user()
+        and c.status = 'sent'
+    )
+  );
+
+drop policy if exists "doctor_case_tests_doctor_delete" on public.doctor_case_tests;
+create policy "doctor_case_tests_doctor_delete" on public.doctor_case_tests
+  for delete to authenticated
+  using (
+    exists (
+      select 1 from public.doctor_cases c
+      where c.id = case_id
+        and c.doctor_user_id = auth.uid()
+        and public.auth_is_doctor_user()
+        and c.status = 'sent'
+    )
+  );
+
+drop policy if exists "doctor_case_tests_staff_select" on public.doctor_case_tests;
+create policy "doctor_case_tests_staff_select" on public.doctor_case_tests
+  for select to authenticated
+  using (
+    not public.auth_is_partner_lab_user()
+    and not public.auth_is_doctor_user()
+  );
+
+grant select, insert, delete on table public.doctor_case_tests to authenticated;
+
+grant select, delete on table public.doctor_case_files to authenticated;
+
+create table if not exists public.doctor_case_files (
+  id uuid primary key default gen_random_uuid(),
+  case_id uuid not null references public.doctor_cases (id) on delete cascade,
+  doctor_user_id uuid not null references auth.users (id) on delete cascade,
+  storage_path text not null,
+  file_name text not null,
+  mime_type text,
+  byte_size bigint,
+  created_at timestamptz default now()
+);
+
+create index if not exists doctor_case_files_case_idx
+  on public.doctor_case_files (case_id);
+
+alter table public.doctor_case_files enable row level security;
+
+drop policy if exists "doctor_case_files_doctor_select" on public.doctor_case_files;
+create policy "doctor_case_files_doctor_select" on public.doctor_case_files
+  for select to authenticated
+  using (
+    doctor_user_id = auth.uid()
+    and public.auth_is_doctor_user()
+  );
+
+drop policy if exists "doctor_case_files_doctor_insert" on public.doctor_case_files;
+create policy "doctor_case_files_doctor_insert" on public.doctor_case_files
+  for insert to authenticated
+  with check (
+    doctor_user_id = auth.uid()
+    and public.auth_is_doctor_user()
+    and exists (
+      select 1 from public.doctor_cases c
+      where c.id = case_id
+        and c.doctor_user_id = auth.uid()
+        and c.status = 'sent'
+    )
+  );
+
+drop policy if exists "doctor_case_files_doctor_delete" on public.doctor_case_files;
+create policy "doctor_case_files_doctor_delete" on public.doctor_case_files
+  for delete to authenticated
+  using (
+    doctor_user_id = auth.uid()
+    and public.auth_is_doctor_user()
+    and exists (
+      select 1 from public.doctor_cases c
+      where c.id = case_id
+        and c.doctor_user_id = auth.uid()
+        and c.status = 'sent'
+    )
+  );
+
+drop policy if exists "doctor_case_files_staff_select" on public.doctor_case_files;
+create policy "doctor_case_files_staff_select" on public.doctor_case_files
+  for select to authenticated
+  using (
+    not public.auth_is_partner_lab_user()
+    and not public.auth_is_doctor_user()
+  );
+
+create or replace function public.doctor_cases_set_updated_at()
+returns trigger language plpgsql as $$
+begin
+  new.updated_at := now();
+  return new;
+end;
+$$;
+
+drop trigger if exists doctor_cases_updated_at on public.doctor_cases;
+create trigger doctor_cases_updated_at
+  before update on public.doctor_cases
+  for each row execute function public.doctor_cases_set_updated_at();
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'doctor-case-files',
+  'doctor-case-files',
+  false,
+  20971520,
+  array[
+    'application/pdf',
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'image/gif',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  ]
+)
+on conflict (id) do update set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "doctor_case_files_storage_doctor" on storage.objects;
+create policy "doctor_case_files_storage_doctor" on storage.objects
+  for all to authenticated
+  using (
+    bucket_id = 'doctor-case-files'
+    and public.auth_is_doctor_user()
+  )
+  with check (
+    bucket_id = 'doctor-case-files'
+    and public.auth_is_doctor_user()
+  );
+
+drop policy if exists "doctor_case_files_storage_staff" on storage.objects;
+create policy "doctor_case_files_storage_staff" on storage.objects
+  for all to authenticated
+  using (
+    bucket_id = 'doctor-case-files'
+    and not public.auth_is_partner_lab_user()
+    and not public.auth_is_doctor_user()
+  )
+  with check (
+    bucket_id = 'doctor-case-files'
+    and not public.auth_is_partner_lab_user()
+    and not public.auth_is_doctor_user()
+  );

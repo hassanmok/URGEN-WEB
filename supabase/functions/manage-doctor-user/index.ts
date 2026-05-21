@@ -54,13 +54,10 @@ serve(async (req) => {
   let body: {
     action?: Action
     user_id?: string
-    lab_display_name?: string
-    partner_username?: string
+    display_name?: string
+    doctor_username?: string
     email?: string
     password?: string
-    country_code?: string
-    governorate_id?: string
-    region_id?: string
     is_locked?: boolean
   }
   try {
@@ -86,7 +83,7 @@ serve(async (req) => {
   if (action === 'set_locked') {
     if (typeof body.is_locked !== 'boolean') return json({ error: 'missing_fields' }, 400)
     const { error } = await admin
-      .from('partner_lab_users')
+      .from('doctor_users')
       .update({ is_locked: body.is_locked })
       .eq('user_id', userId)
     if (error) return json({ error: error.message }, 400)
@@ -94,25 +91,20 @@ serve(async (req) => {
   }
 
   if (action === 'update') {
-    const lab_display_name = body.lab_display_name?.trim() ?? ''
-    const partner_username = body.partner_username?.trim() ?? ''
-    if (!lab_display_name || !partner_username) return json({ error: 'missing_fields' }, 400)
-    if (partner_username.length < 2 || partner_username.length > 64) {
+    const display_name = body.display_name?.trim() ?? ''
+    const doctor_username = body.doctor_username?.trim() ?? ''
+    if (!display_name || !doctor_username) return json({ error: 'missing_fields' }, 400)
+    if (doctor_username.length < 2 || doctor_username.length > 64) {
       return json({ error: 'invalid_username' }, 400)
     }
-    if (!/^[a-zA-Z0-9._-]+$/.test(partner_username)) {
+    if (!/^[a-zA-Z0-9._-]+$/.test(doctor_username)) {
       return json({ error: 'invalid_username_chars' }, 400)
     }
 
-    const patch: Record<string, unknown> = {
-      lab_display_name,
-      partner_username,
-      country_code: body.country_code?.trim() || null,
-      governorate_id: body.governorate_id?.trim() || null,
-      region_id: body.region_id?.trim() || null,
-    }
-
-    const { error: dbErr } = await admin.from('partner_lab_users').update(patch).eq('user_id', userId)
+    const { error: dbErr } = await admin
+      .from('doctor_users')
+      .update({ display_name, doctor_username })
+      .eq('user_id', userId)
     if (dbErr) return json({ error: dbErr.message }, 400)
 
     const authPatch: { email?: string; password?: string } = {}

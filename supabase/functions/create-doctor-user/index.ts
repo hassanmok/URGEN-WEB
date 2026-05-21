@@ -61,11 +61,8 @@ serve(async (req) => {
   let body: {
     email?: string
     password?: string
-    lab_display_name?: string
-    partner_username?: string
-    country_code?: string
-    governorate_id?: string
-    region_id?: string
+    display_name?: string
+    doctor_username?: string
   }
 
   try {
@@ -76,14 +73,14 @@ serve(async (req) => {
 
   const emailInput = body.email?.trim() ?? ''
   const password = body.password ?? ''
-  const lab_display_name = body.lab_display_name?.trim() ?? ''
-  const partner_username = body.partner_username?.trim() ?? ''
+  const display_name = body.display_name?.trim() ?? ''
+  const doctor_username = body.doctor_username?.trim() ?? ''
 
-  if (!password || !lab_display_name || !partner_username) {
+  if (!password || !display_name || !doctor_username) {
     return json({ error: 'missing_fields' }, 400)
   }
 
-  const email = emailInput || partnerPlaceholderEmail(partner_username)
+  const email = emailInput || doctorPlaceholderEmail(doctor_username)
 
   if (emailInput && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput)) {
     return json({ error: 'invalid_email' }, 400)
@@ -93,11 +90,11 @@ serve(async (req) => {
     return json({ error: 'weak_password' }, 400)
   }
 
-  if (partner_username.length < 2 || partner_username.length > 64) {
+  if (doctor_username.length < 2 || doctor_username.length > 64) {
     return json({ error: 'invalid_username' }, 400)
   }
 
-  if (!/^[a-zA-Z0-9._-]+$/.test(partner_username)) {
+  if (!/^[a-zA-Z0-9._-]+$/.test(doctor_username)) {
     return json({ error: 'invalid_username_chars' }, 400)
   }
 
@@ -117,13 +114,10 @@ serve(async (req) => {
     return json({ error: msg }, dup ? 409 : 400)
   }
 
-  const { error: insertErr } = await admin.from('partner_lab_users').insert({
+  const { error: insertErr } = await admin.from('doctor_users').insert({
     user_id: created.user.id,
-    lab_display_name,
-    partner_username,
-    country_code: body.country_code?.trim() || null,
-    governorate_id: body.governorate_id?.trim() || null,
-    region_id: body.region_id?.trim() || null,
+    display_name,
+    doctor_username,
     is_locked: false,
   })
 
@@ -135,9 +129,9 @@ serve(async (req) => {
   return json({ ok: true, user_id: created.user.id }, 200)
 })
 
-function partnerPlaceholderEmail(username: string): string {
-  const safe = username.toLowerCase().replace(/[^a-z0-9._-]/g, '') || 'partner'
-  return `${safe}@partner.urgen.local`
+function doctorPlaceholderEmail(username: string): string {
+  const safe = username.toLowerCase().replace(/[^a-z0-9._-]/g, '') || 'doctor'
+  return `${safe}@doctor.urgen.local`
 }
 
 function json(payload: Record<string, unknown>, status: number) {

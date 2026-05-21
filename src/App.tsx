@@ -15,6 +15,7 @@ import { NewsPage } from './pages/NewsPage'
 import { NewsDetailPage } from './pages/NewsDetailPage'
 import { AdminPage } from './pages/admin/AdminPage'
 import { PartnerPortalPage } from './pages/partner/PartnerPortalPage'
+import { DoctorPortalPage } from './pages/doctor/DoctorPortalPage'
 
 export default function App() {
   return (
@@ -38,6 +39,7 @@ export default function App() {
         </Route>
         <Route path="admin" element={<AdminPage />} />
         <Route path="partner" element={<PartnerPortalPage />} />
+        <Route path="doctor" element={<DoctorPortalPage />} />
       </Routes>
     </BrowserRouter>
   )

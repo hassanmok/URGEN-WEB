@@ -4,6 +4,7 @@ import { LanguageSwitcher } from '../../components/layout/LanguageSwitcher'
 import { Button } from '../../components/ui/Button'
 import { Logo } from '../../components/Logo'
 import { supabase } from '../../lib/supabase'
+import { fetchDoctorProfile } from '../../lib/doctorAccess'
 import { fetchPartnerLabProfile, resolvePartnerLoginEmail } from '../../lib/partnerAccess'
 import {
   createPartnerPdfDownloadUrl,
@@ -64,6 +65,14 @@ export function PartnerPortalPage() {
       setLabName(null)
       setPartnerOk(false)
       setStaffBlocking(false)
+      setChecking(false)
+      return
+    }
+    const doctorProfile = await fetchDoctorProfile(supabase, user.id)
+    if (doctorProfile) {
+      setLabName(null)
+      setPartnerOk(false)
+      setStaffBlocking(true)
       setChecking(false)
       return
     }
@@ -324,6 +333,9 @@ export function PartnerPortalPage() {
               </Button>
               <Button type="button" variant="outline" onClick={() => navigate('/admin')}>
                 {m.staffPortalAdmin}
+              </Button>
+              <Button type="button" variant="outline" onClick={() => navigate('/doctor')}>
+                {m.staffPortalDoctor}
               </Button>
             </div>
           </div>
@@ -631,6 +643,12 @@ export function PartnerPortalPage() {
                       </div>
 
                       <div className="mt-4 space-y-2 border-t border-slate-200 pt-4">
+                        {row.status === 'rejected' && (
+                          <p className="text-sm text-red-800">
+                            <span className="font-semibold">{m.rejectionReason}: </span>
+                            {row.rejection_reason?.trim() || '—'}
+                          </p>
+                        )}
                         {row.status === 'sent' && (
                           <p className="text-xs text-slate-500">{m.pdfAwaitAcceptance}</p>
                         )}
