@@ -29,3 +29,87 @@
 @utility container-urgen {
   @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8;
 }
+
+@keyframes doctor-analytics-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes doctor-analytics-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes doctor-analytics-pie-spin {
+  from {
+    opacity: 0;
+    transform: rotate(-48deg) scale(0.75);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+  }
+}
+
+.doctor-analytics-enter {
+  animation: doctor-analytics-fade-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.doctor-analytics-scale {
+  animation: doctor-analytics-scale-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.doctor-analytics-pie {
+  animation: doctor-analytics-pie-spin 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.doctor-analytics-chart-line {
+  stroke-dasharray: 1400;
+  stroke-dashoffset: 1400;
+  animation: doctor-analytics-draw-line 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.doctor-analytics-chart-area {
+  opacity: 0;
+  animation: doctor-analytics-fade-area 1s ease-out 0.35s forwards;
+}
+
+@keyframes doctor-analytics-draw-line {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes doctor-analytics-fade-area {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .doctor-analytics-enter,
+  .doctor-analytics-scale,
+  .doctor-analytics-pie,
+  .doctor-analytics-chart-line,
+  .doctor-analytics-chart-area {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    stroke-dashoffset: 0 !important;
+  }
+}

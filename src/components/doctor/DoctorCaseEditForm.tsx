@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useLocaleContext } from '../../i18n/useLocaleContext'
 import { useTests } from '../../hooks/useTests'
+import { TestCheckboxPicker } from '../shared/TestCheckboxPicker'
 import { Button } from '../ui/Button'
 import { isPatientNameComplete } from '../../lib/patientName'
 import {
@@ -54,14 +55,16 @@ export function DoctorCaseEditForm({ row, caseTests, m, onCancel, onSaved }: Pro
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
-  const sortedTests = useMemo(
-    () =>
-      [...tests].sort((a, b) =>
-        locale === 'ar'
-          ? a.title_ar.localeCompare(b.title_ar, 'ar')
-          : (a.title_en ?? a.title_ar).localeCompare(b.title_en ?? b.title_ar, 'en'),
-      ),
-    [tests, locale],
+  const testPickerLabels = useMemo(
+    () => ({
+      legend: m.testSelect,
+      hint: m.testSelectHint,
+      loading: m.loadingTests,
+      empty: m.testPlaceholder,
+      searchPlaceholder: m.testSearchPlaceholder,
+      searchNoResults: m.testSearchNoResults,
+    }),
+    [m],
   )
 
   useEffect(() => {
@@ -312,32 +315,15 @@ export function DoctorCaseEditForm({ row, caseTests, m, onCancel, onSaved }: Pro
         </div>
       )}
 
-      <fieldset className="mt-4 block">
-        <legend className="text-sm font-semibold text-urgen-navy">{m.testSelect}</legend>
-        <p className="mt-1 text-xs text-slate-500">{m.testSelectHint}</p>
-        <div className="mt-3 max-h-48 space-y-2 overflow-y-auto rounded-xl border border-slate-200 bg-white p-3">
-          {loadingTests ? (
-            <p className="text-sm text-slate-500">{m.loadingTests}</p>
-          ) : (
-            sortedTests.map((t) => (
-              <label
-                key={t.slug}
-                className="flex cursor-pointer items-start gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-50"
-              >
-                <input
-                  type="checkbox"
-                  className="mt-1 rounded border-slate-300 text-urgen-purple focus:ring-urgen-purple"
-                  checked={selectedTests.has(t.slug)}
-                  onChange={() => toggleTest(t.slug)}
-                />
-                <span className="text-sm text-slate-800">
-                  {locale === 'ar' ? t.title_ar : (t.title_en ?? t.title_ar)}
-                </span>
-              </label>
-            ))
-          )}
-        </div>
-      </fieldset>
+      <TestCheckboxPicker
+        className="mt-4"
+        tests={tests}
+        loading={loadingTests}
+        selectedTests={selectedTests}
+        onToggle={toggleTest}
+        locale={locale}
+        labels={testPickerLabels}
+      />
 
       <div className="mt-4">
         <p className="text-sm font-semibold text-urgen-navy">{m.attachFiles}</p>

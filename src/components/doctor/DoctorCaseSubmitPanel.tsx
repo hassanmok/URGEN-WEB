@@ -19,6 +19,8 @@ import {
   type DoctorDiseaseType,
   type DoctorGender,
 } from '../../lib/doctorCasesStore'
+import { TestCheckboxPicker } from '../shared/TestCheckboxPicker'
+import { testDisplayTitle } from '../../lib/testCatalog'
 import { DoctorCaseEditForm } from './DoctorCaseEditForm'
 import type { Messages } from '../../i18n/messages'
 import type { TestRow } from '../../types/database'
@@ -55,15 +57,18 @@ export function DoctorCaseSubmitPanel({ m }: Props) {
   const [cases, setCases] = useState<DoctorCaseRow[]>([])
   const [testsByCase, setTestsByCase] = useState<Map<string, DoctorCaseTestRow[]>>(new Map())
   const [loadingCases, setLoadingCases] = useState(true)
+  const [testPickerKey, setTestPickerKey] = useState(0)
 
-  const sortedTests = useMemo(
-    () =>
-      [...tests].sort((a, b) =>
-        locale === 'ar'
-          ? a.title_ar.localeCompare(b.title_ar, 'ar')
-          : (a.title_en ?? a.title_ar).localeCompare(b.title_en ?? b.title_ar, 'en'),
-      ),
-    [tests, locale],
+  const testPickerLabels = useMemo(
+    () => ({
+      legend: m.testSelect,
+      hint: m.testSelectHint,
+      loading: m.loadingTests,
+      empty: m.testPlaceholder,
+      searchPlaceholder: m.testSearchPlaceholder,
+      searchNoResults: m.testSearchNoResults,
+    }),
+    [m],
   )
 
   function toggleTest(slug: string) {
@@ -207,6 +212,7 @@ export function DoctorCaseSubmitPanel({ m }: Props) {
     setStage('')
     setTreatment('')
     setSelectedTests(new Set())
+    setTestPickerKey((k) => k + 1)
     syncFiles([])
     void loadCases()
   }
@@ -354,34 +360,16 @@ export function DoctorCaseSubmitPanel({ m }: Props) {
           </div>
         )}
 
-        <fieldset className="mt-6 block">
-          <legend className="text-sm font-semibold text-urgen-navy">{m.testSelect}</legend>
-          <p className="mt-1 text-xs text-slate-500">{m.testSelectHint}</p>
-          <div className="mt-3 max-h-64 space-y-2 overflow-y-auto rounded-xl border border-slate-200 p-3">
-            {loadingTests ? (
-              <p className="text-sm text-slate-500">{m.loadingTests}</p>
-            ) : sortedTests.length === 0 ? (
-              <p className="text-sm text-slate-500">{m.testPlaceholder}</p>
-            ) : (
-              sortedTests.map((t) => (
-                <label
-                  key={t.slug}
-                  className="flex cursor-pointer items-start gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-50"
-                >
-                  <input
-                    type="checkbox"
-                    className="mt-1 rounded border-slate-300 text-urgen-purple focus:ring-urgen-purple"
-                    checked={selectedTests.has(t.slug)}
-                    onChange={() => toggleTest(t.slug)}
-                  />
-                  <span className="text-sm text-slate-800">
-                    {locale === 'ar' ? t.title_ar : (t.title_en ?? t.title_ar)}
-                  </span>
-                </label>
-              ))
-            )}
-          </div>
-        </fieldset>
+        <TestCheckboxPicker
+          key={testPickerKey}
+          className="mt-6"
+          tests={tests}
+          loading={loadingTests}
+          selectedTests={selectedTests}
+          onToggle={toggleTest}
+          locale={locale}
+          labels={testPickerLabels}
+        />
 
         <div className="mt-6">
           <p className="text-sm font-semibold text-urgen-navy">{m.attachFiles}</p>
@@ -480,7 +468,7 @@ const caseStatusClass: Record<string, string> = {
 function testTitleFor(slug: string, catalog: TestRow[], locale: string): string {
   const t = catalog.find((x) => x.slug === slug)
   if (!t) return slug
-  return locale === 'ar' ? t.title_ar : (t.title_en ?? t.title_ar)
+  return testDisplayTitle(t, locale)
 }
 
 function CaseCard({

@@ -9,6 +9,8 @@ type Props = {
   slices: Slice[]
   emptyLabel?: string
   size?: number
+  animate?: boolean
+  className?: string
 }
 
 function buildConicGradient(slices: Slice[], total: number): string {
@@ -26,12 +28,21 @@ function buildConicGradient(slices: Slice[], total: number): string {
   return `conic-gradient(${stops.join(', ')})`
 }
 
-export function SimplePieChart({ title, slices, emptyLabel, size = 200 }: Props) {
+export function SimplePieChart({
+  title,
+  slices,
+  emptyLabel,
+  size = 200,
+  animate = false,
+  className = '',
+}: Props) {
   const total = slices.reduce((n, s) => n + s.count, 0)
   const active = slices.filter((s) => s.count > 0)
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <section
+      className={`rounded-2xl border border-slate-200 bg-white p-5 shadow-sm ${className}`}
+    >
       <h3 className="font-bold text-urgen-navy">{title}</h3>
 
       {total === 0 ? (
@@ -39,10 +50,14 @@ export function SimplePieChart({ title, slices, emptyLabel, size = 200 }: Props)
       ) : (
         <>
           <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-2">
-            {active.map((s) => {
+            {active.map((s, i) => {
               const pct = Math.round((s.count / total) * 100)
               return (
-                <li key={s.label} className="flex items-center gap-2 text-sm text-slate-700">
+                <li
+                  key={s.label}
+                  className={`flex items-center gap-2 text-sm text-slate-700 ${animate ? 'doctor-analytics-enter' : ''}`}
+                  style={animate ? { animationDelay: `${80 + i * 60}ms` } : undefined}
+                >
                   <span
                     className="inline-block size-3 shrink-0 rounded-sm"
                     style={{ backgroundColor: s.color }}
@@ -61,7 +76,7 @@ export function SimplePieChart({ title, slices, emptyLabel, size = 200 }: Props)
 
           <div className="mt-6 flex justify-center">
             <div
-              className="rounded-full shadow-inner"
+              className={`rounded-full shadow-inner ${animate ? 'doctor-analytics-pie' : ''}`}
               style={{
                 width: size,
                 height: size,

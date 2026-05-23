@@ -17,6 +17,8 @@ import {
 } from '../../lib/partnerSubmissionsStore'
 import { useLocaleContext } from '../../i18n/useLocaleContext'
 import { useTests } from '../../hooks/useTests'
+import { TestCheckboxPicker } from '../../components/shared/TestCheckboxPicker'
+import { testDisplayTitle } from '../../lib/testCatalog'
 import { buildPatientFullName, isPatientNameComplete } from '../../lib/patientName'
 
 export function PartnerPortalPage() {
@@ -43,6 +45,7 @@ export function PartnerPortalPage() {
   const [ageValue, setAgeValue] = useState('')
   const [ageUnit, setAgeUnit] = useState<PartnerAgeUnit>('years')
   const [selectedTests, setSelectedTests] = useState<Set<string>>(new Set())
+  const [testPickerKey, setTestPickerKey] = useState(0)
   const [submitBusy, setSubmitBusy] = useState(false)
   const [submitMsg, setSubmitMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
@@ -195,6 +198,7 @@ export function PartnerPortalPage() {
     setPatientName4('')
     setAgeValue('')
     setSelectedTests(new Set())
+    setTestPickerKey((k) => k + 1)
     void loadRows()
   }
 
@@ -207,10 +211,22 @@ export function PartnerPortalPage() {
     })
   }
 
+  const testPickerLabels = useMemo(
+    () => ({
+      legend: m.testSelect,
+      hint: m.testSelectHint,
+      loading: m.loadingTests,
+      empty: m.testPlaceholder,
+      searchPlaceholder: m.testSearchPlaceholder,
+      searchNoResults: m.testSearchNoResults,
+    }),
+    [m],
+  )
+
   function testTitle(slug: string) {
     const t = tests.find((x) => x.slug === slug)
     if (!t) return slug
-    return locale === 'ar' ? t.title_ar : (t.title_en ?? t.title_ar)
+    return testDisplayTitle(t, locale)
   }
 
   async function downloadPdf(row: PartnerSubmissionRow) {
@@ -267,12 +283,6 @@ export function PartnerPortalPage() {
     else if (row.age_unit === 'months') unit = m.ageUnitMonths
     return `${v} ${unit}`
   }
-
-  const sortedTests = [...tests].sort((a, b) =>
-    locale === 'ar'
-      ? a.title_ar.localeCompare(b.title_ar, 'ar')
-      : (a.title_en ?? a.title_ar).localeCompare(b.title_en ?? b.title_ar, 'en'),
-  )
 
   const filteredGroups = useMemo(
     () => filterPartnerSubmissionGroups(rows, requestsSearchQuery, tests),
@@ -524,34 +534,15 @@ export function PartnerPortalPage() {
                 </label>
               </div>
 
-              <fieldset className="block">
-                <legend className="text-sm font-semibold text-urgen-navy">{m.testSelect}</legend>
-                <p className="mt-1 text-xs text-slate-500">{m.testSelectHint}</p>
-                <div className="mt-3 max-h-64 space-y-2 overflow-y-auto rounded-xl border border-slate-200 p-3">
-                  {loadingTests ? (
-                    <p className="text-sm text-slate-500">{m.loadingTests}</p>
-                  ) : sortedTests.length === 0 ? (
-                    <p className="text-sm text-slate-500">{m.testPlaceholder}</p>
-                  ) : (
-                    sortedTests.map((t) => (
-                      <label
-                        key={t.slug}
-                        className="flex cursor-pointer items-start gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-50"
-                      >
-                        <input
-                          type="checkbox"
-                          className="mt-1 rounded border-slate-300 text-urgen-purple focus:ring-urgen-purple"
-                          checked={selectedTests.has(t.slug)}
-                          onChange={() => toggleTest(t.slug)}
-                        />
-                        <span className="text-sm text-slate-800">
-                          {locale === 'ar' ? t.title_ar : (t.title_en ?? t.title_ar)}
-                        </span>
-                      </label>
-                    ))
-                  )}
-                </div>
-              </fieldset>
+              <TestCheckboxPicker
+                key={testPickerKey}
+                tests={tests}
+                loading={loadingTests}
+                selectedTests={selectedTests}
+                onToggle={toggleTest}
+                locale={locale}
+                labels={testPickerLabels}
+              />
 
               {submitMsg && (
                 <p className={submitMsg.ok ? 'text-sm text-green-700' : 'text-sm text-red-600'}>

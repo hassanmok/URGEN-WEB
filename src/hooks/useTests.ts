@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react'
 import { fallbackTests } from '../data/tests'
+import { dedupeTestsBySlug } from '../lib/testCatalog'
 import { supabase } from '../lib/supabase'
 import type { LabTest } from '../types/labTest'
 
 function mapFallback(): LabTest[] {
-  return fallbackTests.map((t, i) => ({
+  const mapped = fallbackTests.map((t, i) => ({
     ...t,
     id: `local-${i}`,
     created_at: null,
     long_description_en: t.description_en ?? null,
   }))
+  return dedupeTestsBySlug(mapped)
 }
 
 export function useTests() {
@@ -47,7 +49,7 @@ export function useTests() {
         setTests(mapFallback())
         setUsingFallback(true)
       } else {
-        setTests(data as LabTest[])
+        setTests(dedupeTestsBySlug(data as LabTest[]))
         setUsingFallback(false)
       }
 

@@ -11,6 +11,9 @@ type Props = {
   kpis: AgeChartKpi[]
   points: AgeChartPoint[]
   emptyLabel?: string
+  animate?: boolean
+  className?: string
+  style?: React.CSSProperties
 }
 
 const CHART_W = 560
@@ -70,7 +73,15 @@ function toChartCoords(
   })
 }
 
-export function PatientAgeAreaChart({ title, kpis, points, emptyLabel }: Props) {
+export function PatientAgeAreaChart({
+  title,
+  kpis,
+  points,
+  emptyLabel,
+  animate = false,
+  className = '',
+  style,
+}: Props) {
   const total = points.reduce((n, p) => n + p.count, 0)
   const maxCount = Math.max(...points.map((p) => p.count), 0)
   const yMax = niceMax(maxCount)
@@ -97,7 +108,10 @@ export function PatientAgeAreaChart({ title, kpis, points, emptyLabel }: Props) 
   )
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <section
+      className={`rounded-2xl border border-slate-200 bg-white p-5 shadow-sm ${className}`}
+      style={style}
+    >
       <h3 className="font-bold text-urgen-navy">{title}</h3>
 
       {total === 0 ? (
@@ -105,8 +119,12 @@ export function PatientAgeAreaChart({ title, kpis, points, emptyLabel }: Props) 
       ) : (
         <>
           <div className="mt-5 grid gap-4 sm:grid-cols-3">
-            {kpis.map((kpi) => (
-              <div key={kpi.label} className="text-center sm:text-start">
+            {kpis.map((kpi, i) => (
+              <div
+                key={kpi.label}
+                className={`text-center sm:text-start ${animate ? 'doctor-analytics-enter' : ''}`}
+                style={animate ? { animationDelay: `${60 + i * 90}ms` } : undefined}
+              >
                 <p className="text-2xl font-bold tabular-nums" style={{ color: kpi.color }}>
                   {kpi.value}
                 </p>
@@ -147,7 +165,13 @@ export function PatientAgeAreaChart({ title, kpis, points, emptyLabel }: Props) 
               })}
 
               {areaPath && (
-                <path d={areaPath} fill="#7c3aed" fillOpacity={0.35} stroke="none" />
+                <path
+                  d={areaPath}
+                  fill="#7c3aed"
+                  fillOpacity={0.35}
+                  stroke="none"
+                  className={animate ? 'doctor-analytics-chart-area' : undefined}
+                />
               )}
               {linePath && (
                 <path
@@ -157,11 +181,20 @@ export function PatientAgeAreaChart({ title, kpis, points, emptyLabel }: Props) 
                   strokeWidth={2.5}
                   strokeLinecap="round"
                   strokeLinejoin="round"
+                  className={animate ? 'doctor-analytics-chart-line' : undefined}
                 />
               )}
 
-              {coords.map((c) => (
-                <circle key={c.label} cx={c.x} cy={c.y} r={4} fill="#7c3aed" />
+              {coords.map((c, i) => (
+                <circle
+                  key={c.label}
+                  cx={c.x}
+                  cy={c.y}
+                  r={4}
+                  fill="#7c3aed"
+                  className={animate ? 'doctor-analytics-enter' : undefined}
+                  style={animate ? { animationDelay: `${400 + i * 80}ms` } : undefined}
+                />
               ))}
 
               {coords.map((c) => (

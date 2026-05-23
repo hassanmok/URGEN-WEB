@@ -25,11 +25,19 @@ export type AgeGroupKey = (typeof AGE_GROUP_KEYS)[number]
 
 export type AgeGroupCount = { group: AgeGroupKey; count: number }
 
+/** عدد المرضى لكل فئة عمرية ضمن فحص معيّن */
+export type TestAgeBreakdown = {
+  test_slug: string
+  totalPatients: number
+  byAgeGroup: AgeGroupCount[]
+}
+
 export type DoctorAnalyticsSummary = {
   totalCases: number
   totalTests: number
   byGender: GenderCount[]
   byAgeGroup: AgeGroupCount[]
+  byTestAgeGroup: TestAgeBreakdown[]
   ageDominantGroup: AgeGroupKey | null
   ageDominantGroupPct: number
   ageUnder18Pct: number
@@ -72,6 +80,7 @@ export function computeDoctorAnalytics(
   const ageGroupMap = new Map<AgeGroupKey, number>()
   for (const key of AGE_GROUP_KEYS) ageGroupMap.set(key, 0)
   const testMap = new Map<string, number>()
+  const testAgeMap = new Map<string, Map<AgeGroupKey, number>>()
   const unitMap = new Map<string, number>()
   let ageSum = 0
   let ageCount = 0
@@ -104,6 +113,13 @@ export function computeDoctorAnalytics(
     } else {
       for (const t of caseTests) {
         testMap.set(t.test_slug, (testMap.get(t.test_slug) ?? 0) + 1)
+        if (!testAgeMap.has(t.test_slug)) {
+          const gMap = new Map<AgeGroupKey, number>()
+          for (const key of AGE_GROUP_KEYS) gMap.set(key, 0)
+          testAgeMap.set(t.test_slug, gMap)
+        }
+        const gMap = testAgeMap.get(t.test_slug)!
+        gMap.set(ag, (gMap.get(ag) ?? 0) + 1)
         recent.push({
           id: `${row.id}-${t.test_slug}`,
           case_id: row.id,
@@ -149,6 +165,17 @@ export function computeDoctorAnalytics(
     .map(([test_slug, count]) => ({ test_slug, count }))
     .sort((a, b) => b.count - a.count)
 
+  const byTestAgeGroup: TestAgeBreakdown[] = [...testAgeMap.entries()]
+    .map(([test_slug, gMap]) => {
+      const byAgeGroup = AGE_GROUP_KEYS.map((group) => ({
+        group,
+        count: gMap.get(group) ?? 0,
+      }))
+      const totalPatients = byAgeGroup.reduce((n, row) => n + row.count, 0)
+      return { test_slug, totalPatients, byAgeGroup }
+    })
+    .sort((a, b) => b.totalPatients - a.totalPatients)
+
   const byAgeUnit = [...unitMap.entries()]
     .map(([age_unit, count]) => ({ age_unit, count }))
     .sort((a, b) => b.count - a.count)
@@ -164,6 +191,7 @@ export function computeDoctorAnalytics(
     totalTests: tests.length,
     byGender,
     byAgeGroup,
+    byTestAgeGroup,
     ageDominantGroup,
     ageDominantGroupPct,
     ageUnder18Pct,
