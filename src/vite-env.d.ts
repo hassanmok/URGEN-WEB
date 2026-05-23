@@ -1,10 +1,26 @@
 /// <reference types="vite/client" />
 
-interface ImportMetaEnv {
-  readonly VITE_SUPABASE_URL?: string
-  readonly VITE_SUPABASE_ANON_KEY?: string
+declare module '*.woff2?url' {
+  const url: string
+  export default url
 }
 
-interface ImportMeta {
-  readonly env: ImportMetaEnv
+declare module '*.pdf?url' {
+  const url: string
+  export default url
+}
+
+declare module '*.png?url' {
+  const url: string
+  export default url
+}
+
+declare module '*.ttf?url' {
+  const url: string
+  export default url
+}
+
+declare module '*?url' {
+  const url: string
+  export default url
 }

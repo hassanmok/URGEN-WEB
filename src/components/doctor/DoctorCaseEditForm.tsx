@@ -4,9 +4,13 @@ import { useTests } from '../../hooks/useTests'
 import { TestCheckboxPicker } from '../shared/TestCheckboxPicker'
 import { Button } from '../ui/Button'
 import { isPatientNameComplete } from '../../lib/patientName'
+import { testDisplayTitle } from '../../lib/testCatalog'
 import {
+  buildRequestFormImageContext,
   fetchDoctorCaseFiles,
   isAllowedDoctorCaseFile,
+  isDoctorRequestFormFile,
+  splitDoctorCaseFiles,
   updateDoctorCase,
   type DoctorAgeUnit,
   type DoctorCaseFileRow,
@@ -16,6 +20,13 @@ import {
   type DoctorGender,
 } from '../../lib/doctorCasesStore'
 import type { Messages } from '../../i18n/messages'
+import type { TestRow } from '../../types/database'
+
+function testTitleFor(slug: string, catalog: TestRow[], locale: string): string {
+  const t = catalog.find((x) => x.slug === slug)
+  if (!t) return slug
+  return testDisplayTitle(t, locale)
+}
 
 const inputClass =
   'mt-1 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-urgen-purple focus:outline-none focus:ring-2 focus:ring-urgen-purple/20'
@@ -140,6 +151,20 @@ export function DoctorCaseEditForm({ row, caseTests, m, onCancel, onSaved }: Pro
       return
     }
 
+    const testTitles = [...selectedTests].map((slug) => testTitleFor(slug, tests, locale))
+    const diseaseLabel =
+      diseaseType === 'oncology'
+        ? m.diseaseOncology
+        : diseaseType === 'reproductive'
+          ? m.diseaseReproductive
+          : m.diseasePediatric
+    const oncologyDetails =
+      diseaseType === 'oncology'
+        ? [m.oncologyTumorType, tumorType, m.oncologyStage, stage, m.oncologyTreatment, treatment]
+            .filter(Boolean)
+            .join(' ')
+        : undefined
+
     setBusy(true)
     const res = await updateDoctorCase(row.id, {
       patientName: parts,
@@ -153,7 +178,16 @@ export function DoctorCaseEditForm({ row, caseTests, m, onCancel, onSaved }: Pro
       oncology_treatment: diseaseType === 'oncology' ? treatment : undefined,
       test_slugs: [...selectedTests],
       newFiles: newFilesRef.current,
-      removeFileIds: [...removeFileIds],
+      removeFileIds: [...removeFileIds].filter((id) => {
+        const f = existingFiles.find((x) => x.id === id)
+        return f ? !isDoctorRequestFormFile(f) : true
+      }),
+      requestFormContext: buildRequestFormImageContext(
+        locale,
+        { days: m.ageUnitDays, months: m.ageUnitMonths, years: m.ageUnitYears },
+        testTitles,
+        { diseaseTypeLabel: diseaseLabel, oncologyDetails },
+      ),
     })
     setBusy(false)
 
@@ -173,7 +207,8 @@ export function DoctorCaseEditForm({ row, caseTests, m, onCancel, onSaved }: Pro
     onSaved()
   }
 
-  const visibleExisting = existingFiles.filter((f) => !removeFileIds.has(f.id))
+  const { requestForm, attachments: existingAttachments } = splitDoctorCaseFiles(existingFiles)
+  const visibleExisting = existingAttachments.filter((f) => !removeFileIds.has(f.id))
 
   return (
     <form
@@ -325,11 +360,18 @@ export function DoctorCaseEditForm({ row, caseTests, m, onCancel, onSaved }: Pro
         labels={testPickerLabels}
       />
 
+      {requestForm && (
+        <p className="mt-4 text-xs text-slate-600">
+          {m.requestFormPdf}: {m.requestFormPdfDownload} —{' '}
+          <span className="font-medium">{requestForm.file_name}</span>
+        </p>
+      )}
+
       <div className="mt-4">
         <p className="text-sm font-semibold text-urgen-navy">{m.attachFiles}</p>
         {visibleExisting.length > 0 && (
           <ul className="mt-2 space-y-1">
-            {existingFiles.map((f) => {
+            {visibleExisting.map((f) => {
               const marked = removeFileIds.has(f.id)
               return (
                 <li

@@ -9,9 +9,12 @@ import {
   fetchDoctorCaseTestsForCaseIds,
   fetchDoctorCases,
   groupDoctorCaseTestsByCaseId,
+  attachDoctorRequestFormImage,
   insertDoctorCase,
+  buildRequestFormImageContext,
   isAllowedDoctorCaseFile,
   normalizeDoctorCaseStatus,
+  splitDoctorCaseFiles,
   type DoctorAgeUnit,
   type DoctorCaseFileRow,
   type DoctorCaseRow,
@@ -169,6 +172,21 @@ export function DoctorCaseSubmitPanel({ m }: Props) {
     const uploadFiles = filesRef.current
 
     setBusy(true)
+    const testTitles = [...selectedTests].map((slug) =>
+      testTitleFor(slug, tests, locale),
+    )
+    const diseaseLabel =
+      diseaseType === 'oncology'
+        ? m.diseaseOncology
+        : diseaseType === 'reproductive'
+          ? m.diseaseReproductive
+          : m.diseasePediatric
+    const oncologyDetails =
+      diseaseType === 'oncology'
+        ? [m.oncologyTumorType, tumorType, m.oncologyStage, stage, m.oncologyTreatment, treatment]
+            .filter(Boolean)
+            .join(' ')
+        : undefined
     const res = await insertDoctorCase({
       patientName: parts,
       age_value: age,
@@ -181,6 +199,12 @@ export function DoctorCaseSubmitPanel({ m }: Props) {
       oncology_treatment: diseaseType === 'oncology' ? treatment : undefined,
       test_slugs: [...selectedTests],
       files: uploadFiles,
+      requestFormContext: buildRequestFormImageContext(
+        locale,
+        { days: m.ageUnitDays, months: m.ageUnitMonths, years: m.ageUnitYears },
+        testTitles,
+        { diseaseTypeLabel: diseaseLabel, oncologyDetails },
+      ),
     })
     setBusy(false)
 
@@ -487,6 +511,8 @@ function CaseCard({
   onUpdated: () => void
 }) {
   const [files, setFiles] = useState<DoctorCaseFileRow[]>([])
+  const [filesLoading, setFilesLoading] = useState(false)
+  const [pdfBusy, setPdfBusy] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [editing, setEditing] = useState(false)
   const status = normalizeDoctorCaseStatus(row.status)
@@ -505,12 +531,59 @@ function CaseCard({
     }
   }
 
+  async function reloadFiles() {
+    const res = await fetchDoctorCaseFiles(row.id)
+    if (res.ok && res.rows) setFiles(res.rows)
+    return res
+  }
+
+  async function ensureRequestFormPdf() {
+    const testTitles = caseTests.map((t) => testTitleFor(t.test_slug, catalogTests, locale))
+    if (testTitles.length === 0) return
+    setPdfBusy(true)
+    const diseaseLabel =
+      row.disease_type === 'oncology'
+        ? m.diseaseOncology
+        : row.disease_type === 'reproductive'
+          ? m.diseaseReproductive
+          : m.diseasePediatric
+    const imgRes = await attachDoctorRequestFormImage(
+      row.id,
+      row.doctor_user_id,
+      row,
+      buildRequestFormImageContext(
+        locale,
+        { days: m.ageUnitDays, months: m.ageUnitMonths, years: m.ageUnitYears },
+        testTitles,
+        { diseaseTypeLabel: diseaseLabel },
+      ),
+    )
+    if (imgRes.ok) {
+      await reloadFiles()
+    } else {
+      console.error('[request_form_image]', imgRes.error)
+    }
+    setPdfBusy(false)
+  }
+
   useEffect(() => {
     if (!expanded) return
-    void fetchDoctorCaseFiles(row.id).then((res) => {
-      if (res.ok && res.rows) setFiles(res.rows)
-    })
-  }, [expanded, row.id])
+    let cancelled = false
+    void (async () => {
+      setFilesLoading(true)
+      const res = await reloadFiles()
+      if (cancelled) return
+      setFilesLoading(false)
+      if (!res.ok || !res.rows) return
+      const { requestForm: form } = splitDoctorCaseFiles(res.rows)
+      if (!form) await ensureRequestFormPdf()
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [expanded, row.id, row.updated_at])
+
+  const { requestForm, attachments } = splitDoctorCaseFiles(files)
 
   const diseaseLabel =
     row.disease_type === 'oncology'
@@ -617,9 +690,31 @@ function CaseCard({
               </p>
             </>
           )}
-          {files.length > 0 && (
+          <div className="mt-3 rounded-lg border border-urgen-purple/25 bg-urgen-purple/5 px-3 py-2">
+            <p className="text-xs font-semibold text-urgen-navy">{m.requestFormPdf}</p>
+            {filesLoading || pdfBusy ? (
+              <p className="mt-1 text-xs text-slate-500">{m.requestFormPdfGenerating}</p>
+            ) : requestForm ? (
+              <button
+                type="button"
+                className="mt-1 text-sm font-semibold text-urgen-purple"
+                onClick={() => void downloadFile(requestForm)}
+              >
+                {m.requestFormPdfDownload}
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="mt-1 text-sm font-semibold text-urgen-purple"
+                onClick={() => void ensureRequestFormPdf()}
+              >
+                {m.requestFormPdfRetry}
+              </button>
+            )}
+          </div>
+          {attachments.length > 0 && (
             <ul className="mt-2 space-y-1">
-              {files.map((f) => (
+              {attachments.map((f) => (
                 <li key={f.id}>
                   <button
                     type="button"

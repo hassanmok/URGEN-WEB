@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import { buildPatientFullName, type PatientNameParts } from './patientName'
+import { generateDoctorRequestImage } from './doctorRequestImage'
 import type { Database } from '../types/database'
 
 export type DoctorCaseRow = Database['public']['Tables']['doctor_cases']['Row']
@@ -18,6 +19,32 @@ export function normalizeDoctorCaseStatus(status: string | null | undefined): Do
 }
 
 const BUCKET = 'doctor-case-files'
+
+/** Generated filled request form image — not a user attachment. */
+export const DOCTOR_REQUEST_FORM_FILE_NAME = 'Request-General-Filled.png'
+const LEGACY_REQUEST_FORM_PDF = 'Request-General-Filled.pdf'
+const REQUEST_FORM_STORAGE_MARKER = '/__request_form__/'
+
+export function isDoctorRequestFormFile(file: { storage_path: string; file_name: string }): boolean {
+  return (
+    file.storage_path.includes(REQUEST_FORM_STORAGE_MARKER) ||
+    file.file_name === DOCTOR_REQUEST_FORM_FILE_NAME ||
+    file.file_name === LEGACY_REQUEST_FORM_PDF
+  )
+}
+
+export function splitDoctorCaseFiles(files: DoctorCaseFileRow[]): {
+  requestForm: DoctorCaseFileRow | null
+  attachments: DoctorCaseFileRow[]
+} {
+  let requestForm: DoctorCaseFileRow | null = null
+  const attachments: DoctorCaseFileRow[] = []
+  for (const f of files) {
+    if (isDoctorRequestFormFile(f)) requestForm = f
+    else attachments.push(f)
+  }
+  return { requestForm, attachments }
+}
 
 const ALLOWED_MIME = new Set([
   'application/pdf',
@@ -44,6 +71,169 @@ export function storagePathForCaseFile(caseId: string, fileId: string, fileName:
   const safe = fileName.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 120) || 'file'
   return `${caseId}/${fileId}_${safe}`
 }
+
+function storagePathForRequestForm(caseId: string, fileId: string) {
+  return `${caseId}${REQUEST_FORM_STORAGE_MARKER}${fileId}_${DOCTOR_REQUEST_FORM_FILE_NAME}`
+}
+
+async function fetchDoctorDisplayName(userId: string): Promise<string> {
+  if (!supabase) return '—'
+  const { data } = await supabase
+    .from('doctor_users')
+    .select('display_name')
+    .eq('user_id', userId)
+    .maybeSingle()
+  return data?.display_name?.trim() || '—'
+}
+
+export type RequestFormImageContext = {
+  locale: string
+  ageUnitLabels: { days: string; months: string; years: string }
+  testTitles: string[]
+  diseaseTypeLabel?: string
+  oncologyDetails?: string
+}
+
+export function buildRequestFormImageContext(
+  locale: string,
+  ageUnitLabels: { days: string; months: string; years: string },
+  testTitles: string[],
+  extras?: { diseaseTypeLabel?: string; oncologyDetails?: string },
+): RequestFormImageContext {
+  return { locale, ageUnitLabels, testTitles, ...extras }
+}
+
+/** @deprecated use buildRequestFormImageContext */
+export const buildRequestFormPdfContext = buildRequestFormImageContext
+export type RequestFormPdfContext = RequestFormImageContext
+
+function formatRequestDate(iso: string | null | undefined, locale: string): string {
+  const d = iso ? new Date(iso) : new Date()
+  return d.toLocaleDateString(locale === 'ar' ? 'ar-IQ' : 'en-GB', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  })
+}
+
+function buildDiagnosisBlock(row: Pick<DoctorCaseRow, 'diagnosis' | 'disease_type' | 'oncology_tumor_type' | 'oncology_stage' | 'oncology_treatment'>, ctx: RequestFormImageContext): string {
+  const parts = [row.diagnosis.trim()]
+  if (ctx.diseaseTypeLabel) parts.push(ctx.diseaseTypeLabel)
+  if (ctx.oncologyDetails) parts.push(ctx.oncologyDetails)
+  if (row.disease_type === 'oncology' && !ctx.oncologyDetails) {
+    const extras = [row.oncology_tumor_type, row.oncology_stage, row.oncology_treatment].filter(Boolean)
+    if (extras.length) parts.push(extras.join(' · '))
+  }
+  return parts.filter(Boolean).join('\n')
+}
+
+async function deleteExistingRequestFormFile(caseId: string): Promise<void> {
+  if (!supabase) return
+  const { data: rows } = await supabase
+    .from('doctor_case_files')
+    .select('id, storage_path')
+    .eq('case_id', caseId)
+
+  const formRows = (rows ?? []).filter((r) => r.storage_path.includes(REQUEST_FORM_STORAGE_MARKER))
+  for (const row of formRows) {
+    await deleteDoctorCaseFile(row.id)
+  }
+}
+
+async function uploadRequestFormImage(
+  caseId: string,
+  doctorUserId: string,
+  imageBlob: Blob,
+): Promise<{ ok: boolean; error?: string }> {
+  if (!supabase) return { ok: false, error: 'no_supabase' }
+
+  await deleteExistingRequestFormFile(caseId)
+
+  const fileId = crypto.randomUUID()
+  const path = storagePathForRequestForm(caseId, fileId)
+
+  const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, imageBlob, {
+    cacheControl: '3600',
+    upsert: false,
+    contentType: 'image/png',
+  })
+  if (upErr) return { ok: false, error: upErr.message }
+
+  const { error: dbErr } = await supabase.from('doctor_case_files').insert({
+    case_id: caseId,
+    doctor_user_id: doctorUserId,
+    storage_path: path,
+    file_name: DOCTOR_REQUEST_FORM_FILE_NAME,
+    mime_type: 'image/png',
+    byte_size: imageBlob.size,
+  })
+
+  if (dbErr) {
+    await supabase.storage.from(BUCKET).remove([path])
+    return { ok: false, error: dbErr.message }
+  }
+
+  return { ok: true }
+}
+
+/** Generate filled request form image and attach to the case. */
+export async function attachDoctorRequestFormImage(
+  caseId: string,
+  doctorUserId: string,
+  caseRow: Pick<
+    DoctorCaseRow,
+    | 'patient_full_name'
+    | 'age_value'
+    | 'age_unit'
+    | 'gender'
+    | 'diagnosis'
+    | 'disease_type'
+    | 'oncology_tumor_type'
+    | 'oncology_stage'
+    | 'oncology_treatment'
+    | 'created_at'
+  >,
+  ctx: RequestFormImageContext,
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const physicianName = await fetchDoctorDisplayName(doctorUserId)
+    const unitLabel =
+      caseRow.age_unit === 'days'
+        ? ctx.ageUnitLabels.days
+        : caseRow.age_unit === 'months'
+          ? ctx.ageUnitLabels.months
+          : ctx.ageUnitLabels.years
+
+    const imageBlob = await generateDoctorRequestImage({
+      patientFullName: caseRow.patient_full_name,
+      ageText: `${caseRow.age_value} ${unitLabel}`,
+      gender: caseRow.gender as DoctorGender,
+      physicianName,
+      diagnosis: buildDiagnosisBlock(caseRow, ctx),
+      testTitles: ctx.testTitles,
+      requestDate: formatRequestDate(caseRow.created_at, ctx.locale),
+    })
+    return uploadRequestFormImage(caseId, doctorUserId, imageBlob)
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'image_generate_failed' }
+  }
+}
+
+/** @deprecated use attachDoctorRequestFormImage */
+export const attachDoctorRequestFormPdf = attachDoctorRequestFormImage
+
+/** Regenerate request form image (doctor portal). */
+export async function regenerateDoctorRequestFormImage(
+  caseId: string,
+  doctorUserId: string,
+  caseRow: Parameters<typeof attachDoctorRequestFormImage>[2],
+  ctx: RequestFormImageContext,
+): Promise<{ ok: boolean; error?: string }> {
+  return attachDoctorRequestFormImage(caseId, doctorUserId, caseRow, ctx)
+}
+
+/** @deprecated */
+export const regenerateDoctorRequestFormPdf = regenerateDoctorRequestFormImage
 
 export async function fetchDoctorCases(): Promise<{
   ok: boolean
@@ -201,8 +391,18 @@ export type DoctorCaseFormInput = {
 }
 
 export async function insertDoctorCase(
-  input: DoctorCaseFormInput & { files: File[] },
-): Promise<{ ok: boolean; case_id?: string; count?: number; error?: string }> {
+  input: DoctorCaseFormInput & {
+    files: File[]
+    requestFormContext?: RequestFormPdfContext
+  },
+): Promise<{
+  ok: boolean
+  case_id?: string
+  count?: number
+  error?: string
+  pdf_failed?: boolean
+  image_failed?: boolean
+}> {
   if (!supabase) return { ok: false, error: 'no_supabase' }
 
   const { data: userData } = await supabase.auth.getUser()
@@ -260,12 +460,40 @@ export async function insertDoctorCase(
     return { ok: false, error: uploadRes.error }
   }
 
+  if (input.requestFormContext) {
+    const imgRes = await attachDoctorRequestFormImage(
+      caseId,
+      uid,
+      {
+        patient_full_name,
+        age_value: input.age_value,
+        age_unit: input.age_unit,
+        gender: input.gender,
+        diagnosis: input.diagnosis.trim(),
+        disease_type: input.disease_type,
+        oncology_tumor_type:
+          input.disease_type === 'oncology' ? input.oncology_tumor_type?.trim() || null : null,
+        oncology_stage:
+          input.disease_type === 'oncology' ? input.oncology_stage?.trim() || null : null,
+        oncology_treatment:
+          input.disease_type === 'oncology' ? input.oncology_treatment?.trim() || null : null,
+        created_at: new Date().toISOString(),
+      },
+      input.requestFormContext,
+    )
+    if (!imgRes.ok) {
+      console.error('[doctor_request_image]', imgRes.error)
+      return { ok: true, case_id: caseId, count: slugs.length, image_failed: true }
+    }
+  }
+
   return { ok: true, case_id: caseId, count: slugs.length }
 }
 
 export type UpdateDoctorCaseInput = DoctorCaseFormInput & {
   newFiles: File[]
   removeFileIds: string[]
+  requestFormContext?: RequestFormPdfContext
 }
 
 export async function updateDoctorCase(
@@ -280,7 +508,7 @@ export async function updateDoctorCase(
 
   const { data: existing, error: fetchErr } = await supabase
     .from('doctor_cases')
-    .select('id, status')
+    .select('id, status, created_at')
     .eq('id', caseId)
     .maybeSingle()
 
@@ -339,6 +567,30 @@ export async function updateDoctorCase(
 
   const uploadRes = await uploadDoctorCaseFiles(caseId, uid, input.newFiles)
   if (!uploadRes.ok) return uploadRes
+
+  if (input.requestFormContext) {
+    const imgRes = await attachDoctorRequestFormImage(
+      caseId,
+      uid,
+      {
+        patient_full_name,
+        age_value: input.age_value,
+        age_unit: input.age_unit,
+        gender: input.gender,
+        diagnosis: input.diagnosis.trim(),
+        disease_type: input.disease_type,
+        oncology_tumor_type:
+          input.disease_type === 'oncology' ? input.oncology_tumor_type?.trim() || null : null,
+        oncology_stage:
+          input.disease_type === 'oncology' ? input.oncology_stage?.trim() || null : null,
+        oncology_treatment:
+          input.disease_type === 'oncology' ? input.oncology_treatment?.trim() || null : null,
+        created_at: existing.created_at,
+      },
+      input.requestFormContext,
+    )
+    if (!imgRes.ok) return imgRes
+  }
 
   return { ok: true }
 }
