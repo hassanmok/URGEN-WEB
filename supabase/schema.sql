@@ -897,7 +897,9 @@ create table if not exists public.doctor_cases (
   oncology_stage text,
   oncology_treatment text,
   status text not null default 'sent'
-    check (status in ('sent', 'accepted', 'rejected')),
+    check (status in ('sent', 'pending', 'in_progress', 'rejected', 'done')),
+  pdf_storage_path text,
+  pdf_expires_at timestamptz,
   rejection_reason text,
   created_at timestamptz default now(),
   updated_at timestamptz default now(),
@@ -916,14 +918,16 @@ create table if not exists public.doctor_cases (
 
 alter table public.doctor_cases add column if not exists status text;
 alter table public.doctor_cases add column if not exists rejection_reason text;
+alter table public.doctor_cases add column if not exists pdf_storage_path text;
+alter table public.doctor_cases add column if not exists pdf_expires_at timestamptz;
 alter table public.doctor_cases alter column status set default 'sent';
 update public.doctor_cases set status = 'sent' where status is null;
 alter table public.doctor_cases alter column status set not null;
 
 alter table public.doctor_cases drop constraint if exists doctor_cases_status_check;
-update public.doctor_cases set status = 'accepted' where status = 'pending';
+update public.doctor_cases set status = 'pending' where status = 'accepted';
 alter table public.doctor_cases add constraint doctor_cases_status_check
-  check (status in ('sent', 'accepted', 'rejected'));
+  check (status in ('sent', 'pending', 'in_progress', 'rejected', 'done'));
 
 create index if not exists doctor_cases_doctor_idx
   on public.doctor_cases (doctor_user_id, created_at desc);
@@ -1001,7 +1005,7 @@ begin
   if public.auth_is_partner_lab_user() or public.auth_is_doctor_user() then
     raise exception 'forbidden';
   end if;
-  if p_status not in ('sent', 'accepted', 'rejected') then
+  if p_status not in ('sent', 'pending', 'in_progress', 'rejected', 'done') then
     raise exception 'invalid_status';
   end if;
 
@@ -1012,6 +1016,8 @@ begin
       when p_status = 'rejected' then coalesce(nullif(trim(p_rejection_reason), ''), 'Rejected')
       else null
     end,
+    pdf_storage_path = case when p_status = 'rejected' then null else pdf_storage_path end,
+    pdf_expires_at = case when p_status = 'rejected' then null else pdf_expires_at end,
     updated_at = now()
   where id = p_case_id
   returning id into v_id;
@@ -1026,7 +1032,7 @@ revoke all on function public.doctor_case_admin_set_status(uuid, text, text) fro
 grant execute on function public.doctor_case_admin_set_status(uuid, text, text) to authenticated;
 
 comment on function public.doctor_case_admin_set_status(uuid, text, text) is
-  'لوحة الإدارة: تحديث حالة طلب الطبيب (sent / accepted / rejected).';
+  'لوحة الإدارة: تحديث حالة طلب الطبيب (sent / pending / in_progress / rejected / done).';
 
 grant select, update on table public.doctor_cases to authenticated;
 
@@ -1213,3 +1219,76 @@ create policy "doctor_case_files_storage_staff" on storage.objects
     and not public.auth_is_partner_lab_user()
     and not public.auth_is_doctor_user()
   );
+
+-- Storage: تقارير PDF النتائج للأطباء (يرفعها الإدارة)
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'doctor-case-reports',
+  'doctor-case-reports',
+  false,
+  15728640,
+  array['application/pdf']
+)
+on conflict (id) do update set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "doctor_case_reports_staff_all" on storage.objects;
+create policy "doctor_case_reports_staff_all" on storage.objects
+  for all to authenticated
+  using (
+    bucket_id = 'doctor-case-reports'
+    and not public.auth_is_partner_lab_user()
+    and not public.auth_is_doctor_user()
+  )
+  with check (
+    bucket_id = 'doctor-case-reports'
+    and not public.auth_is_partner_lab_user()
+    and not public.auth_is_doctor_user()
+  );
+
+drop policy if exists "doctor_case_reports_doctor_read" on storage.objects;
+create policy "doctor_case_reports_doctor_read" on storage.objects
+  for select to authenticated
+  using (
+    bucket_id = 'doctor-case-reports'
+    and public.auth_is_doctor_user()
+    and exists (
+      select 1 from public.doctor_cases dc
+      where dc.doctor_user_id = auth.uid()
+        and dc.pdf_storage_path = storage.objects.name
+        and dc.status = 'done'
+        and dc.pdf_expires_at is not null
+        and dc.pdf_expires_at > now()
+    )
+  );
+
+create or replace function public.doctor_cleanup_expired_case_pdfs()
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  delete from storage.objects o
+  where o.bucket_id = 'doctor-case-reports'
+    and exists (
+      select 1
+      from public.doctor_cases dc
+      where dc.pdf_storage_path = o.name
+        and dc.pdf_expires_at is not null
+        and dc.pdf_expires_at <= now()
+    );
+
+  update public.doctor_cases
+  set pdf_storage_path = null,
+      pdf_expires_at = null
+  where pdf_expires_at is not null
+    and pdf_expires_at <= now();
+end;
+$$;
+
+revoke all on function public.doctor_cleanup_expired_case_pdfs() from public;
+comment on function public.doctor_cleanup_expired_case_pdfs() is
+  'تشغيل دوري: حذف تقارير الأطباء منتهية الصلاحية من التخزين.';

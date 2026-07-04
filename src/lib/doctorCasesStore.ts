@@ -9,16 +9,31 @@ export type DoctorCaseFileRow = Database['public']['Tables']['doctor_case_files'
 export type DoctorDiseaseType = 'oncology' | 'reproductive' | 'pediatric'
 export type DoctorGender = 'male' | 'female' | 'other'
 export type DoctorAgeUnit = 'days' | 'months' | 'years'
-export type DoctorCaseStatus = 'sent' | 'accepted' | 'rejected'
+export type DoctorCaseStatus = 'sent' | 'pending' | 'in_progress' | 'rejected' | 'done'
 
-/** يوحّد القيم القديمة (pending) مع accepted */
+/** يوحّد القيم القديمة (accepted) مع pending */
 export function normalizeDoctorCaseStatus(status: string | null | undefined): DoctorCaseStatus {
-  if (status === 'pending' || status === 'accepted') return 'accepted'
+  if (status === 'accepted' || status === 'pending') return 'pending'
+  if (status === 'in_progress') return 'in_progress'
   if (status === 'rejected') return 'rejected'
+  if (status === 'done') return 'done'
   return 'sent'
 }
 
 const BUCKET = 'doctor-case-files'
+const RESULT_BUCKET = 'doctor-case-reports'
+
+export function pdfPathForDoctorCase(caseId: string) {
+  return `${caseId}/report.pdf`
+}
+
+/** صلاحية رابط التحميل للطبيب انتهت (لا يُعتبر منتهياً إذا لم يُحدَّد تاريخ). */
+export function isDoctorResultPdfExpired(
+  row: Pick<DoctorCaseRow, 'pdf_expires_at'>,
+): boolean {
+  if (row.pdf_expires_at == null) return false
+  return new Date(row.pdf_expires_at).getTime() <= Date.now()
+}
 
 /** Generated filled request form image — not a user attachment. */
 export const DOCTOR_REQUEST_FORM_FILE_NAME = 'Request-General-Filled.png'
@@ -708,7 +723,7 @@ async function invokeManageDoctorCase(
 
 export async function adminUpdateDoctorCaseStatus(
   id: string,
-  status: DoctorCaseStatus,
+  status: 'pending' | 'in_progress' | 'rejected',
   rejection_reason?: string | null,
 ): Promise<{ ok: boolean; error?: string }> {
   if (!supabase) return { ok: false, error: 'no_supabase' }
@@ -716,15 +731,13 @@ export async function adminUpdateDoctorCaseStatus(
   const { data: userData } = await supabase.auth.getUser()
   if (!userData.user) return { ok: false, error: 'not_signed_in' }
 
-  const edge = await invokeManageDoctorCase({
-    action: 'set_status',
-    case_id: id,
+  const patch: Database['public']['Tables']['doctor_cases']['Update'] = {
     status,
-    rejection_reason: rejection_reason ?? null,
-  })
-  if (edge.ok) return { ok: true }
-  if (edge.error && edge.error !== 'edge_not_deployed') {
-    return { ok: false, error: edge.error }
+    rejection_reason: status === 'rejected' ? (rejection_reason?.trim() || 'Rejected') : null,
+  }
+  if (status === 'rejected') {
+    patch.pdf_storage_path = null
+    patch.pdf_expires_at = null
   }
 
   const { error: rpcErr } = await supabase.rpc('doctor_case_admin_set_status', {
@@ -741,12 +754,26 @@ export async function adminUpdateDoctorCaseStatus(
     (rpcErr.message?.includes('doctor_case_admin_set_status') ?? false)
 
   if (!rpcMissing) {
+    if (/invalid_status|doctor_cases_status_check/i.test(rpcErr.message ?? '')) {
+      return { ok: false, error: 'status_migration_required' }
+    }
     return { ok: false, error: rpcErr.message }
   }
 
-  const patch: Database['public']['Tables']['doctor_cases']['Update'] = {
+  const edge = await invokeManageDoctorCase({
+    action: 'set_status',
+    case_id: id,
     status,
-    rejection_reason: status === 'rejected' ? (rejection_reason?.trim() || 'Rejected') : null,
+    rejection_reason: rejection_reason ?? null,
+  })
+  if (edge.ok) return { ok: true }
+
+  const edgeAuthBlocked =
+    edge.error === 'forbidden' ||
+    edge.error === 'unauthorized' ||
+    edge.error === 'not_found'
+  if (edgeAuthBlocked) {
+    return { ok: false, error: edge.error }
   }
 
   const { data, error } = await supabase
@@ -756,9 +783,74 @@ export async function adminUpdateDoctorCaseStatus(
     .select('id, status')
     .maybeSingle()
 
-  if (error) return { ok: false, error: error.message }
+  if (error) {
+    if (/check constraint|doctor_cases_status_check/i.test(error.message ?? '')) {
+      return { ok: false, error: 'status_migration_required' }
+    }
+    return { ok: false, error: error.message }
+  }
   if (!data) return { ok: false, error: 'update_blocked' }
   return { ok: true }
+}
+
+export async function adminUploadDoctorCaseResultPdf(
+  caseId: string,
+  file: File,
+): Promise<{ ok: boolean; error?: string }> {
+  if (!supabase) return { ok: false, error: 'no_supabase' }
+  if (!file.type.includes('pdf')) return { ok: false, error: 'not_pdf' }
+
+  const canonicalPath = pdfPathForDoctorCase(caseId)
+
+  const { data: existing } = await supabase
+    .from('doctor_cases')
+    .select('pdf_storage_path')
+    .eq('id', caseId)
+    .maybeSingle()
+
+  const pathsToRemove = new Set<string>([canonicalPath])
+  if (existing?.pdf_storage_path) pathsToRemove.add(existing.pdf_storage_path)
+
+  const { error: removeErr } = await supabase.storage.from(RESULT_BUCKET).remove([...pathsToRemove])
+  if (removeErr && !removeErr.message.includes('not found')) {
+    /* ignore */
+  }
+
+  const { error: upErr } = await supabase.storage.from(RESULT_BUCKET).upload(canonicalPath, file, {
+    cacheControl: '3600',
+    upsert: true,
+    contentType: 'application/pdf',
+  })
+
+  if (upErr) return { ok: false, error: upErr.message }
+
+  const expires = new Date()
+  expires.setDate(expires.getDate() + 30)
+
+  const { error: dbErr } = await supabase
+    .from('doctor_cases')
+    .update({
+      pdf_storage_path: canonicalPath,
+      pdf_expires_at: expires.toISOString(),
+      status: 'done',
+    })
+    .eq('id', caseId)
+
+  if (dbErr) return { ok: false, error: dbErr.message }
+  return { ok: true }
+}
+
+export async function createDoctorResultPdfDownloadUrl(
+  storagePath: string | null,
+): Promise<{ ok: boolean; url?: string; error?: string }> {
+  if (!supabase || !storagePath) return { ok: false, error: 'no_file' }
+
+  const { data, error } = await supabase.storage
+    .from(RESULT_BUCKET)
+    .createSignedUrl(storagePath, 3600)
+
+  if (error || !data?.signedUrl) return { ok: false, error: error?.message ?? 'sign_failed' }
+  return { ok: true, url: data.signedUrl }
 }
 
 export async function createDoctorCaseFileDownloadUrl(

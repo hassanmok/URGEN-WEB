@@ -8,7 +8,7 @@ const corsHeaders: Record<string, string> = {
 
 type Action = 'set_status'
 
-const ALLOWED_STATUS = new Set(['sent', 'accepted', 'rejected'])
+const ALLOWED_STATUS = new Set(['sent', 'pending', 'in_progress', 'rejected', 'done'])
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -105,7 +105,7 @@ serve(async (req) => {
       return json(
         {
           error:
-            'invalid_status_constraint — run doctor_cases status migration in schema.sql (accepted)',
+            'invalid_status_constraint — run doctor-case-results-flow.sql migration',
         },
         400,
       )

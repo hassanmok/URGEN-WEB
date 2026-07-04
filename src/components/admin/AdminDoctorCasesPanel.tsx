@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useLocaleContext } from '../../i18n/useLocaleContext'
 import type { Messages } from '../../i18n/messages'
 import { Button } from '../ui/Button'
 import {
   adminUpdateDoctorCaseStatus,
+  adminUploadDoctorCaseResultPdf,
   normalizeDoctorCaseStatus,
+  isDoctorResultPdfExpired,
   createDoctorCaseFileDownloadUrl,
   regenerateDoctorRequestFormImage,
   buildRequestFormImageContext,
@@ -28,8 +30,10 @@ type Props = {
 
 const statusClass: Record<string, string> = {
   sent: 'bg-blue-100 text-blue-900',
-  accepted: 'bg-emerald-100 text-emerald-900',
+  pending: 'bg-amber-100 text-amber-900',
+  in_progress: 'bg-sky-100 text-sky-900',
   rejected: 'bg-red-100 text-red-900',
+  done: 'bg-emerald-100 text-emerald-900',
 }
 
 function formatBytes(n: number | null): string {
@@ -84,7 +88,9 @@ function CaseCard({
   locale,
   busyId,
   onAccept,
+  onProgress,
   onReject,
+  onPdf,
   onRefreshFiles,
 }: {
   row: DoctorCaseRow
@@ -96,7 +102,9 @@ function CaseCard({
   locale: string
   busyId: string | null
   onAccept: (id: string) => void
+  onProgress: (id: string) => void
   onReject: (id: string) => void
+  onPdf: (id: string, e: FormEvent<HTMLInputElement>) => void
   onRefreshFiles: () => void
 }) {
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
@@ -105,18 +113,26 @@ function CaseCard({
 
   const caseStatus = normalizeDoctorCaseStatus(row.status)
 
-  function statusLabel(s: DoctorCaseRow['status']) {
+  function statusLabel(s: string) {
     const n = normalizeDoctorCaseStatus(s)
     switch (n) {
       case 'sent':
         return m.doctorRequestsStatusSent
-      case 'accepted':
-        return m.doctorRequestsStatusAccepted
+      case 'pending':
+        return m.doctorRequestsStatusPending
+      case 'in_progress':
+        return m.doctorRequestsStatusInProgress
       case 'rejected':
         return m.doctorRequestsStatusRejected
+      case 'done':
+        return m.doctorRequestsStatusDone
       default:
         return s
     }
+  }
+
+  function formatPdfTs(iso: string) {
+    return new Date(iso).toLocaleString(locale === 'ar' ? 'ar-IQ' : 'en-US')
   }
 
   const diseaseLabel =
@@ -293,6 +309,86 @@ function CaseCard({
         </div>
       )}
 
+      {caseStatus === 'pending' && (
+        <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-200 pt-4">
+          <Button
+            type="button"
+            className="text-xs"
+            disabled={busyId === row.id}
+            onClick={() => onProgress(row.id)}
+          >
+            {m.doctorRequestsSetProgress}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="text-xs text-red-700"
+            disabled={busyId === row.id}
+            onClick={() => onReject(row.id)}
+          >
+            {m.doctorRequestsReject}
+          </Button>
+        </div>
+      )}
+
+      {caseStatus === 'in_progress' && (
+        <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-200 pt-4">
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-urgen-purple px-3 py-2 text-xs font-semibold text-white hover:brightness-105 disabled:opacity-50">
+            <input
+              type="file"
+              accept="application/pdf"
+              className="hidden"
+              disabled={busyId === row.id}
+              onChange={(e) => onPdf(row.id, e)}
+            />
+            {busyId === row.id ? m.doctorRequestsUploading : m.doctorRequestsUploadPdf}
+          </label>
+          <Button
+            type="button"
+            variant="outline"
+            className="text-xs text-red-700"
+            disabled={busyId === row.id}
+            onClick={() => onReject(row.id)}
+          >
+            {m.doctorRequestsReject}
+          </Button>
+        </div>
+      )}
+
+      {caseStatus === 'done' && (
+        <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-200 pt-4">
+          {row.pdf_expires_at != null && (
+            <p className="w-full text-xs text-slate-600">
+              {isDoctorResultPdfExpired(row) ? (
+                <span className="font-semibold text-amber-900">
+                  {m.doctorRequestsPdfExpiredNotice}:{' '}
+                  <span dir="ltr" className="font-normal tabular-nums">
+                    {formatPdfTs(row.pdf_expires_at)}
+                  </span>
+                </span>
+              ) : (
+                <>
+                  {m.doctorRequestsPdfExpires}:{' '}
+                  <span dir="ltr" className="tabular-nums">
+                    {formatPdfTs(row.pdf_expires_at)}
+                  </span>
+                </>
+              )}
+            </p>
+          )}
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-urgen-purple px-3 py-2 text-xs font-semibold text-white hover:brightness-105 disabled:opacity-50">
+            <input
+              type="file"
+              accept="application/pdf"
+              className="hidden"
+              disabled={busyId === row.id}
+              onChange={(e) => onPdf(row.id, e)}
+            />
+            {busyId === row.id ? m.doctorRequestsUploading : m.doctorRequestsReplacePdf}
+          </label>
+        </div>
+      )}
+
       <div className="mt-4 border-t border-slate-200 pt-4">
         <p className="text-xs font-semibold text-slate-600">{m.doctorRequestsRequestForm}</p>
         {requestForm ? (
@@ -372,7 +468,7 @@ export function AdminDoctorCasesPanel({ m }: Props) {
   async function acceptCase(id: string) {
     setBusyId(id)
     setActionError(null)
-    const res = await adminUpdateDoctorCaseStatus(id, 'accepted')
+    const res = await adminUpdateDoctorCaseStatus(id, 'pending')
     setBusyId(null)
     if (!res.ok) {
       const errMap: Record<string, string> = {
@@ -382,9 +478,42 @@ export function AdminDoctorCasesPanel({ m }: Props) {
         edge_not_deployed: m.doctorRequestsEdgeNotDeployed,
         forbidden: m.doctorRequestsForbidden,
         unauthorized: m.doctorRequestsNotSignedIn,
+        status_migration_required: m.doctorRequestsStatusMigration,
       }
       setActionError(errMap[res.error ?? ''] ?? res.error ?? m.doctorRequestsActionErr)
     }
+    else void reload()
+  }
+
+  async function setProgress(id: string) {
+    setBusyId(id)
+    setActionError(null)
+    const res = await adminUpdateDoctorCaseStatus(id, 'in_progress')
+    setBusyId(null)
+    if (!res.ok) {
+      const errMap: Record<string, string> = {
+        not_signed_in: m.doctorRequestsNotSignedIn,
+        update_blocked: m.doctorRequestsUpdateBlocked,
+        rpc_missing: m.doctorRequestsRpcMissing,
+        edge_not_deployed: m.doctorRequestsEdgeNotDeployed,
+        forbidden: m.doctorRequestsForbidden,
+        unauthorized: m.doctorRequestsNotSignedIn,
+        status_migration_required: m.doctorRequestsStatusMigration,
+      }
+      setActionError(errMap[res.error ?? ''] ?? res.error ?? m.doctorRequestsActionErr)
+    } else void reload()
+  }
+
+  async function onPdfChange(id: string, e: FormEvent<HTMLInputElement>) {
+    const input = e.currentTarget
+    const file = input.files?.[0]
+    input.value = ''
+    if (!file) return
+    setBusyId(id)
+    setActionError(null)
+    const res = await adminUploadDoctorCaseResultPdf(id, file)
+    setBusyId(null)
+    if (!res.ok) setActionError(res.error ?? m.doctorRequestsActionErr)
     else void reload()
   }
 
@@ -403,6 +532,7 @@ export function AdminDoctorCasesPanel({ m }: Props) {
         edge_not_deployed: m.doctorRequestsEdgeNotDeployed,
         forbidden: m.doctorRequestsForbidden,
         unauthorized: m.doctorRequestsNotSignedIn,
+        status_migration_required: m.doctorRequestsStatusMigration,
       }
       setActionError(errMap[res.error ?? ''] ?? res.error ?? m.doctorRequestsActionErr)
     }
@@ -516,7 +646,9 @@ export function AdminDoctorCasesPanel({ m }: Props) {
                   locale={locale}
                   busyId={busyId}
                   onAccept={(id) => void acceptCase(id)}
+                  onProgress={(id) => void setProgress(id)}
                   onReject={(id) => void rejectCase(id)}
+                  onPdf={(id, e) => void onPdfChange(id, e)}
                   onRefreshFiles={() => void reload()}
                 />
               ))}

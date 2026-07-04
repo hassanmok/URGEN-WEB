@@ -69,8 +69,10 @@ export function DoctorAnalyticsPanel({ m }: Props) {
   const statusLabels = useMemo(
     () => ({
       sent: m.caseStatusSent,
-      accepted: m.caseStatusAccepted,
+      pending: m.caseStatusPending,
+      in_progress: m.caseStatusInProgress,
       rejected: m.caseStatusRejected,
+      done: m.caseStatusDone,
     }),
     [m],
   )

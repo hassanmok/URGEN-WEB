@@ -34,7 +34,7 @@ export function SearchPage() {
         />
 
         <div className="mx-auto mt-10 max-w-2xl">
-          <SearchBar className="w-full" autoFocus />
+          <SearchBar layout="overlay" className="w-full" autoFocus />
         </div>
 
         {!query && (
