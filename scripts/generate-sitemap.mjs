@@ -11,7 +11,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const root = join(__dirname, '..')
 const outPath = join(root, 'public', 'sitemap.xml')
 
-const SITE_URL = (process.env.SITE_URL || process.env.VITE_SITE_URL || 'https://urgenlab.com').replace(
+const SITE_URL = (process.env.SITE_URL || process.env.VITE_SITE_URL || 'https://www.urgenlab.com').replace(
   /\/$/,
   '',
 )
