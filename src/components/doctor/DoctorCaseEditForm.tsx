@@ -7,9 +7,12 @@ import { isPatientNameComplete } from '../../lib/patientName'
 import { testDisplayTitle } from '../../lib/testCatalog'
 import {
   buildRequestFormImageContext,
+  doctorDiseaseTypeLabel,
   fetchDoctorCaseFiles,
   isAllowedDoctorCaseFile,
+  isCustomOtherTestSlug,
   isDoctorRequestFormFile,
+  newCustomOtherTestSlug,
   splitDoctorCaseFiles,
   updateDoctorCase,
   type DoctorAgeUnit,
@@ -19,13 +22,17 @@ import {
   type DoctorDiseaseType,
   type DoctorGender,
 } from '../../lib/doctorCasesStore'
+import { OtherTextDialog } from '../ui/OtherTextDialog'
 import type { Messages } from '../../i18n/messages'
-import type { TestRow } from '../../types/database'
 
-function testTitleFor(slug: string, catalog: TestRow[], locale: string): string {
-  const t = catalog.find((x) => x.slug === slug)
-  if (!t) return slug
-  return testDisplayTitle(t, locale)
+function initOtherTestTitles(caseTests: DoctorCaseTestRow[]): Map<string, string> {
+  const map = new Map<string, string>()
+  for (const t of caseTests) {
+    if (isCustomOtherTestSlug(t.test_slug) && t.test_title_override?.trim()) {
+      map.set(t.test_slug, t.test_title_override.trim())
+    }
+  }
+  return map
 }
 
 const inputClass =
@@ -52,12 +59,18 @@ export function DoctorCaseEditForm({ row, caseTests, m, onCancel, onSaved }: Pro
   const [gender, setGender] = useState<DoctorGender>(row.gender as DoctorGender)
   const [diagnosis, setDiagnosis] = useState(row.diagnosis)
   const [diseaseType, setDiseaseType] = useState<DoctorDiseaseType>(row.disease_type as DoctorDiseaseType)
+  const [diseaseTypeOther, setDiseaseTypeOther] = useState(row.disease_type_other ?? '')
+  const [diseaseOtherDialogOpen, setDiseaseOtherDialogOpen] = useState(false)
   const [tumorType, setTumorType] = useState(row.oncology_tumor_type ?? '')
   const [stage, setStage] = useState(row.oncology_stage ?? '')
   const [treatment, setTreatment] = useState(row.oncology_treatment ?? '')
   const [selectedTests, setSelectedTests] = useState<Set<string>>(
     () => new Set(caseTests.map((t) => t.test_slug)),
   )
+  const [otherTestTitles, setOtherTestTitles] = useState<Map<string, string>>(() =>
+    initOtherTestTitles(caseTests),
+  )
+  const [testOtherDialogOpen, setTestOtherDialogOpen] = useState(false)
   const [existingFiles, setExistingFiles] = useState<DoctorCaseFileRow[]>([])
   const [removeFileIds, setRemoveFileIds] = useState<Set<string>>(new Set())
   const [newFiles, setNewFiles] = useState<File[]>([])
@@ -74,6 +87,7 @@ export function DoctorCaseEditForm({ row, caseTests, m, onCancel, onSaved }: Pro
       empty: m.testPlaceholder,
       searchPlaceholder: m.testSearchPlaceholder,
       searchNoResults: m.testSearchNoResults,
+      otherOption: m.testOtherOption,
     }),
     [m],
   )
@@ -87,10 +101,26 @@ export function DoctorCaseEditForm({ row, caseTests, m, onCancel, onSaved }: Pro
   function toggleTest(slug: string) {
     setSelectedTests((prev) => {
       const next = new Set(prev)
-      if (next.has(slug)) next.delete(slug)
-      else next.add(slug)
+      if (next.has(slug)) {
+        next.delete(slug)
+        if (isCustomOtherTestSlug(slug)) {
+          setOtherTestTitles((map) => {
+            const copy = new Map(map)
+            copy.delete(slug)
+            return copy
+          })
+        }
+      } else {
+        next.add(slug)
+      }
       return next
     })
+  }
+
+  function addOtherTest(title: string) {
+    const slug = newCustomOtherTestSlug()
+    setOtherTestTitles((map) => new Map(map).set(slug, title))
+    setSelectedTests((prev) => new Set(prev).add(slug))
   }
 
   function syncNewFiles(next: File[]) {
@@ -146,18 +176,36 @@ export function DoctorCaseEditForm({ row, caseTests, m, onCancel, onSaved }: Pro
       }
     }
 
+    if (diseaseType === 'other' && !diseaseTypeOther.trim()) {
+      setMsg({ ok: false, text: m.diseaseOtherRequired })
+      return
+    }
+
     if (selectedTests.size === 0) {
       setMsg({ ok: false, text: m.selectAtLeastOneTest })
       return
     }
 
-    const testTitles = [...selectedTests].map((slug) => testTitleFor(slug, tests, locale))
-    const diseaseLabel =
-      diseaseType === 'oncology'
-        ? m.diseaseOncology
-        : diseaseType === 'reproductive'
-          ? m.diseaseReproductive
-          : m.diseasePediatric
+    const allTestTitles = [
+      ...[...selectedTests]
+        .filter((slug) => !isCustomOtherTestSlug(slug))
+        .map((slug) => {
+          const t = tests.find((x) => x.slug === slug)
+          return t ? testDisplayTitle(t, locale) : slug
+        }),
+      ...[...selectedTests]
+        .filter((slug) => isCustomOtherTestSlug(slug))
+        .map((slug) => otherTestTitles.get(slug) ?? slug),
+    ]
+    const diseaseLabel = doctorDiseaseTypeLabel(
+      { disease_type: diseaseType, disease_type_other: diseaseTypeOther },
+      {
+        oncology: m.diseaseOncology,
+        reproductive: m.diseaseReproductive,
+        pediatric: m.diseasePediatric,
+        other: m.diseaseOther,
+      },
+    )
     const oncologyDetails =
       diseaseType === 'oncology'
         ? [m.oncologyTumorType, tumorType, m.oncologyStage, stage, m.oncologyTreatment, treatment]
@@ -173,10 +221,12 @@ export function DoctorCaseEditForm({ row, caseTests, m, onCancel, onSaved }: Pro
       gender,
       diagnosis,
       disease_type: diseaseType,
+      disease_type_other: diseaseType === 'other' ? diseaseTypeOther : null,
       oncology_tumor_type: diseaseType === 'oncology' ? tumorType : undefined,
       oncology_stage: diseaseType === 'oncology' ? stage : undefined,
       oncology_treatment: diseaseType === 'oncology' ? treatment : undefined,
       test_slugs: [...selectedTests],
+      other_test_titles: Object.fromEntries(otherTestTitles.entries()),
       newFiles: newFilesRef.current,
       removeFileIds: [...removeFileIds].filter((id) => {
         const f = existingFiles.find((x) => x.id === id)
@@ -185,7 +235,7 @@ export function DoctorCaseEditForm({ row, caseTests, m, onCancel, onSaved }: Pro
       requestFormContext: buildRequestFormImageContext(
         locale,
         { days: m.ageUnitDays, months: m.ageUnitMonths, years: m.ageUnitYears },
-        testTitles,
+        allTestTitles,
         { diseaseTypeLabel: diseaseLabel, oncologyDetails },
       ),
     })
@@ -211,6 +261,7 @@ export function DoctorCaseEditForm({ row, caseTests, m, onCancel, onSaved }: Pro
   const visibleExisting = existingAttachments.filter((f) => !removeFileIds.has(f.id))
 
   return (
+    <>
     <form
       className="rounded-2xl border-2 border-urgen-purple/30 bg-urgen-purple/5 p-5 shadow-sm"
       onSubmit={(e) => void onSubmit(e)}
@@ -299,6 +350,7 @@ export function DoctorCaseEditForm({ row, caseTests, m, onCancel, onSaved }: Pro
               ['oncology', m.diseaseOncology],
               ['reproductive', m.diseaseReproductive],
               ['pediatric', m.diseasePediatric],
+              ['other', m.diseaseOther],
             ] as const
           ).map(([val, label]) => (
             <label key={val} className="flex cursor-pointer items-center gap-2 text-sm">
@@ -307,9 +359,17 @@ export function DoctorCaseEditForm({ row, caseTests, m, onCancel, onSaved }: Pro
                 name={`diseaseType-${row.id}`}
                 value={val}
                 checked={diseaseType === val}
-                onChange={() => setDiseaseType(val)}
+                onChange={() => {
+                  if (val === 'other') setDiseaseOtherDialogOpen(true)
+                  else {
+                    setDiseaseType(val)
+                    setDiseaseTypeOther('')
+                  }
+                }}
               />
-              {label}
+              {val === 'other' && diseaseType === 'other' && diseaseTypeOther
+                ? `${label}: ${diseaseTypeOther}`
+                : label}
             </label>
           ))}
         </div>
@@ -358,6 +418,8 @@ export function DoctorCaseEditForm({ row, caseTests, m, onCancel, onSaved }: Pro
         onToggle={toggleTest}
         locale={locale}
         labels={testPickerLabels}
+        otherTests={otherTestTitles}
+        onRequestAddOther={() => setTestOtherDialogOpen(true)}
       />
 
       {requestForm && (
@@ -429,5 +491,30 @@ export function DoctorCaseEditForm({ row, caseTests, m, onCancel, onSaved }: Pro
         </Button>
       </div>
     </form>
+
+    <OtherTextDialog
+      open={diseaseOtherDialogOpen}
+      title={m.diseaseOtherDialogTitle}
+      placeholder={m.diseaseOtherPlaceholder}
+      confirmLabel={m.otherDone}
+      cancelLabel={m.cancelEdit}
+      initialValue={diseaseTypeOther}
+      onConfirm={(text) => {
+        setDiseaseType('other')
+        setDiseaseTypeOther(text)
+      }}
+      onClose={() => setDiseaseOtherDialogOpen(false)}
+    />
+
+    <OtherTextDialog
+      open={testOtherDialogOpen}
+      title={m.testOtherDialogTitle}
+      placeholder={m.testOtherPlaceholder}
+      confirmLabel={m.otherDone}
+      cancelLabel={m.cancelEdit}
+      onConfirm={addOtherTest}
+      onClose={() => setTestOtherDialogOpen(false)}
+    />
+  </>
   )
 }

@@ -14,6 +14,7 @@ export type TestCheckboxPickerLabels = {
   empty: string
   searchPlaceholder: string
   searchNoResults: string
+  otherOption?: string
 }
 
 type Props = {
@@ -24,6 +25,8 @@ type Props = {
   locale: string
   labels: TestCheckboxPickerLabels
   className?: string
+  otherTests?: Map<string, string>
+  onRequestAddOther?: () => void
 }
 
 const searchInputClass =
@@ -37,6 +40,8 @@ export function TestCheckboxPicker({
   locale,
   labels,
   className = '',
+  otherTests,
+  onRequestAddOther,
 }: Props) {
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -95,6 +100,30 @@ export function TestCheckboxPicker({
               </span>
             </label>
           ))
+        )}
+        {otherTests &&
+          [...otherTests.entries()].map(([slug, title]) => (
+            <label
+              key={slug}
+              className="flex cursor-pointer items-start gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-50"
+            >
+              <input
+                type="checkbox"
+                className="mt-1 rounded border-slate-300 text-urgen-purple focus:ring-urgen-purple"
+                checked={selectedTests.has(slug)}
+                onChange={() => onToggle(slug)}
+              />
+              <span className="text-sm text-slate-800">{title}</span>
+            </label>
+          ))}
+        {labels.otherOption && onRequestAddOther && (
+          <button
+            type="button"
+            className="mt-1 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-start text-sm font-semibold text-urgen-purple hover:bg-urgen-purple/5"
+            onClick={onRequestAddOther}
+          >
+            + {labels.otherOption}
+          </button>
         )}
       </div>
     </fieldset>

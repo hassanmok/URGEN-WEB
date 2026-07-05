@@ -1,15 +1,17 @@
 import { supabase } from './supabase'
 import { buildPatientFullName, type PatientNameParts } from './patientName'
 import { generateDoctorRequestImage } from './doctorRequestImage'
+import { tokenize } from './searchIndex'
 import type { Database } from '../types/database'
 
 export type DoctorCaseRow = Database['public']['Tables']['doctor_cases']['Row']
 export type DoctorCaseTestRow = Database['public']['Tables']['doctor_case_tests']['Row']
 export type DoctorCaseFileRow = Database['public']['Tables']['doctor_case_files']['Row']
-export type DoctorDiseaseType = 'oncology' | 'reproductive' | 'pediatric'
+export type DoctorDiseaseType = 'oncology' | 'reproductive' | 'pediatric' | 'other'
 export type DoctorGender = 'male' | 'female' | 'other'
 export type DoctorAgeUnit = 'days' | 'months' | 'years'
 export type DoctorCaseStatus = 'sent' | 'pending' | 'in_progress' | 'rejected' | 'done'
+export type DoctorResultValue = 'positive' | 'negative'
 
 /** يوحّد القيم القديمة (accepted) مع pending */
 export function normalizeDoctorCaseStatus(status: string | null | undefined): DoctorCaseStatus {
@@ -59,6 +61,104 @@ export function splitDoctorCaseFiles(files: DoctorCaseFileRow[]): {
     else attachments.push(f)
   }
   return { requestForm, attachments }
+}
+
+export const OTHER_TEST_SLUG_PREFIX = '__other__:'
+
+export function isCustomOtherTestSlug(slug: string): boolean {
+  return slug.startsWith(OTHER_TEST_SLUG_PREFIX)
+}
+
+export function newCustomOtherTestSlug(): string {
+  return `${OTHER_TEST_SLUG_PREFIX}${crypto.randomUUID()}`
+}
+
+export function resolveDoctorCaseTestTitle(
+  test: Pick<DoctorCaseTestRow, 'test_slug' | 'test_title_override'>,
+  catalog: { slug: string; title_ar: string; title_en: string | null }[],
+  locale: string,
+): string {
+  if (test.test_title_override?.trim()) return test.test_title_override.trim()
+  const row = catalog.find((x) => x.slug === test.test_slug)
+  if (!row) return test.test_slug
+  return locale === 'ar' ? row.title_ar : (row.title_en ?? row.title_ar)
+}
+
+export function doctorDiseaseTypeLabel(
+  row: Pick<DoctorCaseRow, 'disease_type' | 'disease_type_other'>,
+  labels: {
+    oncology: string
+    reproductive: string
+    pediatric: string
+    other: string
+  },
+): string {
+  if (row.disease_type === 'other') {
+    return row.disease_type_other?.trim() || labels.other
+  }
+  if (row.disease_type === 'oncology') return labels.oncology
+  if (row.disease_type === 'reproductive') return labels.reproductive
+  return labels.pediatric
+}
+
+function buildDoctorCaseTestRows(
+  caseId: string,
+  slugs: string[],
+  titleBySlug: Map<string, string>,
+) {
+  return slugs.map((test_slug) => ({
+    case_id: caseId,
+    test_slug,
+    test_title_override: isCustomOtherTestSlug(test_slug)
+      ? titleBySlug.get(test_slug)?.trim() || null
+      : null,
+  }))
+}
+
+/** بحث محلي في حالات الطبيب: اسم المريض، التشخيص، الفحص، العمر… */
+export function doctorCaseMatchesPatientSearch(
+  row: DoctorCaseRow,
+  query: string,
+  caseTests: DoctorCaseTestRow[],
+  catalog: { slug: string; title_ar: string; title_en: string | null }[],
+  locale: string,
+): boolean {
+  const q = query.trim()
+  if (!q) return true
+
+  const tokens = tokenize(q)
+  if (!tokens.length) return true
+
+  const testHay = caseTests
+    .map((t) => resolveDoctorCaseTestTitle(t, catalog, locale) + ' ' + t.test_slug)
+    .join(' ')
+
+  const hay = [
+    row.patient_full_name,
+    row.patient_name1,
+    row.patient_name2,
+    row.patient_name3,
+    row.patient_name4,
+    row.diagnosis,
+    row.disease_type,
+    row.disease_type_other,
+    String(row.age_value),
+    row.age_unit,
+    testHay,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+
+  if (tokens.every((t) => hay.includes(t))) return true
+
+  const digitsOnly = q.replace(/\D/g, '')
+  if (digitsOnly.length > 0) {
+    const n = Number.parseInt(digitsOnly, 10)
+    if (Number.isFinite(n) && row.age_value === n) return true
+  }
+
+  return false
 }
 
 const ALLOWED_MIME = new Set([
@@ -399,10 +499,13 @@ export type DoctorCaseFormInput = {
   gender: DoctorGender
   diagnosis: string
   disease_type: DoctorDiseaseType
+  disease_type_other?: string | null
   oncology_tumor_type?: string
   oncology_stage?: string
   oncology_treatment?: string
   test_slugs: string[]
+  /** عناوين الفحوصات المخصصة (slug يبدأ بـ __other__:) */
+  other_test_titles?: Record<string, string>
 }
 
 export async function insertDoctorCase(
@@ -445,6 +548,8 @@ export async function insertDoctorCase(
       input.disease_type === 'oncology' ? input.oncology_stage?.trim() || null : null,
     oncology_treatment:
       input.disease_type === 'oncology' ? input.oncology_treatment?.trim() || null : null,
+    disease_type_other:
+      input.disease_type === 'other' ? input.disease_type_other?.trim() || null : null,
     status: 'sent',
   }
 
@@ -462,7 +567,8 @@ export async function insertDoctorCase(
     return { ok: false, error: 'no_tests' }
   }
 
-  const testRows = slugs.map((test_slug) => ({ case_id: caseId, test_slug }))
+  const titleBySlug = new Map(Object.entries(input.other_test_titles ?? {}))
+  const testRows = buildDoctorCaseTestRows(caseId, slugs, titleBySlug)
   const { error: testErr } = await supabase.from('doctor_case_tests').insert(testRows)
   if (testErr) {
     await supabase.from('doctor_cases').delete().eq('id', caseId)
@@ -552,6 +658,8 @@ export async function updateDoctorCase(
       input.disease_type === 'oncology' ? input.oncology_stage?.trim() || null : null,
     oncology_treatment:
       input.disease_type === 'oncology' ? input.oncology_treatment?.trim() || null : null,
+    disease_type_other:
+      input.disease_type === 'other' ? input.disease_type_other?.trim() || null : null,
   }
 
   const { data: updated, error: updErr } = await supabase
@@ -571,7 +679,8 @@ export async function updateDoctorCase(
   const { error: delTestsErr } = await supabase.from('doctor_case_tests').delete().eq('case_id', caseId)
   if (delTestsErr) return { ok: false, error: delTestsErr.message }
 
-  const testRows = slugs.map((test_slug) => ({ case_id: caseId, test_slug }))
+  const titleBySlug = new Map(Object.entries(input.other_test_titles ?? {}))
+  const testRows = buildDoctorCaseTestRows(caseId, slugs, titleBySlug)
   const { error: testErr } = await supabase.from('doctor_case_tests').insert(testRows)
   if (testErr) return { ok: false, error: testErr.message }
 
@@ -738,6 +847,7 @@ export async function adminUpdateDoctorCaseStatus(
   if (status === 'rejected') {
     patch.pdf_storage_path = null
     patch.pdf_expires_at = null
+    patch.result_value = null
   }
 
   const { error: rpcErr } = await supabase.rpc('doctor_case_admin_set_status', {
@@ -796,9 +906,13 @@ export async function adminUpdateDoctorCaseStatus(
 export async function adminUploadDoctorCaseResultPdf(
   caseId: string,
   file: File,
+  resultValue: DoctorResultValue,
 ): Promise<{ ok: boolean; error?: string }> {
   if (!supabase) return { ok: false, error: 'no_supabase' }
   if (!file.type.includes('pdf')) return { ok: false, error: 'not_pdf' }
+  if (resultValue !== 'positive' && resultValue !== 'negative') {
+    return { ok: false, error: 'result_required' }
+  }
 
   const canonicalPath = pdfPathForDoctorCase(caseId)
 
@@ -833,6 +947,7 @@ export async function adminUploadDoctorCaseResultPdf(
       pdf_storage_path: canonicalPath,
       pdf_expires_at: expires.toISOString(),
       status: 'done',
+      result_value: resultValue,
     })
     .eq('id', caseId)
 

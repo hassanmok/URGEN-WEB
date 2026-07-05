@@ -2,24 +2,30 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { LanguageSwitcher } from '../../components/layout/LanguageSwitcher'
 import { Button } from '../../components/ui/Button'
+import { OtherTextDialog } from '../../components/ui/OtherTextDialog'
 import { Logo } from '../../components/Logo'
 import { supabase } from '../../lib/supabase'
 import { fetchDoctorProfile } from '../../lib/doctorAccess'
 import { fetchPartnerLabProfile, resolvePartnerLoginEmail } from '../../lib/partnerAccess'
 import {
   createPartnerPdfDownloadUrl,
+  canEditPartnerSubmissionGroup,
   fetchPartnerSubmissionsForLab,
   filterPartnerSubmissionGroups,
   insertPartnerSubmissionBatch,
   isPartnerPdfExpired,
+  resolvePartnerSubmissionTestTitle,
   type PartnerAgeUnit,
+  type PartnerSubmissionGroup,
   type PartnerSubmissionRow,
 } from '../../lib/partnerSubmissionsStore'
+import { isCustomOtherTestSlug, newCustomOtherTestSlug } from '../../lib/doctorCasesStore'
 import { useLocaleContext } from '../../i18n/useLocaleContext'
 import { useTests } from '../../hooks/useTests'
 import { TestCheckboxPicker } from '../../components/shared/TestCheckboxPicker'
-import { testDisplayTitle } from '../../lib/testCatalog'
+import { PartnerSubmissionEditForm } from '../../components/partner/PartnerSubmissionEditForm'
 import { buildPatientFullName, isPatientNameComplete } from '../../lib/patientName'
+import type { Messages } from '../../i18n/messages'
 
 export function PartnerPortalPage() {
   const navigate = useNavigate()
@@ -45,6 +51,8 @@ export function PartnerPortalPage() {
   const [ageValue, setAgeValue] = useState('')
   const [ageUnit, setAgeUnit] = useState<PartnerAgeUnit>('years')
   const [selectedTests, setSelectedTests] = useState<Set<string>>(new Set())
+  const [otherTestTitles, setOtherTestTitles] = useState<Map<string, string>>(new Map())
+  const [testOtherDialogOpen, setTestOtherDialogOpen] = useState(false)
   const [testPickerKey, setTestPickerKey] = useState(0)
   const [submitBusy, setSubmitBusy] = useState(false)
   const [submitMsg, setSubmitMsg] = useState<{ ok: boolean; text: string } | null>(null)
@@ -52,6 +60,7 @@ export function PartnerPortalPage() {
   const [rows, setRows] = useState<PartnerSubmissionRow[]>([])
   const [loadingRows, setLoadingRows] = useState(false)
   const [requestsSearchQuery, setRequestsSearchQuery] = useState('')
+  const [editingGroupKey, setEditingGroupKey] = useState<string | null>(null)
   const [pdfBusyId, setPdfBusyId] = useState<string | null>(null)
 
   async function refreshSession() {
@@ -182,6 +191,7 @@ export function PartnerPortalPage() {
       age_value: ageNum,
       age_unit: ageUnit,
       test_slugs: [...selectedTests],
+      other_test_titles: Object.fromEntries(otherTestTitles.entries()),
     })
     setSubmitBusy(false)
     if (!res.ok) {
@@ -198,6 +208,7 @@ export function PartnerPortalPage() {
     setPatientName4('')
     setAgeValue('')
     setSelectedTests(new Set())
+    setOtherTestTitles(new Map())
     setTestPickerKey((k) => k + 1)
     void loadRows()
   }
@@ -205,10 +216,26 @@ export function PartnerPortalPage() {
   function toggleTest(slug: string) {
     setSelectedTests((prev) => {
       const next = new Set(prev)
-      if (next.has(slug)) next.delete(slug)
-      else next.add(slug)
+      if (next.has(slug)) {
+        next.delete(slug)
+        if (isCustomOtherTestSlug(slug)) {
+          setOtherTestTitles((map) => {
+            const copy = new Map(map)
+            copy.delete(slug)
+            return copy
+          })
+        }
+      } else {
+        next.add(slug)
+      }
       return next
     })
+  }
+
+  function addOtherTest(title: string) {
+    const slug = newCustomOtherTestSlug()
+    setOtherTestTitles((map) => new Map(map).set(slug, title))
+    setSelectedTests((prev) => new Set(prev).add(slug))
   }
 
   const testPickerLabels = useMemo(
@@ -219,14 +246,13 @@ export function PartnerPortalPage() {
       empty: m.testPlaceholder,
       searchPlaceholder: m.testSearchPlaceholder,
       searchNoResults: m.testSearchNoResults,
+      otherOption: m.testOtherOption,
     }),
     [m],
   )
 
-  function testTitle(slug: string) {
-    const t = tests.find((x) => x.slug === slug)
-    if (!t) return slug
-    return testDisplayTitle(t, locale)
+  function testTitle(row: Pick<PartnerSubmissionRow, 'test_slug' | 'test_title_override'>) {
+    return resolvePartnerSubmissionTestTitle(row, tests, locale)
   }
 
   async function downloadPdf(row: PartnerSubmissionRow) {
@@ -461,6 +487,7 @@ export function PartnerPortalPage() {
         </nav>
 
         {tab === 'submit' && (
+          <>
           <section className="mx-auto max-w-xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-bold text-urgen-navy">{m.tabSubmit}</h2>
             <form className="mt-6 space-y-4" onSubmit={onSubmitRequest}>
@@ -542,6 +569,8 @@ export function PartnerPortalPage() {
                 onToggle={toggleTest}
                 locale={locale}
                 labels={testPickerLabels}
+                otherTests={otherTestTitles}
+                onRequestAddOther={() => setTestOtherDialogOpen(true)}
               />
 
               {submitMsg && (
@@ -555,6 +584,16 @@ export function PartnerPortalPage() {
               </Button>
             </form>
           </section>
+
+          <OtherTextDialog
+            open={testOtherDialogOpen}
+            title={m.testOtherDialogTitle}
+            placeholder={m.testOtherPlaceholder}
+            confirmLabel={m.otherDone}
+            onConfirm={addOtherTest}
+            onClose={() => setTestOtherDialogOpen(false)}
+          />
+          </>
         )}
 
         {tab === 'list' && (
@@ -593,96 +632,25 @@ export function PartnerPortalPage() {
             ) : (
               <ul className="mt-6 space-y-4">
                 {filteredGroups.map((group) => (
-                  <li
+                  <PartnerRequestGroup
                     key={group.groupKey}
-                    className="rounded-2xl border-2 border-slate-300 bg-slate-100 p-5 text-sm shadow-md"
-                  >
-                    <div className="space-y-1 border-b border-slate-200 pb-3">
-                      <p className="font-semibold text-urgen-navy">{group.patient_full_name}</p>
-                      <p className="text-slate-600">
-                        {agePretty({
-                          age_value: group.age_value,
-                          age_unit: group.age_unit,
-                        } as PartnerSubmissionRow)}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        {m.dateSubmitted}:{' '}
-                        {group.created_at
-                          ? new Date(group.created_at).toLocaleString(
-                              locale === 'ar' ? 'ar-IQ' : 'en-US',
-                            )
-                          : '—'}
-                      </p>
-                    </div>
-                    <ul className="mt-3 space-y-3">
-                      {group.items.map((row) => {
-                        const expired = isPartnerPdfExpired(row)
-                  const pdfReady = row.status === 'done' && row.pdf_storage_path && !expired
-
-                  return (
-                    <li
-                      key={row.id}
-                      className="rounded-xl border border-slate-300 bg-white p-3 shadow-sm"
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-2">
-                        <p className="font-medium text-urgen-navy">{testTitle(row.test_slug)}</p>
-                        <span
-                          className={`rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset ${statusBadgeClass(row.status)}`}
-                        >
-                          {statusLabel(row.status)}
-                        </span>
-                      </div>
-
-                      <div className="mt-4 space-y-2 border-t border-slate-200 pt-4">
-                        {row.status === 'rejected' && (
-                          <p className="text-sm text-red-800">
-                            <span className="font-semibold">{m.rejectionReason}: </span>
-                            {row.rejection_reason?.trim() || '—'}
-                          </p>
-                        )}
-                        {row.status === 'sent' && (
-                          <p className="text-xs text-slate-500">{m.pdfAwaitAcceptance}</p>
-                        )}
-                        {!pdfReady &&
-                          row.status !== 'done' &&
-                          row.status !== 'sent' &&
-                          row.status !== 'rejected' && (
-                            <p className="text-xs text-slate-500">{m.pdfLocked}</p>
-                          )}
-                        {row.status === 'done' && row.pdf_storage_path && row.pdf_expires_at && (
-                          <p
-                            className={`text-xs font-medium ${
-                              expired ? 'text-amber-900' : 'text-emerald-800'
-                            }`}
-                          >
-                            {expired ? m.pdfExpiredAt : m.pdfDownloadValidUntil}
-                            {': '}
-                            <span dir="ltr" className="inline-block font-normal tabular-nums">
-                              {new Date(row.pdf_expires_at).toLocaleString(
-                                locale === 'ar' ? 'ar-IQ' : 'en-US',
-                              )}
-                            </span>
-                          </p>
-                        )}
-                        {row.status === 'done' && expired && (
-                          <p className="text-xs text-slate-600">{m.pdfExpired}</p>
-                        )}
-                              {pdfReady && (
-                                <Button
-                                  type="button"
-                                  className="text-sm"
-                                  disabled={pdfBusyId === row.id}
-                                  onClick={() => void downloadPdf(row)}
-                                >
-                                  {pdfBusyId === row.id ? '…' : m.pdfDownload}
-                                </Button>
-                              )}
-                            </div>
-                          </li>
-                        )
-                      })}
-                    </ul>
-                  </li>
+                    group={group}
+                    m={m}
+                    locale={locale}
+                    editing={editingGroupKey === group.groupKey}
+                    onStartEdit={() => setEditingGroupKey(group.groupKey)}
+                    onCancelEdit={() => setEditingGroupKey(null)}
+                    onSaved={() => {
+                      setEditingGroupKey(null)
+                      void loadRows()
+                    }}
+                    testTitle={testTitle}
+                    agePretty={agePretty}
+                    statusLabel={statusLabel}
+                    statusBadgeClass={statusBadgeClass}
+                    pdfBusyId={pdfBusyId}
+                    onDownloadPdf={downloadPdf}
+                  />
                 ))}
               </ul>
             )}
@@ -690,5 +658,137 @@ export function PartnerPortalPage() {
         )}
       </main>
     </div>
+  )
+}
+
+function PartnerRequestGroup({
+  group,
+  m,
+  locale,
+  editing,
+  onStartEdit,
+  onCancelEdit,
+  onSaved,
+  testTitle,
+  agePretty,
+  statusLabel,
+  statusBadgeClass,
+  pdfBusyId,
+  onDownloadPdf,
+}: {
+  group: PartnerSubmissionGroup
+  m: Messages['partnerPortal']
+  locale: string
+  editing: boolean
+  onStartEdit: () => void
+  onCancelEdit: () => void
+  onSaved: () => void
+  testTitle: (row: Pick<PartnerSubmissionRow, 'test_slug' | 'test_title_override'>) => string
+  agePretty: (row: PartnerSubmissionRow) => string
+  statusLabel: (status: string) => string
+  statusBadgeClass: (status: string) => string
+  pdfBusyId: string | null
+  onDownloadPdf: (row: PartnerSubmissionRow) => void | Promise<void>
+}) {
+  const canEdit = canEditPartnerSubmissionGroup(group)
+
+  if (editing) {
+    return (
+      <li className="rounded-2xl border-2 border-urgen-purple/40 bg-slate-100 p-5 text-sm shadow-md">
+        <PartnerSubmissionEditForm group={group} m={m} onCancel={onCancelEdit} onSaved={onSaved} />
+      </li>
+    )
+  }
+
+  return (
+    <li className="rounded-2xl border-2 border-slate-300 bg-slate-100 p-5 text-sm shadow-md">
+      <div className="space-y-1 border-b border-slate-200 pb-3">
+        <p className="font-semibold text-urgen-navy">{group.patient_full_name}</p>
+        <p className="text-slate-600">
+          {agePretty({
+            age_value: group.age_value,
+            age_unit: group.age_unit,
+          } as PartnerSubmissionRow)}
+        </p>
+        <p className="text-xs text-slate-500">
+          {m.dateSubmitted}:{' '}
+          {group.created_at
+            ? new Date(group.created_at).toLocaleString(locale === 'ar' ? 'ar-IQ' : 'en-US')
+            : '—'}
+        </p>
+        {canEdit && (
+          <div className="pt-2">
+            <Button type="button" variant="outline" className="text-sm" onClick={onStartEdit}>
+              {m.editRequest}
+            </Button>
+          </div>
+        )}
+      </div>
+      <ul className="mt-3 space-y-3">
+        {group.items.map((row) => {
+          const expired = isPartnerPdfExpired(row)
+          const pdfReady = row.status === 'done' && row.pdf_storage_path && !expired
+
+          return (
+            <li key={row.id} className="rounded-xl border border-slate-300 bg-white p-3 shadow-sm">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <p className="font-medium text-urgen-navy">{testTitle(row)}</p>
+                <span
+                  className={`rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset ${statusBadgeClass(row.status)}`}
+                >
+                  {statusLabel(row.status)}
+                </span>
+              </div>
+
+              <div className="mt-4 space-y-2 border-t border-slate-200 pt-4">
+                {row.status === 'rejected' && (
+                  <p className="text-sm text-red-800">
+                    <span className="font-semibold">{m.rejectionReason}: </span>
+                    {row.rejection_reason?.trim() || '—'}
+                  </p>
+                )}
+                {row.status === 'sent' && (
+                  <p className="text-xs text-slate-500">{m.pdfAwaitAcceptance}</p>
+                )}
+                {!pdfReady &&
+                  row.status !== 'done' &&
+                  row.status !== 'sent' &&
+                  row.status !== 'rejected' && (
+                    <p className="text-xs text-slate-500">{m.pdfLocked}</p>
+                  )}
+                {row.status === 'done' && row.pdf_storage_path && row.pdf_expires_at && (
+                  <p
+                    className={`text-xs font-medium ${
+                      expired ? 'text-amber-900' : 'text-emerald-800'
+                    }`}
+                  >
+                    {expired ? m.pdfExpiredAt : m.pdfDownloadValidUntil}
+                    {': '}
+                    <span dir="ltr" className="inline-block font-normal tabular-nums">
+                      {new Date(row.pdf_expires_at).toLocaleString(
+                        locale === 'ar' ? 'ar-IQ' : 'en-US',
+                      )}
+                    </span>
+                  </p>
+                )}
+                {row.status === 'done' && expired && (
+                  <p className="text-xs text-slate-600">{m.pdfExpired}</p>
+                )}
+                {pdfReady && (
+                  <Button
+                    type="button"
+                    className="text-sm"
+                    disabled={pdfBusyId === row.id}
+                    onClick={() => void onDownloadPdf(row)}
+                  >
+                    {pdfBusyId === row.id ? '…' : m.pdfDownload}
+                  </Button>
+                )}
+              </div>
+            </li>
+          )
+        })}
+      </ul>
+    </li>
   )
 }

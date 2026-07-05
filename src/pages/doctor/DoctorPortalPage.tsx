@@ -1,17 +1,25 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { LanguageSwitcher } from '../../components/layout/LanguageSwitcher'
 import { Button } from '../../components/ui/Button'
 import { Logo } from '../../components/Logo'
 import { DoctorAnalyticsPanel } from '../../components/doctor/DoctorAnalyticsPanel'
 import { DoctorCaseSubmitPanel } from '../../components/doctor/DoctorCaseSubmitPanel'
+import { DoctorMyCasesPanel } from '../../components/doctor/DoctorMyCasesPanel'
 import { supabase } from '../../lib/supabase'
 import { fetchDoctorProfile, resolveDoctorLoginEmail } from '../../lib/doctorAccess'
 import { fetchPartnerLabProfile } from '../../lib/partnerAccess'
 import { useLocaleContext } from '../../i18n/useLocaleContext'
 
+function navClass(active: boolean): string {
+  return `rounded-xl px-4 py-2 text-sm font-semibold ${
+    active ? 'bg-urgen-purple text-white' : 'bg-white text-slate-600 ring-1 ring-slate-200'
+  }`
+}
+
 export function DoctorPortalPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { locale, messages } = useLocaleContext()
   const m = messages.doctorPortal
 
@@ -24,8 +32,6 @@ export function DoctorPortalPage() {
   const [password, setPassword] = useState('')
   const [loginErr, setLoginErr] = useState<string | null>(null)
   const [loginBusy, setLoginBusy] = useState(false)
-
-  const [tab, setTab] = useState<'analytics' | 'cases'>('analytics')
 
   async function refreshSession() {
     setChecking(true)
@@ -90,6 +96,7 @@ export function DoctorPortalPage() {
       return
     }
     await refreshSession()
+    navigate('/doctor/analytics', { replace: true })
   }
 
   async function onLogout() {
@@ -206,6 +213,8 @@ export function DoctorPortalPage() {
     )
   }
 
+  const path = location.pathname.replace(/\/$/, '')
+
   return (
     <div className="min-h-screen bg-slate-50" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
       <header className="border-b border-slate-200 bg-white px-4 py-4">
@@ -227,32 +236,25 @@ export function DoctorPortalPage() {
       </header>
 
       <main className="container-urgen py-8">
-        <div className="mb-6 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setTab('analytics')}
-            className={`rounded-xl px-4 py-2 text-sm font-semibold ${
-              tab === 'analytics'
-                ? 'bg-urgen-purple text-white'
-                : 'bg-white text-slate-600 ring-1 ring-slate-200'
-            }`}
-          >
+        <nav className="mb-6 flex flex-wrap gap-2">
+          <Link to="/doctor/analytics" className={navClass(path.endsWith('/analytics'))}>
             {m.tabAnalytics}
-          </button>
-          <button
-            type="button"
-            onClick={() => setTab('cases')}
-            className={`rounded-xl px-4 py-2 text-sm font-semibold ${
-              tab === 'cases'
-                ? 'bg-urgen-purple text-white'
-                : 'bg-white text-slate-600 ring-1 ring-slate-200'
-            }`}
-          >
+          </Link>
+          <Link to="/doctor/submit" className={navClass(path.endsWith('/submit'))}>
             {m.tabCases}
-          </button>
-        </div>
+          </Link>
+          <Link to="/doctor/my-cases" className={navClass(path.endsWith('/my-cases'))}>
+            {m.tabMyCases}
+          </Link>
+        </nav>
 
-        {tab === 'analytics' ? <DoctorAnalyticsPanel m={m} /> : <DoctorCaseSubmitPanel m={m} />}
+        <Routes>
+          <Route index element={<Navigate to="analytics" replace />} />
+          <Route path="analytics" element={<DoctorAnalyticsPanel m={m} />} />
+          <Route path="submit" element={<DoctorCaseSubmitPanel m={m} />} />
+          <Route path="my-cases" element={<DoctorMyCasesPanel m={m} />} />
+          <Route path="*" element={<Navigate to="analytics" replace />} />
+        </Routes>
       </main>
     </div>
   )

@@ -39,7 +39,7 @@ export default function App() {
         </Route>
         <Route path="admin" element={<AdminPage />} />
         <Route path="partner" element={<PartnerPortalPage />} />
-        <Route path="doctor" element={<DoctorPortalPage />} />
+        <Route path="doctor/*" element={<DoctorPortalPage />} />
       </Routes>
     </BrowserRouter>
   )

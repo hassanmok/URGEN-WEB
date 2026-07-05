@@ -1,32 +1,21 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useMemo, useRef, useState, type FormEvent } from "react";
 import { useLocaleContext } from "../../i18n/useLocaleContext";
 import { useTests } from "../../hooks/useTests";
 import { Button } from "../ui/Button";
+import { OtherTextDialog } from "../ui/OtherTextDialog";
 import { isPatientNameComplete } from "../../lib/patientName";
 import {
-  createDoctorCaseFileDownloadUrl,
-  createDoctorResultPdfDownloadUrl,
-  fetchDoctorCaseFiles,
-  fetchDoctorCaseTestsForCaseIds,
-  fetchDoctorCases,
-  groupDoctorCaseTestsByCaseId,
-  attachDoctorRequestFormImage,
   insertDoctorCase,
   buildRequestFormImageContext,
   isAllowedDoctorCaseFile,
-  isDoctorResultPdfExpired,
-  normalizeDoctorCaseStatus,
-  splitDoctorCaseFiles,
+  isCustomOtherTestSlug,
+  newCustomOtherTestSlug,
   type DoctorAgeUnit,
-  type DoctorCaseFileRow,
-  type DoctorCaseRow,
-  type DoctorCaseTestRow,
   type DoctorDiseaseType,
   type DoctorGender,
 } from "../../lib/doctorCasesStore";
 import { TestCheckboxPicker } from "../shared/TestCheckboxPicker";
 import { testDisplayTitle } from "../../lib/testCatalog";
-import { DoctorCaseEditForm } from "./DoctorCaseEditForm";
 import type { Messages } from "../../i18n/messages";
 import type { TestRow } from "../../types/database";
 
@@ -36,6 +25,12 @@ type Props = {
 
 const inputClass =
   "mt-1 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-urgen-purple focus:outline-none focus:ring-2 focus:ring-urgen-purple/20";
+
+function catalogTestTitle(slug: string, catalog: TestRow[], locale: string): string {
+  const t = catalog.find((x) => x.slug === slug);
+  if (!t) return slug;
+  return testDisplayTitle(t, locale);
+}
 
 export function DoctorCaseSubmitPanel({ m }: Props) {
   const { locale } = useLocaleContext();
@@ -49,21 +44,21 @@ export function DoctorCaseSubmitPanel({ m }: Props) {
   const [gender, setGender] = useState<DoctorGender>("male");
   const [diagnosis, setDiagnosis] = useState("");
   const [diseaseType, setDiseaseType] = useState<DoctorDiseaseType>("oncology");
+  const [diseaseTypeOther, setDiseaseTypeOther] = useState("");
+  const [diseaseOtherDialogOpen, setDiseaseOtherDialogOpen] = useState(false);
   const [tumorType, setTumorType] = useState("");
   const [stage, setStage] = useState("");
   const [treatment, setTreatment] = useState("");
   const [selectedTests, setSelectedTests] = useState<Set<string>>(new Set());
+  const [otherTestTitles, setOtherTestTitles] = useState<Map<string, string>>(
+    new Map(),
+  );
+  const [testOtherDialogOpen, setTestOtherDialogOpen] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const filesRef = useRef<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
-
-  const [cases, setCases] = useState<DoctorCaseRow[]>([]);
-  const [testsByCase, setTestsByCase] = useState<
-    Map<string, DoctorCaseTestRow[]>
-  >(new Map());
-  const [loadingCases, setLoadingCases] = useState(true);
   const [testPickerKey, setTestPickerKey] = useState(0);
 
   const testPickerLabels = useMemo(
@@ -74,39 +69,42 @@ export function DoctorCaseSubmitPanel({ m }: Props) {
       empty: m.testPlaceholder,
       searchPlaceholder: m.testSearchPlaceholder,
       searchNoResults: m.testSearchNoResults,
+      otherOption: m.testOtherOption,
     }),
     [m],
   );
 
+  function diseaseTypeLabel(type: DoctorDiseaseType): string {
+    if (type === "oncology") return m.diseaseOncology;
+    if (type === "reproductive") return m.diseaseReproductive;
+    if (type === "pediatric") return m.diseasePediatric;
+    return diseaseTypeOther.trim() || m.diseaseOther;
+  }
+
   function toggleTest(slug: string) {
     setSelectedTests((prev) => {
       const next = new Set(prev);
-      if (next.has(slug)) next.delete(slug);
-      else next.add(slug);
+      if (next.has(slug)) {
+        next.delete(slug);
+        if (isCustomOtherTestSlug(slug)) {
+          setOtherTestTitles((map) => {
+            const copy = new Map(map);
+            copy.delete(slug);
+            return copy;
+          });
+        }
+      } else {
+        next.add(slug);
+      }
       return next;
     });
   }
 
-  async function loadCases() {
-    setLoadingCases(true);
-    const res = await fetchDoctorCases();
-    if (res.ok && res.rows) {
-      setCases(res.rows);
-      const testRes = await fetchDoctorCaseTestsForCaseIds(
-        res.rows.map((r) => r.id),
-      );
-      if (testRes.ok && testRes.rows) {
-        setTestsByCase(groupDoctorCaseTestsByCaseId(testRes.rows));
-      } else {
-        setTestsByCase(new Map());
-      }
-    }
-    setLoadingCases(false);
+  function addOtherTest(title: string) {
+    const slug = newCustomOtherTestSlug();
+    setOtherTestTitles((map) => new Map(map).set(slug, title));
+    setSelectedTests((prev) => new Set(prev).add(slug));
   }
-
-  useEffect(() => {
-    void loadCases();
-  }, []);
 
   function syncFiles(next: File[]) {
     filesRef.current = next;
@@ -171,23 +169,27 @@ export function DoctorCaseSubmitPanel({ m }: Props) {
       }
     }
 
+    if (diseaseType === "other" && !diseaseTypeOther.trim()) {
+      setMsg({ ok: false, text: m.diseaseOtherRequired });
+      return;
+    }
+
     if (selectedTests.size === 0) {
       setMsg({ ok: false, text: m.selectAtLeastOneTest });
       return;
     }
 
     const uploadFiles = filesRef.current;
+    const otherTitlesRecord = Object.fromEntries(otherTestTitles.entries());
 
     setBusy(true);
-    const testTitles = [...selectedTests].map((slug) =>
-      testTitleFor(slug, tests, locale),
-    );
-    const diseaseLabel =
-      diseaseType === "oncology"
-        ? m.diseaseOncology
-        : diseaseType === "reproductive"
-          ? m.diseaseReproductive
-          : m.diseasePediatric;
+    const testTitles = [...selectedTests].map((slug) => {
+      if (isCustomOtherTestSlug(slug)) {
+        return otherTestTitles.get(slug) ?? slug;
+      }
+      return catalogTestTitle(slug, tests, locale);
+    });
+    const diseaseLabel = diseaseTypeLabel(diseaseType);
     const oncologyDetails =
       diseaseType === "oncology"
         ? [
@@ -208,10 +210,12 @@ export function DoctorCaseSubmitPanel({ m }: Props) {
       gender,
       diagnosis,
       disease_type: diseaseType,
+      disease_type_other: diseaseType === "other" ? diseaseTypeOther : null,
       oncology_tumor_type: diseaseType === "oncology" ? tumorType : undefined,
       oncology_stage: diseaseType === "oncology" ? stage : undefined,
       oncology_treatment: diseaseType === "oncology" ? treatment : undefined,
       test_slugs: [...selectedTests],
+      other_test_titles: otherTitlesRecord,
       files: uploadFiles,
       requestFormContext: buildRequestFormImageContext(
         locale,
@@ -249,17 +253,19 @@ export function DoctorCaseSubmitPanel({ m }: Props) {
     setName4("");
     setAgeValue("");
     setDiagnosis("");
+    setDiseaseType("oncology");
+    setDiseaseTypeOther("");
     setTumorType("");
     setStage("");
     setTreatment("");
     setSelectedTests(new Set());
+    setOtherTestTitles(new Map());
     setTestPickerKey((k) => k + 1);
     syncFiles([]);
-    void loadCases();
   }
 
   return (
-    <div className="space-y-10">
+    <>
       <form
         className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
         onSubmit={(e) => void onSubmit(e)}
@@ -357,6 +363,7 @@ export function DoctorCaseSubmitPanel({ m }: Props) {
                 ["oncology", m.diseaseOncology],
                 ["reproductive", m.diseaseReproductive],
                 ["pediatric", m.diseasePediatric],
+                ["other", m.diseaseOther],
               ] as const
             ).map(([val, label]) => (
               <label
@@ -368,9 +375,18 @@ export function DoctorCaseSubmitPanel({ m }: Props) {
                   name="diseaseType"
                   value={val}
                   checked={diseaseType === val}
-                  onChange={() => setDiseaseType(val)}
+                  onChange={() => {
+                    if (val === "other") {
+                      setDiseaseOtherDialogOpen(true);
+                    } else {
+                      setDiseaseType(val);
+                      setDiseaseTypeOther("");
+                    }
+                  }}
                 />
-                {label}
+                {val === "other" && diseaseType === "other" && diseaseTypeOther
+                  ? `${label}: ${diseaseTypeOther}`
+                  : label}
               </label>
             ))}
           </div>
@@ -420,6 +436,8 @@ export function DoctorCaseSubmitPanel({ m }: Props) {
           onToggle={toggleTest}
           locale={locale}
           labels={testPickerLabels}
+          otherTests={otherTestTitles}
+          onRequestAddOther={() => setTestOtherDialogOpen(true)}
         />
 
         <div className="mt-6">
@@ -484,369 +502,29 @@ export function DoctorCaseSubmitPanel({ m }: Props) {
         </Button>
       </form>
 
-      <section>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg font-bold text-urgen-navy">
-            {m.myCasesTitle}
-          </h2>
-          <button
-            type="button"
-            className="text-sm font-semibold text-urgen-purple"
-            onClick={() => void loadCases()}
-          >
-            {m.refresh}
-          </button>
-        </div>
-        {loadingCases ? (
-          <p className="mt-4 text-sm text-slate-500">{m.casesLoading}</p>
-        ) : cases.length === 0 ? (
-          <p className="mt-4 text-sm text-slate-500">{m.casesEmpty}</p>
-        ) : (
-          <ul className="mt-4 space-y-4">
-            {cases.map((c) => (
-              <CaseCard
-                key={c.id}
-                row={c}
-                m={m}
-                locale={locale}
-                caseTests={testsByCase.get(c.id) ?? []}
-                catalogTests={tests}
-                onUpdated={() => void loadCases()}
-              />
-            ))}
-          </ul>
-        )}
-      </section>
-    </div>
+      <OtherTextDialog
+        open={diseaseOtherDialogOpen}
+        title={m.diseaseOtherDialogTitle}
+        placeholder={m.diseaseOtherPlaceholder}
+        confirmLabel={m.otherDone}
+        cancelLabel={m.cancelEdit}
+        initialValue={diseaseTypeOther}
+        onConfirm={(text) => {
+          setDiseaseType("other");
+          setDiseaseTypeOther(text);
+        }}
+        onClose={() => setDiseaseOtherDialogOpen(false)}
+      />
+
+      <OtherTextDialog
+        open={testOtherDialogOpen}
+        title={m.testOtherDialogTitle}
+        placeholder={m.testOtherPlaceholder}
+        confirmLabel={m.otherDone}
+        cancelLabel={m.cancelEdit}
+        onConfirm={addOtherTest}
+        onClose={() => setTestOtherDialogOpen(false)}
+      />
+    </>
   );
-}
-
-const caseStatusClass: Record<string, string> = {
-  sent: "bg-blue-100 text-blue-900 ring-blue-300/80",
-  pending: "bg-amber-100 text-amber-900 ring-amber-300/80",
-  in_progress: "bg-sky-100 text-sky-900 ring-sky-300/80",
-  rejected: "bg-red-100 text-red-900 ring-red-300/80",
-  done: "bg-emerald-100 text-emerald-900 ring-emerald-300/80",
-};
-
-function testTitleFor(
-  slug: string,
-  catalog: TestRow[],
-  locale: string,
-): string {
-  const t = catalog.find((x) => x.slug === slug);
-  if (!t) return slug;
-  return testDisplayTitle(t, locale);
-}
-
-function CaseCard({
-  row,
-  m,
-  locale,
-  caseTests,
-  catalogTests,
-  onUpdated,
-}: {
-  row: DoctorCaseRow;
-  m: Messages["doctorPortal"];
-  locale: string;
-  caseTests: DoctorCaseTestRow[];
-  catalogTests: TestRow[];
-  onUpdated: () => void;
-}) {
-  const [files, setFiles] = useState<DoctorCaseFileRow[]>([]);
-  const [filesLoading, setFilesLoading] = useState(false);
-  const [pdfBusy, setPdfBusy] = useState(false);
-  const [resultPdfBusy, setResultPdfBusy] = useState(false);
-  const [expanded, setExpanded] = useState(false);
-  const [editing, setEditing] = useState(false);
-  const status = normalizeDoctorCaseStatus(row.status);
-  const canEdit = status === "sent";
-  const resultExpired = isDoctorResultPdfExpired(row);
-  const resultPdfReady =
-    status === "done" && row.pdf_storage_path && !resultExpired;
-
-  function statusLabel(s: ReturnType<typeof normalizeDoctorCaseStatus>) {
-    switch (s) {
-      case "sent":
-        return m.caseStatusSent;
-      case "pending":
-        return m.caseStatusPending;
-      case "in_progress":
-        return m.caseStatusInProgress;
-      case "rejected":
-        return m.caseStatusRejected;
-      case "done":
-        return m.caseStatusDone;
-      default:
-        return s;
-    }
-  }
-
-  async function downloadResultPdf(storagePath: string) {
-    setResultPdfBusy(true);
-    const res = await createDoctorResultPdfDownloadUrl(storagePath);
-    setResultPdfBusy(false);
-    if (res.ok && res.url) window.open(res.url, "_blank", "noopener,noreferrer");
-  }
-
-  async function reloadFiles() {
-    const res = await fetchDoctorCaseFiles(row.id);
-    if (res.ok && res.rows) setFiles(res.rows);
-    return res;
-  }
-
-  async function ensureRequestFormPdf() {
-    const testTitles = caseTests.map((t) =>
-      testTitleFor(t.test_slug, catalogTests, locale),
-    );
-    if (testTitles.length === 0) return;
-    setPdfBusy(true);
-    const diseaseLabel =
-      row.disease_type === "oncology"
-        ? m.diseaseOncology
-        : row.disease_type === "reproductive"
-          ? m.diseaseReproductive
-          : m.diseasePediatric;
-    const imgRes = await attachDoctorRequestFormImage(
-      row.id,
-      row.doctor_user_id,
-      row,
-      buildRequestFormImageContext(
-        locale,
-        { days: m.ageUnitDays, months: m.ageUnitMonths, years: m.ageUnitYears },
-        testTitles,
-        { diseaseTypeLabel: diseaseLabel },
-      ),
-    );
-    if (imgRes.ok) {
-      await reloadFiles();
-    } else {
-      console.error("[request_form_image]", imgRes.error);
-    }
-    setPdfBusy(false);
-  }
-
-  useEffect(() => {
-    if (!expanded) return;
-    let cancelled = false;
-    void (async () => {
-      setFilesLoading(true);
-      const res = await reloadFiles();
-      if (cancelled) return;
-      setFilesLoading(false);
-      if (!res.ok || !res.rows) return;
-      const { requestForm: form } = splitDoctorCaseFiles(res.rows);
-      if (!form) await ensureRequestFormPdf();
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [expanded, row.id, row.updated_at]);
-
-  const { requestForm, attachments } = splitDoctorCaseFiles(files);
-
-  const diseaseLabel =
-    row.disease_type === "oncology"
-      ? m.diseaseOncology
-      : row.disease_type === "reproductive"
-        ? m.diseaseReproductive
-        : m.diseasePediatric;
-
-  const genderLabel =
-    row.gender === "male"
-      ? m.genderMale
-      : row.gender === "female"
-        ? m.genderFemale
-        : m.genderOther;
-
-  const submittedAt = row.created_at
-    ? new Date(row.created_at).toLocaleString(
-        locale === "ar" ? "ar-IQ" : "en-US",
-        {
-          dateStyle: "medium",
-          timeStyle: "short",
-        },
-      )
-    : "—";
-
-  if (editing && canEdit) {
-    return (
-      <li>
-        <DoctorCaseEditForm
-          row={row}
-          caseTests={caseTests}
-          m={m}
-          onCancel={() => setEditing(false)}
-          onSaved={() => {
-            setEditing(false);
-            onUpdated();
-          }}
-        />
-      </li>
-    );
-  }
-
-  return (
-    <li className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <button
-        type="button"
-        className="w-full text-start"
-        onClick={() => setExpanded((v) => !v)}
-      >
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <p className="font-bold text-urgen-navy">{row.patient_full_name}</p>
-          <span
-            className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset ${caseStatusClass[status] ?? "bg-slate-100 text-slate-800"}`}
-          >
-            {statusLabel(status)}
-          </span>
-        </div>
-        <p className="mt-1 text-sm text-slate-600">
-          {diseaseLabel} · {genderLabel}
-        </p>
-        {caseTests.length > 0 && (
-          <p className="mt-1 text-xs text-slate-600">
-            {m.testsInRequest}:{" "}
-            {caseTests
-              .map((t) => testTitleFor(t.test_slug, catalogTests, locale))
-              .join(" · ")}
-          </p>
-        )}
-        <p className="mt-1 text-xs text-slate-500">
-          {m.caseDateSubmitted}:{" "}
-          <span dir="ltr" className="tabular-nums">
-            {submittedAt}
-          </span>
-        </p>
-      </button>
-      {status === "rejected" && row.rejection_reason && (
-        <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">
-          <span className="font-semibold">{m.rejectionReason}: </span>
-          {row.rejection_reason}
-        </p>
-      )}
-      {status === "sent" && (
-        <p className="mt-3 text-xs text-slate-500">{m.resultPdfAwaitAcceptance}</p>
-      )}
-      {!resultPdfReady &&
-        status !== "done" &&
-        status !== "sent" &&
-        status !== "rejected" && (
-          <p className="mt-3 text-xs text-slate-500">{m.resultPdfLocked}</p>
-        )}
-      {status === "done" && row.pdf_storage_path && row.pdf_expires_at && (
-        <p
-          className={`mt-3 text-xs font-medium ${
-            resultExpired ? "text-amber-900" : "text-emerald-800"
-          }`}
-        >
-          {resultExpired ? m.resultPdfExpiredAt : m.resultPdfValidUntil}
-          {": "}
-          <span dir="ltr" className="inline-block font-normal tabular-nums">
-            {new Date(row.pdf_expires_at).toLocaleString(
-              locale === "ar" ? "ar-IQ" : "en-US",
-            )}
-          </span>
-        </p>
-      )}
-      {status === "done" && resultExpired && (
-        <p className="mt-2 text-xs text-slate-600">{m.resultPdfExpired}</p>
-      )}
-      {resultPdfReady && (
-        <div className="mt-3">
-          <Button
-            type="button"
-            className="text-sm"
-            disabled={resultPdfBusy}
-            onClick={() => void downloadResultPdf(row.pdf_storage_path!)}
-          >
-            {resultPdfBusy ? "…" : m.resultPdfDownload}
-          </Button>
-        </div>
-      )}
-      {canEdit && (
-        <div className="mt-3">
-          <Button
-            type="button"
-            variant="outline"
-            className="text-sm"
-            onClick={() => setEditing(true)}
-          >
-            {m.editCase}
-          </Button>
-        </div>
-      )}
-      {expanded && (
-        <div className="mt-4 space-y-2 border-t border-slate-100 pt-4 text-sm">
-          <p>
-            <span className="font-semibold">{m.diagnosis}: </span>
-            {row.diagnosis}
-          </p>
-          {row.disease_type === "oncology" && (
-            <>
-              <p>
-                <span className="font-semibold">{m.oncologyTumorType}: </span>
-                {row.oncology_tumor_type}
-              </p>
-              <p>
-                <span className="font-semibold">{m.oncologyStage}: </span>
-                {row.oncology_stage}
-              </p>
-              <p>
-                <span className="font-semibold">{m.oncologyTreatment}: </span>
-                {row.oncology_treatment}
-              </p>
-            </>
-          )}
-          <div className="mt-3 rounded-lg border border-urgen-purple/25 bg-urgen-purple/5 px-3 py-2">
-            <p className="text-xs font-semibold text-urgen-navy">
-              {m.requestFormPdf}
-            </p>
-            {filesLoading || pdfBusy ? (
-              <p className="mt-1 text-xs text-slate-500">
-                {m.requestFormPdfGenerating}
-              </p>
-            ) : requestForm ? (
-              <button
-                type="button"
-                className="mt-1 text-sm font-semibold text-urgen-purple"
-                onClick={() => void downloadFile(requestForm)}
-              >
-                {m.requestFormPdfDownload}
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="mt-1 text-sm font-semibold text-urgen-purple"
-                onClick={() => void ensureRequestFormPdf()}
-              >
-                {m.requestFormPdfRetry}
-              </button>
-            )}
-          </div>
-          {attachments.length > 0 && (
-            <ul className="mt-2 space-y-1">
-              {attachments.map((f) => (
-                <li key={f.id}>
-                  <button
-                    type="button"
-                    className="text-sm font-semibold text-urgen-purple"
-                    onClick={() => void downloadFile(f)}
-                  >
-                    {f.file_name}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-    </li>
-  );
-}
-
-async function downloadFile(file: DoctorCaseFileRow) {
-  const res = await createDoctorCaseFileDownloadUrl(file.storage_path);
-  if (res.ok && res.url) window.open(res.url, "_blank", "noopener,noreferrer");
 }

@@ -11,6 +11,7 @@ import {
   filterPartnerSubmissionGroups,
   partnerSubmissionsAdminListErrorMessage,
   isPartnerPdfExpired,
+  resolvePartnerSubmissionTestTitle,
   type PartnerSubmissionGroup,
   type PartnerSubmissionRow,
 } from '../../lib/partnerSubmissionsStore'
@@ -226,7 +227,7 @@ function GroupCard({
   locale: 'ar' | 'en'
   labName: string
   ageLabel: string
-  testTitleFor: (slug: string) => string
+  testTitleFor: (row: PartnerSubmissionRow) => string
   busyId: string | null
   highlighted?: boolean
   onOpen: (groupKey: string) => void
@@ -289,7 +290,7 @@ function GroupCard({
             row={row}
             m={m}
             locale={locale}
-            testTitle={testTitleFor(row.test_slug)}
+            testTitle={testTitleFor(row)}
             busyId={busyId}
             onAccept={onAccept}
             onProgress={onProgress}
@@ -356,10 +357,8 @@ export function AdminPartnerSubmissionsPanel({
     void reload()
   }, [])
 
-  function testTitleFor(slug: string) {
-    const t = tests.find((x) => x.slug === slug)
-    if (!t) return slug
-    return locale === 'ar' ? t.title_ar : (t.title_en ?? t.title_ar)
+  function testTitleFor(row: PartnerSubmissionRow) {
+    return resolvePartnerSubmissionTestTitle(row, tests, locale)
   }
 
   const filteredGroups = useMemo(

@@ -515,6 +515,7 @@ create table if not exists public.partner_submissions (
   age_value int not null check (age_value > 0 and age_value < 100000),
   age_unit text not null check (age_unit in ('days', 'months', 'years')),
   test_slug text not null,
+  test_title_override text,
   status text not null default 'sent'
     check (status in ('sent', 'pending', 'in_progress', 'rejected', 'done')),
   pdf_storage_path text,
@@ -525,6 +526,7 @@ create table if not exists public.partner_submissions (
 );
 
 alter table public.partner_submissions add column if not exists batch_id uuid;
+alter table public.partner_submissions add column if not exists test_title_override text;
 
 create index if not exists partner_submissions_partner_idx
   on public.partner_submissions (partner_user_id, created_at desc);
@@ -550,6 +552,15 @@ create policy "partner_submissions_partner_select" on public.partner_submissions
   using (
     partner_user_id = auth.uid()
     and public.auth_is_partner_lab_user()
+  );
+
+drop policy if exists "partner_submissions_partner_delete" on public.partner_submissions;
+create policy "partner_submissions_partner_delete" on public.partner_submissions
+  for delete to authenticated
+  using (
+    partner_user_id = auth.uid()
+    and public.auth_is_partner_lab_user()
+    and status = 'sent'
   );
 
 drop policy if exists "partner_submissions_staff_select" on public.partner_submissions;
@@ -892,7 +903,8 @@ create table if not exists public.doctor_cases (
   age_unit text not null check (age_unit in ('days', 'months', 'years')),
   gender text not null check (gender in ('male', 'female', 'other')),
   diagnosis text not null,
-  disease_type text not null check (disease_type in ('oncology', 'reproductive', 'pediatric')),
+  disease_type text not null check (disease_type in ('oncology', 'reproductive', 'pediatric', 'other')),
+  disease_type_other text,
   oncology_tumor_type text,
   oncology_stage text,
   oncology_treatment text,
@@ -900,6 +912,7 @@ create table if not exists public.doctor_cases (
     check (status in ('sent', 'pending', 'in_progress', 'rejected', 'done')),
   pdf_storage_path text,
   pdf_expires_at timestamptz,
+  result_value text check (result_value is null or result_value in ('positive', 'negative')),
   rejection_reason text,
   created_at timestamptz default now(),
   updated_at timestamptz default now(),
@@ -920,6 +933,7 @@ alter table public.doctor_cases add column if not exists status text;
 alter table public.doctor_cases add column if not exists rejection_reason text;
 alter table public.doctor_cases add column if not exists pdf_storage_path text;
 alter table public.doctor_cases add column if not exists pdf_expires_at timestamptz;
+alter table public.doctor_cases add column if not exists result_value text;
 alter table public.doctor_cases alter column status set default 'sent';
 update public.doctor_cases set status = 'sent' where status is null;
 alter table public.doctor_cases alter column status set not null;
@@ -928,6 +942,10 @@ alter table public.doctor_cases drop constraint if exists doctor_cases_status_ch
 update public.doctor_cases set status = 'pending' where status = 'accepted';
 alter table public.doctor_cases add constraint doctor_cases_status_check
   check (status in ('sent', 'pending', 'in_progress', 'rejected', 'done'));
+
+alter table public.doctor_cases drop constraint if exists doctor_cases_result_value_check;
+alter table public.doctor_cases add constraint doctor_cases_result_value_check
+  check (result_value is null or result_value in ('positive', 'negative'));
 
 create index if not exists doctor_cases_doctor_idx
   on public.doctor_cases (doctor_user_id, created_at desc);
@@ -1018,6 +1036,7 @@ begin
     end,
     pdf_storage_path = case when p_status = 'rejected' then null else pdf_storage_path end,
     pdf_expires_at = case when p_status = 'rejected' then null else pdf_expires_at end,
+    result_value = case when p_status = 'rejected' then null else result_value end,
     updated_at = now()
   where id = p_case_id
   returning id into v_id;
@@ -1037,10 +1056,19 @@ comment on function public.doctor_case_admin_set_status(uuid, text, text) is
 grant select, update on table public.doctor_cases to authenticated;
 
 -- تحاليل مرتبطة بطلب الطبيب (اختيار متعدد من جدول tests)
+alter table public.doctor_cases add column if not exists disease_type_other text;
+
+alter table public.doctor_cases drop constraint if exists doctor_cases_disease_type_check;
+alter table public.doctor_cases add constraint doctor_cases_disease_type_check
+  check (disease_type in ('oncology', 'reproductive', 'pediatric', 'other'));
+
+alter table public.doctor_case_tests add column if not exists test_title_override text;
+
 create table if not exists public.doctor_case_tests (
   id uuid primary key default gen_random_uuid(),
   case_id uuid not null references public.doctor_cases (id) on delete cascade,
   test_slug text not null,
+  test_title_override text,
   created_at timestamptz default now(),
   unique (case_id, test_slug)
 );

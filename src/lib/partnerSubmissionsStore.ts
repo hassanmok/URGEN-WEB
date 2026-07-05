@@ -1,6 +1,7 @@
 import { supabase } from './supabase'
 import { fetchPartnerLabUsersAdmin } from './partnerLabUsersAdmin'
 import { tokenize } from './searchIndex'
+import { isCustomOtherTestSlug } from './doctorCasesStore'
 import type { Database } from '../types/database'
 import type { LabTest } from '../types/labTest'
 
@@ -43,6 +44,19 @@ export function findTestBySlug(tests: LabTest[], slug: string): LabTest | undefi
     if (s === key) return true
     return s.replace(/[-_\s]/g, '') === keyCompact
   })
+}
+
+/** عنوان الفحص المعروض (كتالوج أو فحص مخصص «أخرى») */
+export function resolvePartnerSubmissionTestTitle(
+  row: Pick<PartnerSubmissionRow, 'test_slug' | 'test_title_override'>,
+  tests: LabTest[],
+  locale: string,
+): string {
+  const override = row.test_title_override?.trim()
+  if (override) return override
+  const test = findTestBySlug(tests, row.test_slug)
+  if (test) return locale === 'ar' ? test.title_ar : (test.title_en ?? test.title_ar)
+  return row.test_slug
 }
 
 /** كل النصوص القابلة للبحث لتحليل (عناوين، وصف، slug بصيغ مختلفة) */
@@ -101,6 +115,7 @@ export function partnerSubmissionMatchesSearch(
   const needles = [
     row.patient_full_name,
     row.test_slug,
+    row.test_title_override ?? '',
     String(row.age_value),
     row.age_unit,
     `${row.age_value} ${row.age_unit}`,
@@ -145,7 +160,10 @@ export function filterPartnerSubmissionGroups(
       return partnerSubmissionMatchesSearch(
         item,
         q,
-        buildTestSearchNeedles(test, item.test_slug),
+        [
+          ...buildTestSearchNeedles(test, item.test_slug),
+          item.test_title_override ?? '',
+        ],
       )
     })
   })
@@ -230,6 +248,7 @@ export async function insertPartnerSubmissionBatch(input: {
   age_value: number
   age_unit: PartnerAgeUnit
   test_slugs: string[]
+  other_test_titles?: Record<string, string>
 }): Promise<{ ok: boolean; batch_id?: string; count?: number; error?: string }> {
   if (!supabase) return { ok: false, error: 'no_supabase' }
   const slugs = [...new Set(input.test_slugs.map((s) => s.trim()).filter(Boolean))]
@@ -239,6 +258,7 @@ export async function insertPartnerSubmissionBatch(input: {
   const uid = userData.user?.id
   if (!uid) return { ok: false, error: 'not_signed_in' }
 
+  const titleMap = input.other_test_titles ?? {}
   const batch_id = crypto.randomUUID()
   const rows = slugs.map((test_slug) => ({
     partner_user_id: uid,
@@ -247,12 +267,84 @@ export async function insertPartnerSubmissionBatch(input: {
     age_value: input.age_value,
     age_unit: input.age_unit,
     test_slug,
+    test_title_override: isCustomOtherTestSlug(test_slug)
+      ? titleMap[test_slug]?.trim() || null
+      : null,
     status: 'sent' as const,
   }))
 
   const { error } = await supabase.from('partner_submissions').insert(rows)
   if (error) return { ok: false, error: error.message }
   return { ok: true, batch_id, count: slugs.length }
+}
+
+/** يمكن تعديل الطلب فقط قبل قبول الإدارة (كل الفحوصات ما زالت «مرسل») */
+export function canEditPartnerSubmissionGroup(group: PartnerSubmissionGroup): boolean {
+  return group.items.length > 0 && group.items.every((row) => row.status === 'sent')
+}
+
+export async function updatePartnerSubmissionBatch(input: {
+  existingItems: PartnerSubmissionRow[]
+  patient_full_name: string
+  age_value: number
+  age_unit: PartnerAgeUnit
+  test_slugs: string[]
+  other_test_titles?: Record<string, string>
+}): Promise<{ ok: boolean; error?: string }> {
+  if (!supabase) return { ok: false, error: 'no_supabase' }
+
+  const { existingItems } = input
+  if (existingItems.length === 0) return { ok: false, error: 'not_found' }
+
+  const { data: userData } = await supabase.auth.getUser()
+  const uid = userData.user?.id
+  if (!uid) return { ok: false, error: 'not_signed_in' }
+
+  if (existingItems.some((row) => row.partner_user_id !== uid)) {
+    return { ok: false, error: 'not_signed_in' }
+  }
+  if (existingItems.some((row) => row.status !== 'sent')) {
+    return { ok: false, error: 'not_editable' }
+  }
+
+  const slugs = [...new Set(input.test_slugs.map((s) => s.trim()).filter(Boolean))]
+  if (slugs.length === 0) return { ok: false, error: 'no_tests' }
+
+  const batch_id = existingItems[0].batch_id ?? crypto.randomUUID()
+  const created_at =
+    existingItems
+      .map((row) => row.created_at)
+      .filter((t): t is string => Boolean(t))
+      .sort()[0] ?? null
+
+  const ids = existingItems.map((row) => row.id)
+  const { error: delErr } = await supabase
+    .from('partner_submissions')
+    .delete()
+    .in('id', ids)
+    .eq('partner_user_id', uid)
+    .eq('status', 'sent')
+
+  if (delErr) return { ok: false, error: delErr.message }
+
+  const titleMap = input.other_test_titles ?? {}
+  const rows = slugs.map((test_slug) => ({
+    partner_user_id: uid,
+    batch_id,
+    patient_full_name: input.patient_full_name.trim(),
+    age_value: input.age_value,
+    age_unit: input.age_unit,
+    test_slug,
+    test_title_override: isCustomOtherTestSlug(test_slug)
+      ? titleMap[test_slug]?.trim() || null
+      : null,
+    status: 'sent' as const,
+    ...(created_at ? { created_at } : {}),
+  }))
+
+  const { error: insErr } = await supabase.from('partner_submissions').insert(rows)
+  if (insErr) return { ok: false, error: insErr.message }
+  return { ok: true }
 }
 
 /** @deprecated استخدم insertPartnerSubmissionBatch */

@@ -7,6 +7,8 @@ import {
   adminUploadDoctorCaseResultPdf,
   normalizeDoctorCaseStatus,
   isDoctorResultPdfExpired,
+  doctorDiseaseTypeLabel,
+  resolveDoctorCaseTestTitle,
   createDoctorCaseFileDownloadUrl,
   regenerateDoctorRequestFormImage,
   buildRequestFormImageContext,
@@ -19,6 +21,7 @@ import {
   type DoctorCaseFileRow,
   type DoctorCaseRow,
   type DoctorCaseTestRow,
+  type DoctorResultValue,
 } from '../../lib/doctorCasesStore'
 import { fetchDoctorUsersAdmin } from '../../lib/doctorUsersAdmin'
 import { useTests } from '../../hooks/useTests'
@@ -43,10 +46,12 @@ function formatBytes(n: number | null): string {
   return `${(n / (1024 * 1024)).toFixed(1)} MB`
 }
 
-function testTitleFor(slug: string, catalog: TestRow[], locale: string): string {
-  const t = catalog.find((x) => x.slug === slug)
-  if (!t) return slug
-  return locale === 'ar' ? t.title_ar : (t.title_en ?? t.title_ar)
+function testTitleFor(
+  test: DoctorCaseTestRow,
+  catalog: TestRow[],
+  locale: string,
+): string {
+  return resolveDoctorCaseTestTitle(test, catalog, locale)
 }
 
 function caseMatchesSearch(
@@ -60,7 +65,7 @@ function caseMatchesSearch(
   const q = query.trim().toLowerCase()
   if (!q) return true
   const testHay = caseTests
-    .map((t) => testTitleFor(t.test_slug, catalog, locale) + ' ' + t.test_slug)
+    .map((t) => testTitleFor(t, catalog, locale) + ' ' + t.test_slug)
     .join(' ')
   const hay = [
     row.patient_full_name,
@@ -76,6 +81,85 @@ function caseMatchesSearch(
     .join(' ')
     .toLowerCase()
   return hay.includes(q)
+}
+
+function ResultPdfUploadBlock({
+  row,
+  m,
+  busyId,
+  onPdf,
+  uploadLabel,
+}: {
+  row: DoctorCaseRow
+  m: Messages['admin']
+  busyId: string | null
+  onPdf: (id: string, file: File, resultValue: DoctorResultValue) => void
+  uploadLabel?: string
+}) {
+  const initial =
+    row.result_value === 'positive' || row.result_value === 'negative'
+      ? row.result_value
+      : ('' as const)
+  const [resultValue, setResultValue] = useState<DoctorResultValue | ''>(initial)
+
+  useEffect(() => {
+    if (row.result_value === 'positive' || row.result_value === 'negative') {
+      setResultValue(row.result_value)
+    }
+  }, [row.result_value])
+
+  function onFileChange(e: FormEvent<HTMLInputElement>) {
+    const input = e.currentTarget
+    const file = input.files?.[0]
+    input.value = ''
+    if (!file) return
+    if (resultValue !== 'positive' && resultValue !== 'negative') {
+      window.alert(m.doctorRequestsResultRequired)
+      return
+    }
+    onPdf(row.id, file, resultValue)
+  }
+
+  return (
+    <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+      <fieldset className="flex flex-wrap items-center gap-3">
+        <legend className="sr-only">{m.doctorRequestsResultLabel}</legend>
+        <span className="text-xs font-semibold text-slate-600">{m.doctorRequestsResultLabel}:</span>
+        <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-medium text-urgen-navy">
+          <input
+            type="radio"
+            name={`result-${row.id}`}
+            value="positive"
+            checked={resultValue === 'positive'}
+            disabled={busyId === row.id}
+            onChange={() => setResultValue('positive')}
+          />
+          {m.doctorRequestsResultPositive}
+        </label>
+        <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-medium text-urgen-navy">
+          <input
+            type="radio"
+            name={`result-${row.id}`}
+            value="negative"
+            checked={resultValue === 'negative'}
+            disabled={busyId === row.id}
+            onChange={() => setResultValue('negative')}
+          />
+          {m.doctorRequestsResultNegative}
+        </label>
+      </fieldset>
+      <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-urgen-purple px-3 py-2 text-xs font-semibold text-white hover:brightness-105 disabled:opacity-50">
+        <input
+          type="file"
+          accept="application/pdf"
+          className="hidden"
+          disabled={busyId === row.id}
+          onChange={onFileChange}
+        />
+        {busyId === row.id ? m.doctorRequestsUploading : (uploadLabel ?? m.doctorRequestsUploadPdf)}
+      </label>
+    </div>
+  )
 }
 
 function CaseCard({
@@ -104,7 +188,7 @@ function CaseCard({
   onAccept: (id: string) => void
   onProgress: (id: string) => void
   onReject: (id: string) => void
-  onPdf: (id: string, e: FormEvent<HTMLInputElement>) => void
+  onPdf: (id: string, file: File, resultValue: DoctorResultValue) => void
   onRefreshFiles: () => void
 }) {
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
@@ -135,12 +219,12 @@ function CaseCard({
     return new Date(iso).toLocaleString(locale === 'ar' ? 'ar-IQ' : 'en-US')
   }
 
-  const diseaseLabel =
-    row.disease_type === 'oncology'
-      ? m.doctorRequestsDiseaseOncology
-      : row.disease_type === 'reproductive'
-        ? m.doctorRequestsDiseaseReproductive
-        : m.doctorRequestsDiseasePediatric
+  const diseaseLabel = doctorDiseaseTypeLabel(row, {
+    oncology: m.doctorRequestsDiseaseOncology,
+    reproductive: m.doctorRequestsDiseaseReproductive,
+    pediatric: m.doctorRequestsDiseasePediatric,
+    other: m.doctorRequestsDiseaseOther,
+  })
 
   const genderLabel =
     row.gender === 'male'
@@ -175,13 +259,13 @@ function CaseCard({
   async function regeneratePdf() {
     setRegeneratingPdf(true)
     setPdfError(null)
-    const diseaseLabel =
-      row.disease_type === 'oncology'
-        ? m.doctorRequestsDiseaseOncology
-        : row.disease_type === 'reproductive'
-          ? m.doctorRequestsDiseaseReproductive
-          : m.doctorRequestsDiseasePediatric
-    const testTitles = caseTests.map((t) => testTitleFor(t.test_slug, catalogTests, locale))
+    const diseaseLabel = doctorDiseaseTypeLabel(row, {
+      oncology: m.doctorRequestsDiseaseOncology,
+      reproductive: m.doctorRequestsDiseaseReproductive,
+      pediatric: m.doctorRequestsDiseasePediatric,
+      other: m.doctorRequestsDiseaseOther,
+    })
+    const testTitles = caseTests.map((t) => testTitleFor(t, catalogTests, locale))
     const res = await regenerateDoctorRequestFormImage(
       row.id,
       row.doctor_user_id,
@@ -255,7 +339,7 @@ function CaseCard({
             ) : (
               <ul className="list-inside list-disc space-y-0.5">
                 {caseTests.map((t) => (
-                  <li key={t.id}>{testTitleFor(t.test_slug, catalogTests, locale)}</li>
+                  <li key={t.id}>{testTitleFor(t, catalogTests, locale)}</li>
                 ))}
               </ul>
             )}
@@ -333,16 +417,7 @@ function CaseCard({
 
       {caseStatus === 'in_progress' && (
         <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-200 pt-4">
-          <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-urgen-purple px-3 py-2 text-xs font-semibold text-white hover:brightness-105 disabled:opacity-50">
-            <input
-              type="file"
-              accept="application/pdf"
-              className="hidden"
-              disabled={busyId === row.id}
-              onChange={(e) => onPdf(row.id, e)}
-            />
-            {busyId === row.id ? m.doctorRequestsUploading : m.doctorRequestsUploadPdf}
-          </label>
+          <ResultPdfUploadBlock row={row} m={m} busyId={busyId} onPdf={onPdf} />
           <Button
             type="button"
             variant="outline"
@@ -357,6 +432,14 @@ function CaseCard({
 
       {caseStatus === 'done' && (
         <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-200 pt-4">
+          {row.result_value && (
+            <p className="w-full text-xs text-slate-600">
+              <span className="font-semibold">{m.doctorRequestsResultLabel}: </span>
+              {row.result_value === 'positive'
+                ? m.doctorRequestsResultPositive
+                : m.doctorRequestsResultNegative}
+            </p>
+          )}
           {row.pdf_expires_at != null && (
             <p className="w-full text-xs text-slate-600">
               {isDoctorResultPdfExpired(row) ? (
@@ -376,16 +459,13 @@ function CaseCard({
               )}
             </p>
           )}
-          <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-urgen-purple px-3 py-2 text-xs font-semibold text-white hover:brightness-105 disabled:opacity-50">
-            <input
-              type="file"
-              accept="application/pdf"
-              className="hidden"
-              disabled={busyId === row.id}
-              onChange={(e) => onPdf(row.id, e)}
-            />
-            {busyId === row.id ? m.doctorRequestsUploading : m.doctorRequestsReplacePdf}
-          </label>
+          <ResultPdfUploadBlock
+            row={row}
+            m={m}
+            busyId={busyId}
+            onPdf={onPdf}
+            uploadLabel={m.doctorRequestsReplacePdf}
+          />
         </div>
       )}
 
@@ -504,17 +584,17 @@ export function AdminDoctorCasesPanel({ m }: Props) {
     } else void reload()
   }
 
-  async function onPdfChange(id: string, e: FormEvent<HTMLInputElement>) {
-    const input = e.currentTarget
-    const file = input.files?.[0]
-    input.value = ''
-    if (!file) return
+  async function onPdfChange(id: string, file: File, resultValue: DoctorResultValue) {
     setBusyId(id)
     setActionError(null)
-    const res = await adminUploadDoctorCaseResultPdf(id, file)
+    const res = await adminUploadDoctorCaseResultPdf(id, file, resultValue)
     setBusyId(null)
-    if (!res.ok) setActionError(res.error ?? m.doctorRequestsActionErr)
-    else void reload()
+    if (!res.ok) {
+      const errMap: Record<string, string> = {
+        result_required: m.doctorRequestsResultRequired,
+      }
+      setActionError(errMap[res.error ?? ''] ?? res.error ?? m.doctorRequestsActionErr)
+    } else void reload()
   }
 
   async function rejectCase(id: string) {
@@ -648,7 +728,7 @@ export function AdminDoctorCasesPanel({ m }: Props) {
                   onAccept={(id) => void acceptCase(id)}
                   onProgress={(id) => void setProgress(id)}
                   onReject={(id) => void rejectCase(id)}
-                  onPdf={(id, e) => void onPdfChange(id, e)}
+                  onPdf={(id, file, resultValue) => void onPdfChange(id, file, resultValue)}
                   onRefreshFiles={() => void reload()}
                 />
               ))}

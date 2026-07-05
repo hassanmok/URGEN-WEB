@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+Disallow: /admin
+Disallow: /partner
+Disallow: /doctor
+
+Sitemap: https://urgenlab.com/sitemap.xml

@@ -14,7 +14,9 @@ export type DoctorAnalyticsRecentRow = {
   age_value: number
   age_unit: string
   test_slug: string
+  test_title_override: string | null
   status: string
+  result_value: string | null
   created_at: string | null
 }
 
@@ -107,7 +109,9 @@ export function computeDoctorAnalytics(
         age_value: row.age_value,
         age_unit: row.age_unit,
         test_slug: '',
+        test_title_override: null,
         status,
+        result_value: row.result_value,
         created_at: row.created_at,
       })
     } else {
@@ -127,7 +131,9 @@ export function computeDoctorAnalytics(
           age_value: row.age_value,
           age_unit: row.age_unit,
           test_slug: t.test_slug,
+          test_title_override: t.test_title_override,
           status,
+          result_value: row.result_value,
           created_at: row.created_at,
         })
       }

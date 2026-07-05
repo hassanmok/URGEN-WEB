@@ -7,6 +7,13 @@ import {
   fetchDoctorCasesForAnalytics,
   type DoctorAnalyticsSummary,
 } from '../../lib/doctorAnalytics'
+import {
+  doctorCaseMatchesPatientSearch,
+  groupDoctorCaseTestsByCaseId,
+  resolveDoctorCaseTestTitle,
+  type DoctorCaseRow,
+  type DoctorCaseTestRow,
+} from '../../lib/doctorCasesStore'
 import { SimplePieChart } from '../ui/SimplePieChart'
 import type { Messages } from '../../i18n/messages'
 import { PatientAgeAreaChart } from '../ui/PatientAgeAreaChart'
@@ -34,7 +41,9 @@ export function DoctorAnalyticsPanel({ m }: Props) {
   const { tests } = useTests()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [summary, setSummary] = useState<DoctorAnalyticsSummary | null>(null)
+  const [rawCases, setRawCases] = useState<DoctorCaseRow[]>([])
+  const [rawTests, setRawTests] = useState<DoctorCaseTestRow[]>([])
+  const [searchQuery, setSearchQuery] = useState('')
   const [animateReady, setAnimateReady] = useState(false)
 
   async function reload() {
@@ -43,13 +52,44 @@ export function DoctorAnalyticsPanel({ m }: Props) {
     setError(null)
     const res = await fetchDoctorCasesForAnalytics()
     if (res.ok && res.cases) {
-      setSummary(computeDoctorAnalytics(res.cases, res.tests ?? []))
+      setRawCases(res.cases)
+      setRawTests(res.tests ?? [])
     } else {
-      setSummary(null)
+      setRawCases([])
+      setRawTests([])
       setError(res.error ?? m.analyticsLoadErr)
     }
     setLoading(false)
   }
+
+  const testsByCase = useMemo(() => groupDoctorCaseTestsByCaseId(rawTests), [rawTests])
+
+  const filteredCases = useMemo(() => {
+    return rawCases.filter((row) =>
+      doctorCaseMatchesPatientSearch(
+        row,
+        searchQuery,
+        testsByCase.get(row.id) ?? [],
+        tests,
+        locale,
+      ),
+    )
+  }, [rawCases, searchQuery, testsByCase, tests, locale])
+
+  const filteredCaseIds = useMemo(
+    () => new Set(filteredCases.map((c) => c.id)),
+    [filteredCases],
+  )
+
+  const filteredTests = useMemo(
+    () => rawTests.filter((t) => filteredCaseIds.has(t.case_id)),
+    [rawTests, filteredCaseIds],
+  )
+
+  const summary = useMemo<DoctorAnalyticsSummary | null>(() => {
+    if (!filteredCases.length) return null
+    return computeDoctorAnalytics(filteredCases, filteredTests)
+  }, [filteredCases, filteredTests])
 
   useEffect(() => {
     void reload()
@@ -64,7 +104,21 @@ export function DoctorAnalyticsPanel({ m }: Props) {
       requestAnimationFrame(() => setAnimateReady(true))
     })
     return () => cancelAnimationFrame(id)
-  }, [summary, loading])
+  }, [summary, loading, searchQuery])
+
+  const searchBar = (
+    <label className="block">
+      <span className="sr-only">{m.searchPatientsPlaceholder}</span>
+      <input
+        type="search"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        placeholder={m.searchPatientsPlaceholder}
+        className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-urgen-purple focus:outline-none focus:ring-2 focus:ring-urgen-purple/20"
+        autoComplete="off"
+      />
+    </label>
+  )
 
   const statusLabels = useMemo(
     () => ({
@@ -134,10 +188,15 @@ export function DoctorAnalyticsPanel({ m }: Props) {
     }))
   }, [summary, m])
 
-  function testTitle(slug: string) {
+  function catalogTestTitle(slug: string) {
     const t = tests.find((x) => x.slug === slug)
     if (!t) return slug
     return locale === 'ar' ? t.title_ar : (t.title_en ?? t.title_ar)
+  }
+
+  function testTitle(row: { test_slug: string; test_title_override: string | null }) {
+    if (!row.test_slug) return '—'
+    return resolveDoctorCaseTestTitle(row, tests, locale)
   }
 
   function patientsLabel(n: number) {
@@ -176,8 +235,27 @@ export function DoctorAnalyticsPanel({ m }: Props) {
     )
   }
 
-  if (!summary || summary.totalCases === 0) {
+  if (!rawCases.length) {
     return <p className="text-sm text-slate-500">{m.analyticsEmpty}</p>
+  }
+
+  if (!summary) {
+    return (
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-slate-600">{m.analyticsIntro}</p>
+          <button
+            type="button"
+            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            onClick={() => void reload()}
+          >
+            {m.refresh}
+          </button>
+        </div>
+        {searchBar}
+        <p className="text-sm text-slate-500">{m.searchPatientsNoResults}</p>
+      </div>
+    )
   }
 
   const anim = animateReady
@@ -196,6 +274,8 @@ export function DoctorAnalyticsPanel({ m }: Props) {
           {m.refresh}
         </button>
       </div>
+
+      {searchBar}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <SimplePieChart
@@ -221,7 +301,7 @@ export function DoctorAnalyticsPanel({ m }: Props) {
         hint={m.analyticsByTestAgeHint}
         rows={summary.byTestAgeGroup}
         ageGroupLabel={ageGroupLabel}
-        testTitle={testTitle}
+        testTitle={catalogTestTitle}
         patientsLabel={patientsLabel}
         formatAgeGroupLine={ageGroupLine}
         animate={anim}
@@ -270,7 +350,7 @@ export function DoctorAnalyticsPanel({ m }: Props) {
               className={`flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 py-2 last:border-0 ${anim ? 'doctor-analytics-enter' : ''}`}
               style={anim ? { animationDelay: `${240 + i * 40}ms` } : undefined}
             >
-              <span className="text-sm font-medium text-urgen-navy">{testTitle(row.test_slug)}</span>
+              <span className="text-sm font-medium text-urgen-navy">{catalogTestTitle(row.test_slug)}</span>
               <AnimatedBadge count={row.count} animate={anim} />
             </li>
           ))}
@@ -335,13 +415,14 @@ export function DoctorAnalyticsPanel({ m }: Props) {
       >
         <h3 className="font-bold text-urgen-navy">{m.analyticsRecent}</h3>
         <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[640px] text-left text-sm">
+          <table className="w-full min-w-[720px] text-left text-sm">
             <thead>
               <tr className="border-b border-slate-200 text-xs text-slate-500">
                 <th className="py-2 pe-4">{m.colPatient}</th>
                 <th className="py-2 pe-4">{m.colAge}</th>
                 <th className="py-2 pe-4">{m.colTest}</th>
                 <th className="py-2 pe-4">{m.colStatus}</th>
+                <th className="py-2 pe-4">{m.colResult}</th>
                 <th className="py-2">{m.colDate}</th>
               </tr>
             </thead>
@@ -355,10 +436,19 @@ export function DoctorAnalyticsPanel({ m }: Props) {
                   <td className="py-2.5 pe-4 font-medium text-urgen-navy">{row.patient_full_name}</td>
                   <td className="py-2.5 pe-4">{ageLabel(row.age_value, row.age_unit, m)}</td>
                   <td className="py-2.5 pe-4">
-                    {row.test_slug ? testTitle(row.test_slug) : '—'}
+                    {testTitle(row)}
                   </td>
                   <td className="py-2.5 pe-4">
                     {statusLabels[row.status as keyof typeof statusLabels] ?? row.status}
+                  </td>
+                  <td className="py-2.5 pe-4">
+                    {row.result_value === 'positive' ? (
+                      <span className="font-semibold text-emerald-700">{m.resultPositive}</span>
+                    ) : row.result_value === 'negative' ? (
+                      <span className="font-semibold text-slate-700">{m.resultNegative}</span>
+                    ) : (
+                      '—'
+                    )}
                   </td>
                   <td className="py-2.5 tabular-nums" dir="ltr">
                     {row.created_at

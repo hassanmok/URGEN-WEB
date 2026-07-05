@@ -272,6 +272,7 @@ export interface Database {
           age_value: number;
           age_unit: string;
           test_slug: string;
+          test_title_override: string | null;
           status: string;
           pdf_storage_path: string | null;
           pdf_expires_at: string | null;
@@ -287,6 +288,7 @@ export interface Database {
           age_value: number;
           age_unit: string;
           test_slug: string;
+          test_title_override?: string | null;
           status?: string;
           pdf_storage_path?: string | null;
           pdf_expires_at?: string | null;
@@ -331,6 +333,7 @@ export interface Database {
           gender: string;
           diagnosis: string;
           disease_type: string;
+          disease_type_other: string | null;
           oncology_tumor_type: string | null;
           oncology_stage: string | null;
           oncology_treatment: string | null;
@@ -338,6 +341,7 @@ export interface Database {
           rejection_reason: string | null;
           pdf_storage_path: string | null;
           pdf_expires_at: string | null;
+          result_value: string | null;
           created_at: string | null;
           updated_at: string | null;
         };
@@ -354,6 +358,7 @@ export interface Database {
           gender: string;
           diagnosis: string;
           disease_type: string;
+          disease_type_other?: string | null;
           oncology_tumor_type?: string | null;
           oncology_stage?: string | null;
           oncology_treatment?: string | null;
@@ -361,6 +366,7 @@ export interface Database {
           rejection_reason?: string | null;
           pdf_storage_path?: string | null;
           pdf_expires_at?: string | null;
+          result_value?: string | null;
           created_at?: string | null;
           updated_at?: string | null;
         };
@@ -372,12 +378,14 @@ export interface Database {
           id: string;
           case_id: string;
           test_slug: string;
+          test_title_override: string | null;
           created_at: string | null;
         };
         Insert: {
           id?: string;
           case_id: string;
           test_slug: string;
+          test_title_override?: string | null;
           created_at?: string | null;
         };
         Update: Partial<

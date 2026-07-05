@@ -3,6 +3,11 @@
 
 alter table public.doctor_cases add column if not exists pdf_storage_path text;
 alter table public.doctor_cases add column if not exists pdf_expires_at timestamptz;
+alter table public.doctor_cases add column if not exists result_value text;
+
+alter table public.doctor_cases drop constraint if exists doctor_cases_result_value_check;
+alter table public.doctor_cases add constraint doctor_cases_result_value_check
+  check (result_value is null or result_value in ('positive', 'negative'));
 
 alter table public.doctor_cases drop constraint if exists doctor_cases_status_check;
 update public.doctor_cases set status = 'pending' where status = 'accepted';
@@ -41,6 +46,7 @@ begin
     end,
     pdf_storage_path = case when p_status = 'rejected' then null else pdf_storage_path end,
     pdf_expires_at = case when p_status = 'rejected' then null else pdf_expires_at end,
+    result_value = case when p_status = 'rejected' then null else result_value end,
     updated_at = now()
   where id = p_case_id
   returning id into v_id;
