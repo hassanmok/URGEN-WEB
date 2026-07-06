@@ -56,12 +56,8 @@ export function BookingForm() {
     }
 
     if (!supabase) {
-      setMessage({
-        type: 'ok',
-        text: m.booking.okLocal,
-      })
+      setMessage({ type: 'err', text: m.booking.errSupabase })
       setSubmitting(false)
-      setForm(initial)
       return
     }
 
@@ -179,10 +175,6 @@ export function BookingForm() {
       <Button type="submit" className="w-full sm:w-auto" disabled={submitting}>
         {submitting ? m.booking.submitting : m.booking.submit}
       </Button>
-
-      {!supabase && (
-        <p className="text-xs leading-relaxed text-slate-500">{m.booking.envHint}</p>
-      )}
     </form>
   )
 }

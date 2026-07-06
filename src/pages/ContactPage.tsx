@@ -41,8 +41,7 @@ export function ContactPage() {
     if (!full_name || !message) return
 
     if (!supabase) {
-      setSent(true)
-      setError(m.contact.noSupabase)
+      setError(m.contact.errSubmit)
       return
     }
 
@@ -110,7 +109,6 @@ export function ContactPage() {
               className="rounded-2xl border border-slate-100 bg-white p-4 shadow-lg sm:p-6 lg:p-8"
             >
               <h2 className="text-lg font-bold text-urgen-navy">{m.contact.formTitle}</h2>
-              <p className="mt-2 hidden text-sm text-slate-600 sm:block">{m.contact.formHint}</p>
               <label className="mt-5 block text-sm font-semibold text-urgen-navy sm:mt-6">
                 {m.contact.name}
                 <input name="name" required className={inputClass} autoComplete="name" />

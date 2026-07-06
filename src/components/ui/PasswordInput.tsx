@@ -43,18 +43,19 @@ export function PasswordInput({ className = '', value, onChange, ...rest }: Prop
   const m = messages.form
 
   return (
-    <div className="relative">
+    <div className="relative" dir="ltr">
       <input
         {...rest}
         type={visible ? 'text' : 'password'}
         value={value}
         onChange={onChange}
-        className={`password-input-field ${className} pe-10`.trim()}
+        dir="ltr"
+        className={`password-input-field ${className} !pr-10`.trim()}
       />
       <button
         type="button"
         tabIndex={-1}
-        className="absolute end-2 top-1/2 -translate-y-1/2 rounded-lg p-1 text-slate-500 hover:text-urgen-purple focus:outline-none focus-visible:ring-2 focus-visible:ring-urgen-purple/30"
+        className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1 text-slate-500 hover:text-urgen-purple focus:outline-none focus-visible:ring-2 focus-visible:ring-urgen-purple/30"
         onClick={() => setVisible((v) => !v)}
         aria-label={visible ? m.hidePassword : m.showPassword}
         aria-pressed={visible}

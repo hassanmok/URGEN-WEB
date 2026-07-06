@@ -2,8 +2,8 @@
 export const messagesAr = {
   meta: {
     description:
-      "URGEN Laboratory — مختبر متخصص في التحليلات الجينية الوراثية بأحدث التقنيات وأعلى معايير الدقة في العراق.",
-    title: "URGEN Laboratory | مختبر التحليلات الوراثية",
+      "مختبر اورجين (URGEN Laboratory) — مختبر متخصص في التحليلات الجينية الوراثية بأحدث التقنيات وأعلى معايير الدقة في العراق.",
+    title: "مختبر اورجين | URGEN Laboratory — التحليلات الوراثية",
   },
   language: {
     arShort: "عربي",
@@ -29,7 +29,7 @@ export const messagesAr = {
   },
   footer: {
     blurb:
-      "مختبر URGEN للتحليلات الوراثية — نجمع بين الدقة العلمية ورعاية المريض، مع احترام كامل للخصوصية والسرية.",
+      "مختبر اورجين (URGEN) للتحليلات الوراثية — نجمع بين الدقة العلمية ورعاية المريض، مع احترام كامل للخصوصية والسرية.",
     quickLinks: "روابط سريعة",
     contact: "تواصل",
     qrHint: "امسح الرمز للوصول السريع إلى قنوات التواصل.",
@@ -43,10 +43,10 @@ export const messagesAr = {
       "هذا الموقع لا يغني عن استشارة طبية مباشرة — النتائج تُفسَّر ضمن السياق السريري.",
   },
   hero: {
-    kicker: "URGEN Laboratory",
+    kicker: "مختبر اورجين — URGEN Laboratory",
     title: "نحن نحلل الجينات لنرعى المستقبل",
     subtitle:
-      "مختبر متخصص في التحليلات الجينية الوراثية بأحدث التقنيات وأعلى معايير الدقة — مع فريق علمي يضع صحتك وخصوصيتك في المقدمة.",
+      "مختبر اورجين متخصص في التحليلات الجينية الوراثية بأحدث التقنيات وأعلى معايير الدقة — مع فريق علمي يضع صحتك وخصوصيتك في المقدمة.",
     browseTests: "تصفح الفحوصات",
     bookNow: "احجز موعداً الآن",
   },
@@ -209,7 +209,7 @@ export const messagesAr = {
     subtitle:
       "اضغط على أحد التصنيفات أدناه لعرض التحاليل — مع نوع العينة والطريقة وزمن الإنجاز كما في قائمة المختبر.",
     fallbackNotice:
-      "يتم عرض قائمة المختبر الكاملة محلياً. بعد ربط Supabase وإدخال الفحوص في الجدول، ستُحمَّل القائمة من قاعدة البيانات إن وُجدت.",
+      "تعذّر تحميل أحدث قائمة الفحوصات. المعروض أدناه قد لا يشمل كل التحديثات.",
     categories: {
       oncology_somatic: "الأورام والجسيمي",
       hereditary_cancer: "السرطان الوراثي",
@@ -255,12 +255,8 @@ export const messagesAr = {
     submit: "إرسال طلب الحجز",
     submitting: "جاري الإرسال…",
     errRequired: "يرجى تعبئة الاسم الكامل ورقم الهاتف.",
-    okLocal:
-      "تم تجهيز الطلب محلياً. لإرساله فعلياً، أضف مفاتيح Supabase في ملف البيئة ثم نفّذ جدول المواعيد كما في supabase/schema.sql.",
-    errSupabase: "تعذر إرسال الطلب. تحقق من إعدادات Supabase أو حاول لاحقاً.",
+    errSupabase: "تعذر إرسال طلب الحجز. يرجى المحاولة لاحقاً أو الاتصال بنا مباشرة.",
     okSaved: "تم استلام طلبك بنجاح. سنتواصل معك قريباً.",
-    envHint:
-      "التلميح: انسخ القيم من لوحة Supabase إلى ملف .env كما في .env.example لتفعيل حفظ المواعيد في قاعدة البيانات.",
   },
   eventsPage: {
     eyebrow: "الفعاليات",
@@ -308,11 +304,7 @@ export const messagesAr = {
     signOut: "تسجيل الخروج",
     loginFailed: "تعذر تسجيل الدخول. تحقق من البيانات.",
     invalidPassword: "كلمة المرور غير صحيحة.",
-    noPasswordConfigured: "لم يُضبط VITE_ADMIN_PASSWORD في ملف البيئة.",
-    localHint:
-      "وضع محلي: عيّن VITE_ADMIN_PASSWORD في .env للدخول. الفعاليات تُحفظ في المتصفح حتى تربط Supabase.",
-    supabaseHint:
-      "أنشئ مستخدم إدارة من Supabase → Authentication، ثم نفّذ supabase/schema.sql (جدول events + bucket event-images).",
+    noPasswordConfigured: "تعذر تسجيل الدخول. تواصل مع مسؤول الموقع.",
     dashboardTitle: "إدارة الفعاليات",
     viewEvents: "عرض صفحة الفعاليات",
     backToSite: "الموقع",
@@ -342,8 +334,6 @@ export const messagesAr = {
     imageTooLarge: "الصورة كبيرة جداً حتى بعد الضغط — جرّب صورة أصغر.",
     imageCompressFailed: "تعذر معالجة الصورة.",
     imageUploadFailed: "تعذر رفع الصورة. تحقق من إعداد Storage في Supabase.",
-    imageLocalWarning:
-      "وضع محلي: الصورة تُحفظ مضغوطة في المتصفح فقط. للرفع الدائم على السحابة، اربط Supabase ونفّذ إعداد Storage.",
     imageStorageHint:
       "تُضغط الصورة تلقائياً (WebP، عرض أقصى 1200px، ~280KB) ثم تُرفع إلى Supabase Storage.",
     published: "نشر على الموقع",
@@ -935,14 +925,10 @@ export const messagesAr = {
     mapTitle: "موقع مختبر URGEN على الخريطة",
     getDirections: "الاتجاهات على الخريطة",
     formTitle: "رسالة سريعة",
-    formHint:
-      "هذا النموذج تجريبي محلياً. للربط لاحقاً يمكن توجيهه إلى Edge Function أو خدمة بريد.",
     name: "الاسم",
     message: "الرسالة",
     sent: "شكراً لتواصلك — تم استلام رسالتك.",
-    errSubmit: "تعذر إرسال الرسالة. تحقق من إعداد Supabase.",
-    noSupabase:
-      "الرسالة جاهزة محلياً — اربط Supabase لتخزينها في قاعدة البيانات.",
+    errSubmit: "تعذر إرسال الرسالة. يرجى المحاولة لاحقاً أو الاتصال بنا مباشرة.",
     send: "إرسال",
   },
   notFound: {
@@ -1195,7 +1181,7 @@ export const messagesEn = {
     subtitle:
       "Tap a category below to expand its tests — sample type, method, and turnaround as in the lab menu.",
     fallbackNotice:
-      "Showing the full local catalog. After connecting Supabase, the list loads from the database when rows exist.",
+      "Could not load the latest test catalog. The list below may not include all updates.",
     categories: {
       oncology_somatic: "Oncology / Somatic",
       hereditary_cancer: "Hereditary cancer",
@@ -1241,13 +1227,9 @@ export const messagesEn = {
     submit: "Submit booking request",
     submitting: "Sending…",
     errRequired: "Please enter your full name and phone number.",
-    okLocal:
-      "Prepared locally. To submit for real, add Supabase keys to your environment and run the appointments table from supabase/schema.sql.",
     errSupabase:
-      "Could not submit. Check Supabase settings or try again later.",
+      "Could not submit your booking request. Please try again later or contact us directly.",
     okSaved: "Request received. We will contact you shortly.",
-    envHint:
-      "Tip: copy values from the Supabase dashboard into .env as in .env.example to enable saving appointments.",
   },
   eventsPage: {
     eyebrow: "Events",
@@ -1294,12 +1276,7 @@ export const messagesEn = {
     signOut: "Sign out",
     loginFailed: "Could not sign in. Check your credentials.",
     invalidPassword: "Incorrect password.",
-    noPasswordConfigured:
-      "VITE_ADMIN_PASSWORD is not set in your environment file.",
-    localHint:
-      "Local mode: set VITE_ADMIN_PASSWORD in .env to sign in. Events are stored in the browser until Supabase is connected.",
-    supabaseHint:
-      "Create an admin user in Supabase → Authentication, then run supabase/schema.sql (events table + event-images bucket).",
+    noPasswordConfigured: "Could not sign in. Contact the site administrator.",
     dashboardTitle: "Manage events",
     viewEvents: "View events page",
     backToSite: "Back to site",
@@ -1330,8 +1307,6 @@ export const messagesEn = {
       "Image is still too large after compression — try a smaller file.",
     imageCompressFailed: "Could not process the image.",
     imageUploadFailed: "Could not upload image. Check Supabase Storage setup.",
-    imageLocalWarning:
-      "Local mode: compressed image is stored in the browser only. Connect Supabase and set up Storage for permanent uploads.",
     imageStorageHint:
       "Images are auto-compressed (WebP, max width 1200px, ~280KB) then uploaded to Supabase Storage.",
     published: "Publish on website",
@@ -1933,14 +1908,10 @@ export const messagesEn = {
     mapTitle: "URGEN Laboratory on the map",
     getDirections: "Get directions",
     formTitle: "Quick message",
-    formHint:
-      "This form is stored locally for now. Later you can route it to an Edge Function or email service.",
     name: "Name",
     message: "Message",
     sent: "Thanks for reaching out — your message was received.",
-    errSubmit: "Could not send your message. Check Supabase setup.",
-    noSupabase:
-      "Prepared locally — connect Supabase to store messages in the database.",
+    errSubmit: "Could not send your message. Please try again later or contact us directly.",
     send: "Send",
   },
   notFound: {

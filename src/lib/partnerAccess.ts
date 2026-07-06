@@ -26,9 +26,6 @@ export async function fetchPartnerLabProfile(
   }
 
   if (!rpcRes.error && (!rpcRes.data || rpcRes.data.length === 0)) {
-    console.warn('[partner_lab_users] لا يوجد صف لهذا المستخدم — تحقق من insert والـ UUID.', {
-      userId,
-    })
     return null
   }
 
@@ -43,9 +40,6 @@ export async function fetchPartnerLabProfile(
     return null
   }
   if (!data) {
-    console.warn('[partner_lab_users] لا يوجد صف لهذا المستخدم — تحقق من insert والـ UUID.', {
-      userId,
-    })
     return null
   }
   if (data.is_locked) return null

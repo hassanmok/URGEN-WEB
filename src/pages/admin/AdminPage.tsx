@@ -291,13 +291,6 @@ export function AdminPage() {
                 {loginSubmitting ? m.admin.signingIn : m.admin.signIn}
               </Button>
             </form>
-
-            {!useSupabaseAuth && (
-              <p className="mt-6 text-xs leading-relaxed text-slate-500">{m.admin.localHint}</p>
-            )}
-            {useSupabaseAuth && (
-              <p className="mt-6 text-xs leading-relaxed text-slate-500">{m.admin.supabaseHint}</p>
-            )}
           </Box>
         </Box>
       </Box>

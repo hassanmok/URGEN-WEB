@@ -151,9 +151,6 @@ export const EventImageField = forwardRef<EventImageFieldHandle, EventImageField
           </div>
         )}
         {meta && <p className="text-xs text-slate-500">{m.imageOptimized} {meta}</p>}
-        {!supabase && (
-          <p className="text-xs leading-relaxed text-amber-800/90">{m.imageLocalWarning}</p>
-        )}
         <div className="flex flex-wrap gap-2">
           <label
             htmlFor={inputId}

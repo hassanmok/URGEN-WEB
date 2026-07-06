@@ -1,73 +1,38 @@
-# React + TypeScript + Vite
+# URGEN Laboratory — موقع مختبر اورجين
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+موقع ويب لمختبر التحليلات الوراثية URGEN: كتالوج الفحوصات، الحجز، الأخبار والفعاليات، وبوابات الطبيب والمختبرات الشريكة ولوحة الإدارة.
 
-Currently, two official plugins are available:
+## التقنيات
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+React 19 · TypeScript · Vite · Tailwind CSS · Supabase
 
-## React Compiler
+## أوامر التطوير
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## البناء للإنتاج
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run build
+npm run preview
 ```
+
+يُولَّد `public/sitemap.xml` تلقائياً أثناء البناء. اضبط `SITE_URL` في `.env` إن لزم.
+
+## متغيرات البيئة
+
+انسخ `.env.example` إلى `.env` واملأ:
+
+| المتغير | الوصف |
+|---------|--------|
+| `VITE_SUPABASE_URL` | عنوان مشروع Supabase |
+| `VITE_SUPABASE_ANON_KEY` | المفتاح العام (anon) |
+| `SITE_URL` | عنوان الموقع العام (للخريطة) |
+| `VITE_ADMIN_PASSWORD` | اختياري — للتطوير المحلي فقط بدون Supabase |
+
+## قاعدة البيانات
+
+نفّذ ملفات SQL من مجلد `supabase/` في Supabase SQL Editor، بدءاً من `schema.sql` ثم migrations الإضافية حسب الحاجة.
