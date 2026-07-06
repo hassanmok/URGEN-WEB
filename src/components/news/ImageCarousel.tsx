@@ -60,6 +60,7 @@ export function ImageCarousel({
   return (
     <div
       className={`group relative overflow-hidden bg-slate-900 ${className}`}
+      dir="ltr"
       role="region"
       aria-roledescription="carousel"
       aria-label={current.alt}
@@ -84,7 +85,9 @@ export function ImageCarousel({
 
         {current.caption && (
           <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-6 pb-10 pt-16 sm:px-10">
-            <p className="max-w-3xl text-sm text-white/95 sm:text-base">{current.caption}</p>
+            <p className="max-w-3xl text-sm text-white/95 sm:text-base" dir="auto">
+              {current.caption}
+            </p>
           </div>
         )}
       </div>
@@ -94,7 +97,7 @@ export function ImageCarousel({
           <button
             type="button"
             onClick={() => go(index - 1)}
-            className="absolute start-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-urgen-navy shadow-md transition hover:bg-white sm:start-5 sm:h-12 sm:w-12"
+            className="absolute left-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-urgen-navy shadow-md transition hover:bg-white sm:left-5 sm:h-12 sm:w-12"
             aria-label={prevLabel}
           >
             <ChevronIcon dir="prev" />
@@ -102,7 +105,7 @@ export function ImageCarousel({
           <button
             type="button"
             onClick={() => go(index + 1)}
-            className="absolute end-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-urgen-navy shadow-md transition hover:bg-white sm:end-5 sm:h-12 sm:w-12"
+            className="absolute right-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-urgen-navy shadow-md transition hover:bg-white sm:right-5 sm:h-12 sm:w-12"
             aria-label={nextLabel}
           >
             <ChevronIcon dir="next" />
