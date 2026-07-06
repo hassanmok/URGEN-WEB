@@ -30,6 +30,8 @@ export function Logo({ className = "", compact, large, light, footer }: LogoProp
           light ? "drop-shadow-[0_0_20px_rgba(255,255,255,0.25)]" : ""
         } `}
         decoding="async"
+        loading="eager"
+        fetchPriority="high"
         draggable={false}
       />
     </span>
