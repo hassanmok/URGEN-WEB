@@ -1,6 +1,7 @@
 import { createElement, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '../../components/ui/Button'
+import { PasswordInput } from '../../components/ui/PasswordInput'
 import { Logo } from '../../components/Logo'
 import { supabase } from '../../lib/supabase'
 import {
@@ -278,8 +279,7 @@ export function AdminPage() {
               )}
               <label className="block">
                 <span className="text-sm font-medium text-slate-700">{m.admin.password}</span>
-                <input
-                  type="password"
+                <PasswordInput
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}

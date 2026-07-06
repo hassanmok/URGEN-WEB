@@ -12,6 +12,7 @@ import {
 } from '../../lib/doctorUsersAdmin'
 import { supabase } from '../../lib/supabase'
 import { Button } from '../ui/Button'
+import { PasswordInput } from '../ui/PasswordInput'
 
 type Props = {
   m: Messages['admin']
@@ -200,8 +201,7 @@ export function AdminDoctorUsersPanel({ m }: Props) {
         </label>
         <label className="block sm:col-span-1">
           <span className="text-sm font-medium text-slate-700">{m.doctorUsersPassword}</span>
-          <input
-            type="password"
+          <PasswordInput
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className={`${inputClass} mt-1`}
@@ -211,8 +211,7 @@ export function AdminDoctorUsersPanel({ m }: Props) {
         </label>
         <label className="block sm:col-span-1">
           <span className="text-sm font-medium text-slate-700">{m.doctorUsersPasswordConfirm}</span>
-          <input
-            type="password"
+          <PasswordInput
             value={password2}
             onChange={(e) => setPassword2(e.target.value)}
             className={`${inputClass} mt-1`}
@@ -272,9 +271,8 @@ export function AdminDoctorUsersPanel({ m }: Props) {
                     onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
                     dir="ltr"
                   />
-                  <input
+                  <PasswordInput
                     className={inputClass}
-                    type="password"
                     placeholder={m.doctorUsersPassword}
                     value={editForm.password}
                     onChange={(e) => setEditForm((f) => ({ ...f, password: e.target.value }))}

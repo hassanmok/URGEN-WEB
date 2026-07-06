@@ -15,6 +15,7 @@ import {
 import { supabase } from '../../lib/supabase'
 import { CascadingLocationFields } from './CascadingLocationFields'
 import { Button } from '../ui/Button'
+import { PasswordInput } from '../ui/PasswordInput'
 
 type Props = {
   m: Messages['admin']
@@ -356,8 +357,7 @@ export function AdminPartnerLabUsersPanel({ m }: Props) {
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block">
             <span className="text-sm font-medium text-slate-700">{m.partnerUsersPassword}</span>
-            <input
-              type="password"
+            <PasswordInput
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className={`${inputClass} mt-1`}
@@ -366,8 +366,7 @@ export function AdminPartnerLabUsersPanel({ m }: Props) {
           </label>
           <label className="block">
             <span className="text-sm font-medium text-slate-700">{m.partnerUsersPasswordConfirm}</span>
-            <input
-              type="password"
+            <PasswordInput
               value={password2}
               onChange={(e) => setPassword2(e.target.value)}
               className={`${inputClass} mt-1`}
@@ -511,8 +510,7 @@ export function AdminPartnerLabUsersPanel({ m }: Props) {
                   </label>
                   <label className="block">
                     <span className="text-sm font-medium text-slate-700">{m.partnerUsersNewPassword}</span>
-                    <input
-                      type="password"
+                    <PasswordInput
                       value={editForm.password}
                       onChange={(e) => setEditForm((f) => ({ ...f, password: e.target.value }))}
                       className={`${inputClass} mt-1`}

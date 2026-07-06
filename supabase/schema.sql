@@ -520,6 +520,7 @@ create table if not exists public.partner_submissions (
     check (status in ('sent', 'pending', 'in_progress', 'rejected', 'done')),
   pdf_storage_path text,
   pdf_expires_at timestamptz,
+  report_first_opened_at timestamptz,
   rejection_reason text,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
@@ -527,6 +528,7 @@ create table if not exists public.partner_submissions (
 
 alter table public.partner_submissions add column if not exists batch_id uuid;
 alter table public.partner_submissions add column if not exists test_title_override text;
+alter table public.partner_submissions add column if not exists report_first_opened_at timestamptz;
 
 create index if not exists partner_submissions_partner_idx
   on public.partner_submissions (partner_user_id, created_at desc);
@@ -757,6 +759,54 @@ grant execute on function public.partner_submission_seen_group_keys() to authent
 comment on function public.partner_submission_seen_group_keys() is
   'لوحة الإدارة: مفاتيح مجموعات الطلبات التي شاهدها المستخدم الحالي.';
 
+create table if not exists public.partner_report_ready_seen (
+  partner_user_id uuid not null references auth.users (id) on delete cascade,
+  submission_id uuid not null references public.partner_submissions (id) on delete cascade,
+  seen_at timestamptz not null default now(),
+  primary key (partner_user_id, submission_id)
+);
+
+create index if not exists partner_report_ready_seen_user_idx
+  on public.partner_report_ready_seen (partner_user_id, seen_at desc);
+
+alter table public.partner_report_ready_seen enable row level security;
+
+drop policy if exists "partner_report_ready_seen_own" on public.partner_report_ready_seen;
+create policy "partner_report_ready_seen_own" on public.partner_report_ready_seen
+  for all to authenticated
+  using (
+    partner_user_id = auth.uid()
+    and public.auth_is_partner_lab_user()
+  )
+  with check (
+    partner_user_id = auth.uid()
+    and public.auth_is_partner_lab_user()
+  );
+
+create table if not exists public.doctor_report_ready_seen (
+  doctor_user_id uuid not null references auth.users (id) on delete cascade,
+  case_id uuid not null references public.doctor_cases (id) on delete cascade,
+  seen_at timestamptz not null default now(),
+  primary key (doctor_user_id, case_id)
+);
+
+create index if not exists doctor_report_ready_seen_user_idx
+  on public.doctor_report_ready_seen (doctor_user_id, seen_at desc);
+
+alter table public.doctor_report_ready_seen enable row level security;
+
+drop policy if exists "doctor_report_ready_seen_own" on public.doctor_report_ready_seen;
+create policy "doctor_report_ready_seen_own" on public.doctor_report_ready_seen
+  for all to authenticated
+  using (
+    doctor_user_id = auth.uid()
+    and public.auth_is_doctor_user()
+  )
+  with check (
+    doctor_user_id = auth.uid()
+    and public.auth_is_doctor_user()
+  );
+
 -- ─── بوابة الأطباء (/doctor) ───
 
 create table if not exists public.doctor_users (
@@ -912,6 +962,7 @@ create table if not exists public.doctor_cases (
     check (status in ('sent', 'pending', 'in_progress', 'rejected', 'done')),
   pdf_storage_path text,
   pdf_expires_at timestamptz,
+  report_first_opened_at timestamptz,
   result_value text check (result_value is null or result_value in ('positive', 'negative')),
   rejection_reason text,
   created_at timestamptz default now(),
@@ -933,6 +984,7 @@ alter table public.doctor_cases add column if not exists status text;
 alter table public.doctor_cases add column if not exists rejection_reason text;
 alter table public.doctor_cases add column if not exists pdf_storage_path text;
 alter table public.doctor_cases add column if not exists pdf_expires_at timestamptz;
+alter table public.doctor_cases add column if not exists report_first_opened_at timestamptz;
 alter table public.doctor_cases add column if not exists result_value text;
 alter table public.doctor_cases alter column status set default 'sent';
 update public.doctor_cases set status = 'sent' where status is null;
@@ -1320,3 +1372,79 @@ $$;
 revoke all on function public.doctor_cleanup_expired_case_pdfs() from public;
 comment on function public.doctor_cleanup_expired_case_pdfs() is
   'تشغيل دوري: حذف تقارير الأطباء منتهية الصلاحية من التخزين.';
+
+create or replace function public.partner_submission_mark_report_opened(p_submission_id uuid)
+returns timestamptz
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_opened timestamptz;
+begin
+  if auth.uid() is null or not public.auth_is_partner_lab_user() then
+    raise exception 'forbidden';
+  end if;
+
+  update public.partner_submissions
+  set report_first_opened_at = now()
+  where id = p_submission_id
+    and partner_user_id = auth.uid()
+    and status = 'done'
+    and pdf_storage_path is not null
+    and report_first_opened_at is null
+  returning report_first_opened_at into v_opened;
+
+  if v_opened is not null then
+    return v_opened;
+  end if;
+
+  select report_first_opened_at into v_opened
+  from public.partner_submissions
+  where id = p_submission_id
+    and partner_user_id = auth.uid();
+
+  return v_opened;
+end;
+$$;
+
+create or replace function public.doctor_case_mark_report_opened(p_case_id uuid)
+returns timestamptz
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_opened timestamptz;
+begin
+  if auth.uid() is null or not public.auth_is_doctor_user() then
+    raise exception 'forbidden';
+  end if;
+
+  update public.doctor_cases
+  set report_first_opened_at = now()
+  where id = p_case_id
+    and doctor_user_id = auth.uid()
+    and status = 'done'
+    and pdf_storage_path is not null
+    and report_first_opened_at is null
+  returning report_first_opened_at into v_opened;
+
+  if v_opened is not null then
+    return v_opened;
+  end if;
+
+  select report_first_opened_at into v_opened
+  from public.doctor_cases
+  where id = p_case_id
+    and doctor_user_id = auth.uid();
+
+  return v_opened;
+end;
+$$;
+
+revoke all on function public.partner_submission_mark_report_opened(uuid) from public;
+grant execute on function public.partner_submission_mark_report_opened(uuid) to authenticated;
+
+revoke all on function public.doctor_case_mark_report_opened(uuid) from public;
+grant execute on function public.doctor_case_mark_report_opened(uuid) to authenticated;

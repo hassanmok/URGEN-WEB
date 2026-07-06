@@ -362,6 +362,12 @@ export async function insertPartnerSubmission(input: {
   return { ok: true }
 }
 
+export function partnerSubmissionGroupKey(
+  row: Pick<PartnerSubmissionRow, 'id' | 'batch_id'>,
+): string {
+  return row.batch_id ? `batch:${row.batch_id}` : `solo:${row.id}`
+}
+
 export type PartnerSubmissionGroup = {
   groupKey: string
   batch_id: string | null
@@ -377,9 +383,7 @@ export function groupPartnerSubmissions(rows: PartnerSubmissionRow[]): PartnerSu
   const map = new Map<string, PartnerSubmissionGroup>()
 
   for (const row of rows) {
-    const key = row.batch_id
-      ? `batch:${row.batch_id}`
-      : `solo:${row.id}`
+    const key = partnerSubmissionGroupKey(row)
     let group = map.get(key)
     if (!group) {
       group = {
@@ -486,4 +490,18 @@ export async function createPartnerPdfDownloadUrl(
 
   if (error || !data?.signedUrl) return { ok: false, error: error?.message ?? 'sign_failed' }
   return { ok: true, url: data.signedUrl }
+}
+
+/** تسجيل أول فتح لتقرير PDF (يُرجع وقت الفتح الحالي أو السابق) */
+export async function markPartnerReportOpened(
+  submissionId: string,
+): Promise<{ ok: boolean; opened_at?: string | null; error?: string }> {
+  if (!supabase) return { ok: false, error: 'no_supabase' }
+
+  const { data, error } = await supabase.rpc('partner_submission_mark_report_opened', {
+    p_submission_id: submissionId,
+  })
+
+  if (error) return { ok: false, error: error.message }
+  return { ok: true, opened_at: (data as string | null) ?? null }
 }

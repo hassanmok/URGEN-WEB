@@ -968,6 +968,20 @@ export async function createDoctorResultPdfDownloadUrl(
   return { ok: true, url: data.signedUrl }
 }
 
+/** تسجيل أول فتح لتقرير PDF (يُرجع وقت الفتح الحالي أو السابق) */
+export async function markDoctorReportOpened(
+  caseId: string,
+): Promise<{ ok: boolean; opened_at?: string | null; error?: string }> {
+  if (!supabase) return { ok: false, error: 'no_supabase' }
+
+  const { data, error } = await supabase.rpc('doctor_case_mark_report_opened', {
+    p_case_id: caseId,
+  })
+
+  if (error) return { ok: false, error: error.message }
+  return { ok: true, opened_at: (data as string | null) ?? null }
+}
+
 export async function createDoctorCaseFileDownloadUrl(
   storagePath: string,
 ): Promise<{ ok: boolean; url?: string; error?: string }> {

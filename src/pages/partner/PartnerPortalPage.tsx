@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { LanguageSwitcher } from '../../components/layout/LanguageSwitcher'
 import { Button } from '../../components/ui/Button'
+import { PasswordInput } from '../../components/ui/PasswordInput'
 import { OtherTextDialog } from '../../components/ui/OtherTextDialog'
 import { Logo } from '../../components/Logo'
 import { supabase } from '../../lib/supabase'
@@ -9,6 +10,7 @@ import { fetchDoctorProfile } from '../../lib/doctorAccess'
 import { fetchPartnerLabProfile, resolvePartnerLoginEmail } from '../../lib/partnerAccess'
 import {
   createPartnerPdfDownloadUrl,
+  markPartnerReportOpened,
   canEditPartnerSubmissionGroup,
   fetchPartnerSubmissionsForLab,
   filterPartnerSubmissionGroups,
@@ -24,7 +26,9 @@ import { useLocaleContext } from '../../i18n/useLocaleContext'
 import { useTests } from '../../hooks/useTests'
 import { TestCheckboxPicker } from '../../components/shared/TestCheckboxPicker'
 import { PartnerSubmissionEditForm } from '../../components/partner/PartnerSubmissionEditForm'
+import { PartnerReportNotificationsBell } from '../../components/portal/PartnerReportNotificationsBell'
 import { buildPatientFullName, isPatientNameComplete } from '../../lib/patientName'
+import type { PortalReportNotificationItem } from '../../lib/portalReportNotifications'
 import type { Messages } from '../../i18n/messages'
 
 export function PartnerPortalPage() {
@@ -61,6 +65,7 @@ export function PartnerPortalPage() {
   const [loadingRows, setLoadingRows] = useState(false)
   const [requestsSearchQuery, setRequestsSearchQuery] = useState('')
   const [editingGroupKey, setEditingGroupKey] = useState<string | null>(null)
+  const [highlightSubmissionId, setHighlightSubmissionId] = useState<string | null>(null)
   const [pdfBusyId, setPdfBusyId] = useState<string | null>(null)
 
   async function refreshSession() {
@@ -255,12 +260,28 @@ export function PartnerPortalPage() {
     return resolvePartnerSubmissionTestTitle(row, tests, locale)
   }
 
+  async function onReportNotificationSelect(item: PortalReportNotificationItem) {
+    setTab('list')
+    setEditingGroupKey(null)
+    setRequestsSearchQuery('')
+    if (rows.length === 0) await loadRows()
+    setHighlightSubmissionId(item.id)
+  }
+
   async function downloadPdf(row: PartnerSubmissionRow) {
     if (!row.pdf_storage_path) return
     const exp = row.pdf_expires_at ? new Date(row.pdf_expires_at).getTime() : 0
     if (exp <= Date.now()) return
 
     setPdfBusyId(row.id)
+    const markRes = await markPartnerReportOpened(row.id)
+    if (markRes.ok && markRes.opened_at) {
+      setRows((prev) =>
+        prev.map((r) =>
+          r.id === row.id ? { ...r, report_first_opened_at: markRes.opened_at! } : r,
+        ),
+      )
+    }
     const res = await createPartnerPdfDownloadUrl(row.pdf_storage_path)
     setPdfBusyId(null)
     if (!res.ok || !res.url) return
@@ -416,8 +437,7 @@ export function PartnerPortalPage() {
               </label>
               <label className="block text-sm font-semibold text-urgen-navy">
                 {m.password}
-                <input
-                  type="password"
+                <PasswordInput
                   autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -445,6 +465,7 @@ export function PartnerPortalPage() {
             <Logo />
           </Link>
           <div className="flex flex-wrap items-center gap-3">
+            <PartnerReportNotificationsBell onSelect={onReportNotificationSelect} />
             <LanguageSwitcher />
             <span className="text-sm text-slate-600">
               {m.welcome}
@@ -644,6 +665,8 @@ export function PartnerPortalPage() {
                       setEditingGroupKey(null)
                       void loadRows()
                     }}
+                    highlightSubmissionId={highlightSubmissionId}
+                    onHighlightHandled={() => setHighlightSubmissionId(null)}
                     testTitle={testTitle}
                     agePretty={agePretty}
                     statusLabel={statusLabel}
@@ -669,6 +692,8 @@ function PartnerRequestGroup({
   onStartEdit,
   onCancelEdit,
   onSaved,
+  highlightSubmissionId,
+  onHighlightHandled,
   testTitle,
   agePretty,
   statusLabel,
@@ -688,9 +713,33 @@ function PartnerRequestGroup({
   statusLabel: (status: string) => string
   statusBadgeClass: (status: string) => string
   pdfBusyId: string | null
+  highlightSubmissionId: string | null
+  onHighlightHandled: () => void
   onDownloadPdf: (row: PartnerSubmissionRow) => void | Promise<void>
 }) {
   const canEdit = canEditPartnerSubmissionGroup(group)
+
+  useEffect(() => {
+    if (!highlightSubmissionId) return
+    const inGroup = group.items.some((row) => row.id === highlightSubmissionId)
+    if (!inGroup) return
+
+    const scrollToTarget = (attempt = 0) => {
+      const el = document.getElementById(`partner-submission-${highlightSubmissionId}`)
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        return
+      }
+      if (attempt < 24) window.setTimeout(() => scrollToTarget(attempt + 1), 100)
+    }
+
+    const t1 = window.setTimeout(() => scrollToTarget(0), 80)
+    const t2 = window.setTimeout(() => onHighlightHandled(), 4000)
+    return () => {
+      window.clearTimeout(t1)
+      window.clearTimeout(t2)
+    }
+  }, [highlightSubmissionId, group, onHighlightHandled])
 
   if (editing) {
     return (
@@ -729,8 +778,18 @@ function PartnerRequestGroup({
           const expired = isPartnerPdfExpired(row)
           const pdfReady = row.status === 'done' && row.pdf_storage_path && !expired
 
+          const highlighted = highlightSubmissionId === row.id
+
           return (
-            <li key={row.id} className="rounded-xl border border-slate-300 bg-white p-3 shadow-sm">
+            <li
+              key={row.id}
+              id={`partner-submission-${row.id}`}
+              className={`rounded-xl border bg-white p-3 shadow-sm transition ${
+                highlighted
+                  ? 'border-urgen-purple ring-2 ring-urgen-purple/40'
+                  : 'border-slate-300'
+              }`}
+            >
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <p className="font-medium text-urgen-navy">{testTitle(row)}</p>
                 <span
@@ -773,6 +832,17 @@ function PartnerRequestGroup({
                 )}
                 {row.status === 'done' && expired && (
                   <p className="text-xs text-slate-600">{m.pdfExpired}</p>
+                )}
+                {row.report_first_opened_at && (
+                  <p className="text-xs font-medium text-slate-700">
+                    {m.reportFirstOpened.replace(
+                      '{date}',
+                      new Date(row.report_first_opened_at).toLocaleString(
+                        locale === 'ar' ? 'ar-IQ' : 'en-US',
+                        { dateStyle: 'medium', timeStyle: 'short' },
+                      ),
+                    )}
+                  </p>
                 )}
                 {pdfReady && (
                   <Button

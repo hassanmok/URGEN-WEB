@@ -11,6 +11,10 @@ export const messagesAr = {
     switchToAr: "التبديل إلى العربية",
     switchToEn: "Switch to English",
   },
+  form: {
+    showPassword: "إظهار كلمة المرور",
+    hidePassword: "إخفاء كلمة المرور",
+  },
   nav: {
     main: "التنقل الرئيسي",
     mobile: "التنقل للجوال",
@@ -728,6 +732,7 @@ export const messagesAr = {
     pdfExpiredAt: "انتهت صلاحية التحميل في",
     pdfExpired:
       "لا يمكن تحميل التقرير بعد هذا التاريخ. تواصل مع URGEN أو انتظر إعادة رفع الملف من الإدارة.",
+    reportFirstOpened: "تم فتح هذا التقرير في: {date}",
     rejectionReason: "سبب الرفض",
     dateSubmitted: "تاريخ الإرسال",
     staffPortalBlocked:
@@ -736,6 +741,12 @@ export const messagesAr = {
     staffPortalAdmin: "لوحة الإدارة",
     backHome: "العودة للموقع",
     staffPortalDoctor: "بوابة الأطباء",
+    reportNotificationsTitle: "تقارير جاهزة",
+    reportNotificationsCount: "{n} تقرير جاهز للتحميل",
+    reportNotificationsEmpty: "لا توجد تقارير جديدة.",
+    reportNotificationsLoading: "جاري التحديث…",
+    reportNotificationsReady: "التقرير جاهز — اضغط للعرض والتحميل",
+    reportNotificationsClose: "إغلاق الإشعارات",
     editRequest: "تعديل الطلب",
     editRequestTitle: "تعديل طلب الفحص",
     editRequestHint: "يمكن التعديل فقط قبل قبول الإدارة للطلب.",
@@ -888,6 +899,13 @@ export const messagesAr = {
     resultPdfExpiredAt: "انتهت صلاحية التحميل في",
     resultPdfExpired:
       "لا يمكن تحميل التقرير بعد هذا التاريخ. تواصل مع URGEN أو انتظر إعادة رفع الملف من الإدارة.",
+    reportFirstOpened: "تم فتح هذا التقرير في: {date}",
+    reportNotificationsTitle: "تقارير جاهزة",
+    reportNotificationsCount: "{n} تقرير جاهز للتحميل",
+    reportNotificationsEmpty: "لا توجد تقارير جديدة.",
+    reportNotificationsLoading: "جاري التحديث…",
+    reportNotificationsReady: "التقرير جاهز — اضغط للعرض والتحميل",
+    reportNotificationsClose: "إغلاق الإشعارات",
     editCase: "تعديل الطلب",
     editCaseTitle: "تعديل حالة المريض",
     editCaseHint: "يمكن التعديل فقط قبل قبول الإدارة للطلب.",
@@ -973,6 +991,10 @@ export const messagesEn = {
     enShort: "EN",
     switchToAr: "Switch to Arabic",
     switchToEn: "Switch to English",
+  },
+  form: {
+    showPassword: "Show password",
+    hidePassword: "Hide password",
   },
   nav: {
     main: "Main navigation",
@@ -1704,6 +1726,7 @@ export const messagesEn = {
     pdfExpiredAt: "Download validity ended on",
     pdfExpired:
       "The report can no longer be downloaded after this time. Contact URGEN or wait for admin to upload again.",
+    reportFirstOpened: "This report was first opened on: {date}",
     rejectionReason: "Rejection reason",
     dateSubmitted: "Submitted",
     staffPortalBlocked:
@@ -1712,6 +1735,12 @@ export const messagesEn = {
     staffPortalAdmin: "Admin dashboard",
     backHome: "Back to website",
     staffPortalDoctor: "Doctor portal",
+    reportNotificationsTitle: "Ready reports",
+    reportNotificationsCount: "{n} report(s) ready to download",
+    reportNotificationsEmpty: "No new reports.",
+    reportNotificationsLoading: "Updating…",
+    reportNotificationsReady: "Report ready — tap to view and download",
+    reportNotificationsClose: "Close notifications",
     editRequest: "Edit request",
     editRequestTitle: "Edit test request",
     editRequestHint: "You can edit only before admin accepts the request.",
@@ -1868,6 +1897,13 @@ export const messagesEn = {
     resultPdfExpiredAt: "Download expired on",
     resultPdfExpired:
       "The report can no longer be downloaded. Contact URGEN or wait for admin to upload again.",
+    reportFirstOpened: "This report was first opened on: {date}",
+    reportNotificationsTitle: "Ready reports",
+    reportNotificationsCount: "{n} report(s) ready to download",
+    reportNotificationsEmpty: "No new reports.",
+    reportNotificationsLoading: "Updating…",
+    reportNotificationsReady: "Report ready — tap to view and download",
+    reportNotificationsClose: "Close notifications",
     editCase: "Edit request",
     editCaseTitle: "Edit patient case",
     editCaseHint: "You can edit only before admin accepts the request.",

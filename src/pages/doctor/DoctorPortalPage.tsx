@@ -2,11 +2,14 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { LanguageSwitcher } from '../../components/layout/LanguageSwitcher'
 import { Button } from '../../components/ui/Button'
+import { PasswordInput } from '../../components/ui/PasswordInput'
 import { Logo } from '../../components/Logo'
 import { DoctorAnalyticsPanel } from '../../components/doctor/DoctorAnalyticsPanel'
 import { DoctorCaseSubmitPanel } from '../../components/doctor/DoctorCaseSubmitPanel'
 import { DoctorMyCasesPanel } from '../../components/doctor/DoctorMyCasesPanel'
+import { DoctorReportNotificationsBell } from '../../components/portal/DoctorReportNotificationsBell'
 import { supabase } from '../../lib/supabase'
+import type { PortalReportNotificationItem } from '../../lib/portalReportNotifications'
 import { fetchDoctorProfile, resolveDoctorLoginEmail } from '../../lib/doctorAccess'
 import { fetchPartnerLabProfile } from '../../lib/partnerAccess'
 import { useLocaleContext } from '../../i18n/useLocaleContext'
@@ -32,6 +35,7 @@ export function DoctorPortalPage() {
   const [password, setPassword] = useState('')
   const [loginErr, setLoginErr] = useState<string | null>(null)
   const [loginBusy, setLoginBusy] = useState(false)
+  const [highlightCaseId, setHighlightCaseId] = useState<string | null>(null)
 
   async function refreshSession() {
     setChecking(true)
@@ -103,6 +107,11 @@ export function DoctorPortalPage() {
     if (supabase) await supabase.auth.signOut()
     setDoctorOk(false)
     setDisplayName(null)
+  }
+
+  function onReportNotificationSelect(item: PortalReportNotificationItem) {
+    setHighlightCaseId(item.id)
+    navigate('/doctor/my-cases')
   }
 
   if (!supabase) {
@@ -192,8 +201,7 @@ export function DoctorPortalPage() {
               </label>
               <label className="block text-sm font-semibold text-urgen-navy">
                 {m.password}
-                <input
-                  type="password"
+                <PasswordInput
                   autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -223,6 +231,7 @@ export function DoctorPortalPage() {
             <Logo />
           </Link>
           <div className="flex flex-wrap items-center gap-3">
+            <DoctorReportNotificationsBell onSelect={onReportNotificationSelect} />
             <LanguageSwitcher />
             <span className="text-sm text-slate-600">
               {m.welcome}
@@ -252,7 +261,16 @@ export function DoctorPortalPage() {
           <Route index element={<Navigate to="analytics" replace />} />
           <Route path="analytics" element={<DoctorAnalyticsPanel m={m} />} />
           <Route path="submit" element={<DoctorCaseSubmitPanel m={m} />} />
-          <Route path="my-cases" element={<DoctorMyCasesPanel m={m} />} />
+          <Route
+            path="my-cases"
+            element={
+              <DoctorMyCasesPanel
+                m={m}
+                highlightCaseId={highlightCaseId}
+                onHighlightHandled={() => setHighlightCaseId(null)}
+              />
+            }
+          />
           <Route path="*" element={<Navigate to="analytics" replace />} />
         </Routes>
       </main>

@@ -263,6 +263,22 @@ export interface Database {
         >;
         Relationships: [];
       };
+      partner_report_ready_seen: {
+        Row: {
+          partner_user_id: string;
+          submission_id: string;
+          seen_at: string;
+        };
+        Insert: {
+          partner_user_id: string;
+          submission_id: string;
+          seen_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["partner_report_ready_seen"]["Insert"]
+        >;
+        Relationships: [];
+      };
       partner_submissions: {
         Row: {
           id: string;
@@ -276,6 +292,7 @@ export interface Database {
           status: string;
           pdf_storage_path: string | null;
           pdf_expires_at: string | null;
+          report_first_opened_at: string | null;
           rejection_reason: string | null;
           created_at: string | null;
           updated_at: string | null;
@@ -319,6 +336,22 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["doctor_users"]["Insert"]>;
         Relationships: [];
       };
+      doctor_report_ready_seen: {
+        Row: {
+          doctor_user_id: string;
+          case_id: string;
+          seen_at: string;
+        };
+        Insert: {
+          doctor_user_id: string;
+          case_id: string;
+          seen_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["doctor_report_ready_seen"]["Insert"]
+        >;
+        Relationships: [];
+      };
       doctor_cases: {
         Row: {
           id: string;
@@ -342,6 +375,7 @@ export interface Database {
           pdf_storage_path: string | null;
           pdf_expires_at: string | null;
           result_value: string | null;
+          report_first_opened_at: string | null;
           created_at: string | null;
           updated_at: string | null;
         };
@@ -456,6 +490,10 @@ export interface Database {
         Args: Record<PropertyKey, never>;
         Returns: string[];
       };
+      partner_submission_mark_report_opened: {
+        Args: { p_submission_id: string };
+        Returns: string;
+      };
       get_my_doctor_profile: {
         Args: Record<PropertyKey, never>;
         Returns: { display_name: string }[];
@@ -482,6 +520,10 @@ export interface Database {
           p_rejection_reason?: string | null;
         };
         Returns: undefined;
+      };
+      doctor_case_mark_report_opened: {
+        Args: { p_case_id: string };
+        Returns: string;
       };
     };
     Enums: Record<string, never>;

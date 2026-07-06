@@ -24,6 +24,22 @@
   ::selection {
     @apply bg-urgen-purple/25 text-urgen-navy;
   }
+
+  /* إخفاء زر إظهار كلمة المرور المدمج في Edge / Chrome — نستخدم زر العين الخاص بالتطبيق */
+  .password-input-field::-ms-reveal,
+  .password-input-field::-ms-clear {
+    display: none;
+  }
+
+  .password-input-field::-webkit-textfield-decoration-container {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .password-input-field::-webkit-credentials-auto-fill-button {
+    visibility: hidden;
+    pointer-events: none;
+  }
 }
 
 @utility container-urgen {

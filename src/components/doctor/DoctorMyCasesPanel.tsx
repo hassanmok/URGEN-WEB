@@ -7,6 +7,7 @@ import {
   buildRequestFormImageContext,
   createDoctorCaseFileDownloadUrl,
   createDoctorResultPdfDownloadUrl,
+  markDoctorReportOpened,
   doctorCaseMatchesPatientSearch,
   doctorDiseaseTypeLabel,
   fetchDoctorCaseFiles,
@@ -26,6 +27,8 @@ import type { Messages } from '../../i18n/messages'
 
 type Props = {
   m: Messages['doctorPortal']
+  highlightCaseId?: string | null
+  onHighlightHandled?: () => void
 }
 
 const caseStatusClass: Record<string, string> = {
@@ -36,7 +39,7 @@ const caseStatusClass: Record<string, string> = {
   done: 'bg-emerald-100 text-emerald-900 ring-emerald-300/80',
 }
 
-export function DoctorMyCasesPanel({ m }: Props) {
+export function DoctorMyCasesPanel({ m, highlightCaseId, onHighlightHandled }: Props) {
   const { locale } = useLocaleContext()
   const { tests } = useTests()
   const [cases, setCases] = useState<DoctorCaseRow[]>([])
@@ -124,6 +127,8 @@ export function DoctorMyCasesPanel({ m }: Props) {
               caseTests={testsByCase.get(c.id) ?? []}
               catalogTests={tests}
               diseaseLabels={diseaseLabels}
+              highlighted={highlightCaseId === c.id}
+              onHighlighted={() => onHighlightHandled?.()}
               onUpdated={() => void loadCases()}
             />
           ))}
@@ -140,6 +145,8 @@ function CaseCard({
   caseTests,
   catalogTests,
   diseaseLabels,
+  highlighted = false,
+  onHighlighted,
   onUpdated,
 }: {
   row: DoctorCaseRow
@@ -153,6 +160,8 @@ function CaseCard({
     pediatric: string
     other: string
   }
+  highlighted?: boolean
+  onHighlighted?: () => void
   onUpdated: () => void
 }) {
   const [files, setFiles] = useState<DoctorCaseFileRow[]>([])
@@ -161,6 +170,7 @@ function CaseCard({
   const [resultPdfBusy, setResultPdfBusy] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [editing, setEditing] = useState(false)
+  const [reportOpenedAt, setReportOpenedAt] = useState(row.report_first_opened_at)
   const status = normalizeDoctorCaseStatus(row.status)
   const canEdit = status === 'sent'
   const resultExpired = isDoctorResultPdfExpired(row)
@@ -186,6 +196,10 @@ function CaseCard({
 
   async function downloadResultPdf(storagePath: string) {
     setResultPdfBusy(true)
+    const markRes = await markDoctorReportOpened(row.id)
+    if (markRes.ok && markRes.opened_at) {
+      setReportOpenedAt(markRes.opened_at)
+    }
     const res = await createDoctorResultPdfDownloadUrl(storagePath)
     setResultPdfBusy(false)
     if (res.ok && res.url) window.open(res.url, '_blank', 'noopener,noreferrer')
@@ -251,6 +265,26 @@ function CaseCard({
       })
     : '—'
 
+  useEffect(() => {
+    if (!highlighted) return
+
+    const scrollToTarget = (attempt = 0) => {
+      const el = document.getElementById(`doctor-case-${row.id}`)
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        return
+      }
+      if (attempt < 24) window.setTimeout(() => scrollToTarget(attempt + 1), 100)
+    }
+
+    const t1 = window.setTimeout(() => scrollToTarget(0), 80)
+    const t2 = window.setTimeout(() => onHighlighted?.(), 4000)
+    return () => {
+      window.clearTimeout(t1)
+      window.clearTimeout(t2)
+    }
+  }, [highlighted, row.id, onHighlighted])
+
   if (editing && canEdit) {
     return (
       <li>
@@ -269,7 +303,12 @@ function CaseCard({
   }
 
   return (
-    <li className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <li
+      id={`doctor-case-${row.id}`}
+      className={`rounded-2xl border bg-white p-5 shadow-sm transition ${
+        highlighted ? 'border-urgen-purple ring-2 ring-urgen-purple/40' : 'border-slate-200'
+      }`}
+    >
       <button type="button" className="w-full text-start" onClick={() => setExpanded((v) => !v)}>
         <div className="flex flex-wrap items-start justify-between gap-2">
           <p className="font-bold text-urgen-navy">{row.patient_full_name}</p>
@@ -348,6 +387,17 @@ function CaseCard({
             {resultPdfBusy ? '…' : m.resultPdfDownload}
           </Button>
         </div>
+      )}
+      {reportOpenedAt && (
+        <p className="mt-2 text-xs font-medium text-slate-700">
+          {m.reportFirstOpened.replace(
+            '{date}',
+            new Date(reportOpenedAt).toLocaleString(locale === 'ar' ? 'ar-IQ' : 'en-US', {
+              dateStyle: 'medium',
+              timeStyle: 'short',
+            }),
+          )}
+        </p>
       )}
       {canEdit && (
         <div className="mt-3">
