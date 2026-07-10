@@ -54,15 +54,22 @@ export function Navbar() {
     }
   }, [searchOpen])
 
-  const links = [
-    { to: '/', label: m.nav.home },
-    { to: '/tests', label: m.nav.tests },
-    { to: '/technology', label: m.nav.technology },
-    { to: '/about', label: m.nav.about },
-    { to: '/events', label: m.nav.events },
-    { to: '/news', label: m.nav.news },
-    { to: '/contact', label: m.nav.contact },
+  const links: Array<
+    | { kind: 'internal'; to: string; label: string }
+    | { kind: 'external'; href: string; label: string }
+  > = [
+    { kind: 'internal', to: '/', label: m.nav.home },
+    { kind: 'internal', to: '/tests', label: m.nav.tests },
+    { kind: 'external', href: 'https://genome.urgenlab.com/', label: m.nav.genome },
+    { kind: 'internal', to: '/technology', label: m.nav.technology },
+    { kind: 'internal', to: '/about', label: m.nav.about },
+    { kind: 'internal', to: '/events', label: m.nav.events },
+    { kind: 'internal', to: '/news', label: m.nav.news },
+    { kind: 'internal', to: '/contact', label: m.nav.contact },
   ]
+
+  const navItemClass =
+    'rounded-lg px-5 py-4 text-sm font-semibold transition text-slate-600 hover:bg-slate-50 hover:text-urgen-navy'
 
   const desktopSearchOverlay =
     portalReady &&
@@ -126,22 +133,34 @@ export function Navbar() {
           className="hidden min-w-0 flex-1 items-center justify-center gap-1 md:flex lg:justify-start lg:gap-1 xl:flex-none xl:justify-start"
           aria-label={m.nav.main}
         >
-          {links.map((l) => (
-            <NavLink
-              key={l.to}
-              to={l.to}
-              className={({ isActive }) =>
-                `rounded-lg px-5 py-4 text-sm font-semibold transition ${
-                  isActive
-                    ? 'bg-urgen-purple/10 text-urgen-purple'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-urgen-navy'
-                }`
-              }
-              end={l.to === '/'}
-            >
-              {l.label}
-            </NavLink>
-          ))}
+          {links.map((l) =>
+            l.kind === 'external' ? (
+              <a
+                key={l.href}
+                href={l.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={navItemClass}
+              >
+                {l.label}
+              </a>
+            ) : (
+              <NavLink
+                key={l.to}
+                to={l.to}
+                className={({ isActive }) =>
+                  `rounded-lg px-5 py-4 text-sm font-semibold transition ${
+                    isActive
+                      ? 'bg-urgen-purple/10 text-urgen-purple'
+                      : 'text-slate-600 hover:bg-slate-50 hover:text-urgen-navy'
+                  }`
+                }
+                end={l.to === '/'}
+              >
+                {l.label}
+              </NavLink>
+            ),
+          )}
         </nav>
 
         <div className="flex shrink-0 items-center gap-2">
@@ -203,21 +222,34 @@ export function Navbar() {
         >
           <SearchBar className="mb-4 w-full" onNavigate={() => setOpen(false)} />
           <nav className="flex flex-col gap-1" aria-label={m.nav.mobile}>
-            {links.map((l) => (
-              <NavLink
-                key={l.to}
-                to={l.to}
-                onClick={() => setOpen(false)}
-                className={({ isActive }) =>
-                  `rounded-xl px-4 py-3 text-base font-semibold ${
-                    isActive ? 'bg-urgen-purple/10 text-urgen-purple' : 'text-slate-700'
-                  }`
-                }
-                end={l.to === '/'}
-              >
-                {l.label}
-              </NavLink>
-            ))}
+            {links.map((l) =>
+              l.kind === 'external' ? (
+                <a
+                  key={l.href}
+                  href={l.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setOpen(false)}
+                  className="rounded-xl px-4 py-3 text-base font-semibold text-slate-700"
+                >
+                  {l.label}
+                </a>
+              ) : (
+                <NavLink
+                  key={l.to}
+                  to={l.to}
+                  onClick={() => setOpen(false)}
+                  className={({ isActive }) =>
+                    `rounded-xl px-4 py-3 text-base font-semibold ${
+                      isActive ? 'bg-urgen-purple/10 text-urgen-purple' : 'text-slate-700'
+                    }`
+                  }
+                  end={l.to === '/'}
+                >
+                  {l.label}
+                </NavLink>
+              ),
+            )}
           </nav>
         </div>
       )}
