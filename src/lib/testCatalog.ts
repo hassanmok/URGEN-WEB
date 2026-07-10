@@ -1,12 +1,15 @@
 import type { TestRow } from '../types/database'
 
 const CATEGORY_LABELS: Record<string, { ar: string; en: string }> = {
-  immunohistochemistry: { ar: 'كيمياء مناعية نسيجية', en: 'Immunohistochemistry' },
-  oncology_somatic: { ar: 'أورام / جسيمي', en: 'Oncology / somatic' },
-  hereditary_cancer: { ar: 'سرطان وراثي', en: 'Hereditary cancer' },
-  reproductive: { ar: 'إنجاب', en: 'Reproductive' },
-  nipt: { ar: 'NIPT', en: 'NIPT' },
-  pediatric_newborn: { ar: 'أطفال / حديثو الولادة', en: 'Pediatric / newborn' },
+  immunohistochemistry: { ar: 'Immunohistochemistry', en: 'Immunohistochemistry' },
+  oncology_somatic: { ar: 'Oncology', en: 'Oncology' },
+  hereditary_cancer: { ar: 'Hereditary Cancer Genetics', en: 'Hereditary Cancer Genetics' },
+  reproductive: { ar: 'Reproductive Health', en: 'Reproductive Health' },
+  nipt: {
+    ar: 'Non-Invasive Prenatal Testing (NIPT)',
+    en: 'Non-Invasive Prenatal Testing (NIPT)',
+  },
+  pediatric_newborn: { ar: 'Pediatric', en: 'Pediatric' },
 }
 
 function categoryLabel(category: string | null | undefined, locale: string): string | null {

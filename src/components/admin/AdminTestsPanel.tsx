@@ -310,8 +310,8 @@ export function AdminTestsPanel({ m }: Props) {
         )}
       </section>
 
-      <div className="grid gap-8 xl:grid-cols-[1.15fr_1fr]">
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
+        <section className="min-w-0 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-lg font-bold text-urgen-navy">
             {editingTestId ? m.testsEditTitle : m.testsAddTitle}
           </h2>
@@ -452,7 +452,7 @@ export function AdminTestsPanel({ m }: Props) {
           </form>
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="min-w-0 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-lg font-bold text-urgen-navy">{m.testsListTitle}</h2>
           {loading ? (
             <p className="mt-6 text-sm text-slate-500">{m.testsLoading}</p>

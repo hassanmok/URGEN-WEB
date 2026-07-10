@@ -1,22 +1,14 @@
 import type { TestCategoryRecord } from '../types/testCategory'
 import type { Locale } from '../i18n/messages'
 
-const I18N_FALLBACK_AR: Record<string, string> = {
-  immunohistochemistry: 'الكيمياء المناعية النسيجية',
-  oncology_somatic: 'الأورام والجسيمي',
-  hereditary_cancer: 'السرطان الوراثي',
-  reproductive: 'الإنجاب وصحة المرأة/الرجل',
-  nipt: 'NIPT — قبل الولادة غير جراحي',
-  pediatric_newborn: 'الأطفال وحديثو الولادة',
-}
-
-const I18N_FALLBACK_EN: Record<string, string> = {
+/** أسماء الأصناف كما في عمود Category بملف URGEN List Test.xlsx */
+const EXCEL_CATEGORY_TITLES: Record<string, string> = {
   immunohistochemistry: 'Immunohistochemistry',
-  oncology_somatic: 'Oncology / Somatic',
-  hereditary_cancer: 'Hereditary cancer',
-  reproductive: 'Reproductive & women/men health',
-  nipt: 'NIPT (non-invasive prenatal testing)',
-  pediatric_newborn: 'Pediatric & newborn',
+  oncology_somatic: 'Oncology',
+  hereditary_cancer: 'Hereditary Cancer Genetics',
+  reproductive: 'Reproductive Health',
+  nipt: 'Non-Invasive Prenatal Testing (NIPT)',
+  pediatric_newborn: 'Pediatric',
 }
 
 export function getCategoryLabel(
@@ -27,10 +19,10 @@ export function getCategoryLabel(
   if (!slug) return undefined
   const hit = categories.find((c) => c.slug === slug)
   if (hit) {
-    return locale === 'ar' ? hit.title_ar : (hit.title_en?.trim() || hit.title_ar)
+    const fromDb = locale === 'ar' ? hit.title_ar : (hit.title_en?.trim() || hit.title_ar)
+    if (fromDb?.trim()) return fromDb.trim()
   }
-  const fb = locale === 'ar' ? I18N_FALLBACK_AR[slug] : I18N_FALLBACK_EN[slug]
-  return fb ?? slug
+  return EXCEL_CATEGORY_TITLES[slug] ?? slug
 }
 
 export function sortCategories<T extends { slug: string; sort_order: number }>(

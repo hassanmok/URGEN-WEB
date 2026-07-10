@@ -18,12 +18,12 @@ delete from public.tests;
 -- 2) التأكد من التصنيفات
 insert into public.test_categories (slug, title_ar, title_en, sort_order)
 values
-  ('immunohistochemistry', 'الكيمياء المناعية النسيجية', 'Immunohistochemistry', 1),
-  ('oncology_somatic', 'الأورام والجسيمي', 'Oncology / Somatic', 2),
-  ('hereditary_cancer', 'السرطان الوراثي', 'Hereditary cancer', 3),
-  ('reproductive', 'الإنجاب وصحة المرأة/الرجل', 'Reproductive & women/men health', 4),
-  ('nipt', 'NIPT — قبل الولادة غير جراحي', 'NIPT (non-invasive prenatal testing)', 5),
-  ('pediatric_newborn', 'الأطفال وحديثو الولادة', 'Pediatric & newborn', 6)
+  ('immunohistochemistry', 'Immunohistochemistry', 'Immunohistochemistry', 1),
+  ('oncology_somatic', 'Oncology', 'Oncology', 2),
+  ('hereditary_cancer', 'Hereditary Cancer Genetics', 'Hereditary Cancer Genetics', 3),
+  ('reproductive', 'Reproductive Health', 'Reproductive Health', 4),
+  ('nipt', 'Non-Invasive Prenatal Testing (NIPT)', 'Non-Invasive Prenatal Testing (NIPT)', 5),
+  ('pediatric_newborn', 'Pediatric', 'Pediatric', 6)
 on conflict (slug) do update set
   title_ar = excluded.title_ar,
   title_en = excluded.title_en,
