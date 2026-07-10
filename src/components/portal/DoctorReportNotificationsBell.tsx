@@ -9,7 +9,7 @@ import {
 } from '../../lib/doctorCasesStore'
 import {
   fetchSeenDoctorReportIds,
-  listUnseenDoctorReadyReports,
+  listDoctorReadyReports,
   markDoctorReportReadySeen,
   type PortalReportNotificationItem,
 } from '../../lib/portalReportNotifications'
@@ -39,7 +39,7 @@ export function DoctorReportNotificationsBell({ onSelect }: Props) {
       }
 
       setItems(
-        listUnseenDoctorReadyReports(casesRes.rows, seen, (row) => {
+        listDoctorReadyReports(casesRes.rows, seen, (row) => {
           const caseTests = testsByCase.get(row.id) ?? []
           if (caseTests.length === 0) return '—'
           if (caseTests.length === 1) {
@@ -57,7 +57,11 @@ export function DoctorReportNotificationsBell({ onSelect }: Props) {
 
   async function handleSelect(item: PortalReportNotificationItem) {
     await markDoctorReportReadySeen(item.id)
-    setItems((prev) => prev.filter((x) => x.id !== item.id))
+    setItems((prev) =>
+      prev.map((x) =>
+        x.id === item.id ? { ...x, seen: true, unread: false } : x,
+      ),
+    )
     onSelect(item)
   }
 

@@ -2,18 +2,31 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { createPortal } from 'react-dom'
 import { useLocaleContext } from '../../i18n/useLocaleContext'
 import type { Messages } from '../../i18n/messages'
-import { getUnseenSubmissionGroups } from '../../lib/adminPartnerSubmissionSeen'
+import { markDoctorCaseSeen, fetchSeenDoctorCaseIds } from '../../lib/adminDoctorCaseSeen'
+import {
+  buildAdminNotificationItems,
+  countUnseenAdminNotifications,
+  type AdminNotificationItem,
+  type AdminUnseenCounts,
+} from '../../lib/adminNotifications'
+import {
+  fetchSeenSubmissionGroupKeys,
+  getAdminSubmissionNotificationGroups,
+  markSubmissionGroupSeen,
+} from '../../lib/adminPartnerSubmissionSeen'
+import { fetchAllDoctorCasesAdmin } from '../../lib/doctorCasesStore'
+import { fetchDoctorUsersAdmin } from '../../lib/doctorUsersAdmin'
 import {
   fetchAllPartnerSubmissionsAdmin,
   fetchPartnerLabNamesMap,
-  type PartnerSubmissionGroup,
 } from '../../lib/partnerSubmissionsStore'
 import { supabase } from '../../lib/supabase'
 
 type Props = {
   m: Messages['admin']
-  onOpenGroup: (groupKey: string) => void
-  onUnseenCountChange?: (count: number) => void
+  onOpenPartnerGroup: (groupKey: string) => void
+  onOpenDoctorCase: (caseId: string) => void
+  onUnseenCountChange?: (counts: AdminUnseenCounts) => void
   refreshToken?: number
 }
 
@@ -66,15 +79,15 @@ function useOverlayMenuLayout(open: boolean, anchorRef: React.RefObject<HTMLElem
 
 export function AdminPartnerSubmissionNotifications({
   m,
-  onOpenGroup,
+  onOpenPartnerGroup,
+  onOpenDoctorCase,
   onUnseenCountChange,
   refreshToken = 0,
 }: Props) {
   const { locale } = useLocaleContext()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [unseen, setUnseen] = useState<PartnerSubmissionGroup[]>([])
-  const [labNames, setLabNames] = useState<Map<string, string>>(new Map())
+  const [items, setItems] = useState<AdminNotificationItem[]>([])
   const panelRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -83,26 +96,58 @@ export function AdminPartnerSubmissionNotifications({
 
   const refresh = useCallback(async () => {
     if (!supabase) {
-      setUnseen([])
-      onUnseenCountChange?.(0)
+      setItems([])
+      onUnseenCountChange?.({ partner: 0, doctor: 0, total: 0 })
       return
     }
     setLoading(true)
-    const [list, names] = await Promise.all([
-      fetchAllPartnerSubmissionsAdmin(),
-      fetchPartnerLabNamesMap(),
-    ])
-    setLabNames(names)
-    if (list.ok && list.rows) {
-      const next = await getUnseenSubmissionGroups(list.rows)
-      setUnseen(next)
-      onUnseenCountChange?.(next.length)
-    } else {
-      setUnseen([])
-      onUnseenCountChange?.(0)
+    const [partnerList, labNames, partnerSeen, doctorList, doctorsList, doctorSeen] =
+      await Promise.all([
+        fetchAllPartnerSubmissionsAdmin(),
+        fetchPartnerLabNamesMap(),
+        fetchSeenSubmissionGroupKeys(),
+        fetchAllDoctorCasesAdmin(),
+        fetchDoctorUsersAdmin(),
+        fetchSeenDoctorCaseIds(),
+      ])
+
+    const doctorNames = new Map<string, string>()
+    if (doctorsList.ok && doctorsList.rows) {
+      for (const d of doctorsList.rows) {
+        doctorNames.set(d.user_id, d.display_name)
+      }
     }
+
+    const partnerGroups =
+      partnerList.ok && partnerList.rows
+        ? getAdminSubmissionNotificationGroups(partnerList.rows)
+        : []
+    const doctorCases = doctorList.ok && doctorList.rows ? doctorList.rows : []
+
+    const nextItems = buildAdminNotificationItems({
+      partnerGroups,
+      partnerSeenKeys: partnerSeen,
+      labNames,
+      doctorCases,
+      doctorSeenIds: doctorSeen,
+      doctorNames,
+      labels: {
+        partnerTests: (n) => m.notificationsTests.replace('{n}', String(n)),
+        doctorDiagnosis: '—',
+      },
+    })
+
+    setItems(nextItems)
+    onUnseenCountChange?.(
+      countUnseenAdminNotifications({
+        partnerGroups,
+        partnerSeenKeys: partnerSeen,
+        doctorCases,
+        doctorSeenIds: doctorSeen,
+      }),
+    )
     setLoading(false)
-  }, [onUnseenCountChange])
+  }, [m.notificationsTests, onUnseenCountChange])
 
   useEffect(() => {
     void refresh()
@@ -121,7 +166,7 @@ export function AdminPartnerSubmissionNotifications({
     return () => document.removeEventListener('mousedown', onDocClick)
   }, [open, useOverlayMenu])
 
-  const count = unseen.length
+  const unseenCount = items.filter((item) => !item.seen).length
 
   function formatDate(iso: string | null) {
     if (!iso) return '—'
@@ -131,13 +176,17 @@ export function AdminPartnerSubmissionNotifications({
     })
   }
 
-  function handlePick(groupKey: string) {
-    onOpenGroup(groupKey)
-    setUnseen((prev) => {
-      const next = prev.filter((g) => g.groupKey !== groupKey)
-      onUnseenCountChange?.(next.length)
-      return next
-    })
+  function handlePick(item: AdminNotificationItem) {
+    if (item.kind === 'partner') {
+      onOpenPartnerGroup(item.targetId)
+      void markSubmissionGroupSeen(item.targetId).then(() => void refresh())
+    } else {
+      onOpenDoctorCase(item.targetId)
+      void markDoctorCaseSeen(item.targetId).then(() => void refresh())
+    }
+    setItems((prev) =>
+      prev.map((x) => (x.key === item.key ? { ...x, seen: true } : x)),
+    )
     setOpen(false)
   }
 
@@ -145,9 +194,9 @@ export function AdminPartnerSubmissionNotifications({
     <>
       <div className="border-b border-slate-100 px-4 py-3">
         <p className="text-sm font-bold text-urgen-navy">{m.notificationsTitle}</p>
-        {count > 0 && (
+        {unseenCount > 0 && (
           <p className="mt-0.5 text-xs text-slate-500">
-            {m.notificationsCount.replace('{n}', String(count))}
+            {m.notificationsCount.replace('{n}', String(unseenCount))}
           </p>
         )}
       </div>
@@ -155,36 +204,38 @@ export function AdminPartnerSubmissionNotifications({
         className="overflow-y-auto overscroll-contain"
         style={{ maxHeight: overlayLayout ? overlayLayout.maxHeight - 56 : 320 }}
       >
-        {loading && unseen.length === 0 ? (
+        {loading && items.length === 0 ? (
           <li className="px-4 py-6 text-center text-sm text-slate-500">{m.notificationsLoading}</li>
-        ) : unseen.length === 0 ? (
+        ) : items.length === 0 ? (
           <li className="px-4 py-6 text-center text-sm text-slate-500">{m.notificationsEmpty}</li>
         ) : (
-          unseen.map((group) => {
-            const lab = labNames.get(group.partner_user_id) ?? group.partner_user_id.slice(0, 8)
-            return (
-              <li key={group.groupKey}>
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="w-full border-b border-slate-50 px-4 py-3 text-start transition hover:bg-urgen-purple/5"
-                  onClick={() => handlePick(group.groupKey)}
-                >
-                  <p className="font-semibold text-urgen-navy">{group.patient_full_name}</p>
-                  <p className="mt-0.5 text-xs text-slate-600">
-                    {m.notificationsLab}: {lab}
-                  </p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    {m.notificationsTests.replace('{n}', String(group.items.length))}
-                    {' · '}
-                    <span dir="ltr" className="tabular-nums">
-                      {formatDate(group.created_at)}
-                    </span>
-                  </p>
-                </button>
-              </li>
-            )
-          })
+          items.map((item) => (
+            <li key={item.key}>
+              <button
+                type="button"
+                role="menuitem"
+                className={`w-full border-b border-slate-50 px-4 py-3 text-start transition hover:bg-urgen-purple/5 ${
+                  item.seen ? 'opacity-70' : ''
+                }`}
+                onClick={() => handlePick(item)}
+              >
+                <p className={`text-urgen-navy ${item.seen ? 'font-medium' : 'font-semibold'}`}>
+                  {item.patientName}
+                </p>
+                <p className="mt-0.5 text-xs text-slate-600">
+                  {item.kind === 'partner' ? m.notificationsSourcePartner : m.notificationsSourceDoctor}
+                  : {item.sourceName}
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  {item.detail}
+                  {' · '}
+                  <span dir="ltr" className="tabular-nums">
+                    {formatDate(item.at)}
+                  </span>
+                </p>
+              </button>
+            </li>
+          ))
         )}
       </ul>
     </>
@@ -213,9 +264,9 @@ export function AdminPartnerSubmissionNotifications({
             d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
           />
         </svg>
-        {count > 0 && (
+        {unseenCount > 0 && (
           <span className="absolute -end-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">
-            {count > 99 ? '99+' : count}
+            {unseenCount > 99 ? '99+' : unseenCount}
           </span>
         )}
       </button>

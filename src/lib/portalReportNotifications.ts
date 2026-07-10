@@ -1,10 +1,9 @@
 import { supabase } from './supabase'
 import {
-  isPartnerPdfExpired,
   partnerSubmissionGroupKey,
   type PartnerSubmissionRow,
 } from './partnerSubmissionsStore'
-import { isDoctorResultPdfExpired, type DoctorCaseRow } from './doctorCasesStore'
+import type { DoctorCaseRow } from './doctorCasesStore'
 
 export type PortalReportNotificationItem = {
   id: string
@@ -12,6 +11,8 @@ export type PortalReportNotificationItem = {
   patientName: string
   label: string
   at: string | null
+  seen: boolean
+  unread: boolean
 }
 
 const PARTNER_SEEN_KEY = 'urgen_partner_report_ready_seen_v1'
@@ -66,31 +67,48 @@ export async function markPartnerReportReadySeen(submissionId: string): Promise<
   if (error) console.error('[partner_report_ready_seen upsert]', error.message)
 }
 
+function sortReportNotifications(items: PortalReportNotificationItem[]): PortalReportNotificationItem[] {
+  return [...items].sort((a, b) => {
+    if (a.unread !== b.unread) return a.unread ? -1 : 1
+    if (a.seen !== b.seen) return a.seen ? 1 : -1
+    const ta = a.at ? new Date(a.at).getTime() : 0
+    const tb = b.at ? new Date(b.at).getTime() : 0
+    return tb - ta
+  })
+}
+
+function partnerReportRowToItem(
+  row: PartnerSubmissionRow,
+  seenIds: Set<string>,
+  testTitleFor: (row: Pick<PartnerSubmissionRow, 'test_slug' | 'test_title_override'>) => string,
+): PortalReportNotificationItem {
+  const seen = seenIds.has(row.id)
+  return {
+    id: row.id,
+    groupKey: partnerSubmissionGroupKey(row),
+    patientName: row.patient_full_name,
+    label: testTitleFor(row),
+    at: row.updated_at ?? row.created_at,
+    seen,
+    unread: row.status === 'done' && !seen,
+  }
+}
+
+export function listPartnerReadyReports(
+  rows: PartnerSubmissionRow[],
+  seenIds: Set<string>,
+  testTitleFor: (row: Pick<PartnerSubmissionRow, 'test_slug' | 'test_title_override'>) => string,
+): PortalReportNotificationItem[] {
+  return sortReportNotifications(rows.map((row) => partnerReportRowToItem(row, seenIds, testTitleFor)))
+}
+
+/** @deprecated Use listPartnerReadyReports — kept for callers that only need unseen count */
 export function listUnseenPartnerReadyReports(
   rows: PartnerSubmissionRow[],
   seenIds: Set<string>,
   testTitleFor: (row: Pick<PartnerSubmissionRow, 'test_slug' | 'test_title_override'>) => string,
 ): PortalReportNotificationItem[] {
-  return rows
-    .filter(
-      (row) =>
-        row.status === 'done' &&
-        row.pdf_storage_path &&
-        !isPartnerPdfExpired(row) &&
-        !seenIds.has(row.id),
-    )
-    .map((row) => ({
-      id: row.id,
-      groupKey: partnerSubmissionGroupKey(row),
-      patientName: row.patient_full_name,
-      label: testTitleFor(row),
-      at: row.updated_at ?? row.created_at,
-    }))
-    .sort((a, b) => {
-      const ta = a.at ? new Date(a.at).getTime() : 0
-      const tb = b.at ? new Date(b.at).getTime() : 0
-      return tb - ta
-    })
+  return listPartnerReadyReports(rows, seenIds, testTitleFor).filter((item) => item.unread)
 }
 
 export async function fetchSeenDoctorReportIds(): Promise<Set<string>> {
@@ -126,29 +144,38 @@ export async function markDoctorReportReadySeen(caseId: string): Promise<void> {
   if (error) console.error('[doctor_report_ready_seen upsert]', error.message)
 }
 
+function doctorCaseRowToItem(
+  row: DoctorCaseRow,
+  seenIds: Set<string>,
+  testLabelFor: (row: DoctorCaseRow) => string,
+): PortalReportNotificationItem {
+  const seen = seenIds.has(row.id)
+  return {
+    id: row.id,
+    groupKey: row.id,
+    patientName: row.patient_full_name,
+    label: testLabelFor(row),
+    at: row.updated_at ?? row.created_at,
+    seen,
+    unread: row.status === 'done' && !seen,
+  }
+}
+
+export function listDoctorReadyReports(
+  cases: DoctorCaseRow[],
+  seenIds: Set<string>,
+  testLabelFor: (row: DoctorCaseRow) => string,
+): PortalReportNotificationItem[] {
+  return sortReportNotifications(
+    cases.map((row) => doctorCaseRowToItem(row, seenIds, testLabelFor)),
+  )
+}
+
+/** @deprecated Use listDoctorReadyReports */
 export function listUnseenDoctorReadyReports(
   cases: DoctorCaseRow[],
   seenIds: Set<string>,
   testLabelFor: (row: DoctorCaseRow) => string,
 ): PortalReportNotificationItem[] {
-  return cases
-    .filter(
-      (row) =>
-        row.status === 'done' &&
-        row.pdf_storage_path &&
-        !isDoctorResultPdfExpired(row) &&
-        !seenIds.has(row.id),
-    )
-    .map((row) => ({
-      id: row.id,
-      groupKey: row.id,
-      patientName: row.patient_full_name,
-      label: testLabelFor(row),
-      at: row.updated_at ?? row.created_at,
-    }))
-    .sort((a, b) => {
-      const ta = a.at ? new Date(a.at).getTime() : 0
-      const tb = b.at ? new Date(b.at).getTime() : 0
-      return tb - ta
-    })
+  return listDoctorReadyReports(cases, seenIds, testLabelFor).filter((item) => item.unread)
 }

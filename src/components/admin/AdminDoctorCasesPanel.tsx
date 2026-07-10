@@ -23,13 +23,20 @@ import {
   type DoctorCaseTestRow,
   type DoctorResultValue,
 } from '../../lib/doctorCasesStore'
+import { markDoctorCaseSeen } from '../../lib/adminDoctorCaseSeen'
 import { fetchDoctorUsersAdmin } from '../../lib/doctorUsersAdmin'
 import { useTests } from '../../hooks/useTests'
 import type { TestRow } from '../../types/database'
 
 type Props = {
   m: Messages['admin']
+  highlightCaseId?: string | null
+  highlightToken?: number
+  onHighlightHandled?: () => void
+  onSeenChange?: () => void
 }
+
+const HIGHLIGHT_MS = 3000
 
 const statusClass: Record<string, string> = {
   sent: 'bg-blue-100 text-blue-900',
@@ -176,6 +183,7 @@ function CaseCard({
   onReject,
   onPdf,
   onRefreshFiles,
+  highlighted,
 }: {
   row: DoctorCaseRow
   files: DoctorCaseFileRow[]
@@ -190,6 +198,7 @@ function CaseCard({
   onReject: (id: string) => void
   onPdf: (id: string, file: File, resultValue: DoctorResultValue) => void
   onRefreshFiles: () => void
+  highlighted?: boolean
 }) {
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
   const [regeneratingPdf, setRegeneratingPdf] = useState(false)
@@ -290,7 +299,14 @@ function CaseCard({
   }
 
   return (
-    <li className="rounded-2xl border-2 border-slate-300 bg-slate-100 p-5 text-sm shadow-md">
+    <li
+      id={`doctor-case-${row.id}`}
+      className={`rounded-2xl border-2 p-5 text-sm shadow-md transition ${
+        highlighted
+          ? 'border-urgen-purple bg-urgen-purple/10 ring-4 ring-urgen-purple/40 ring-offset-2'
+          : 'border-slate-300 bg-slate-100'
+      }`}
+    >
       <div className="flex flex-wrap items-start justify-between gap-2 border-b border-slate-200 pb-3">
         <div>
           <p className="text-lg font-bold text-urgen-navy">{row.patient_full_name}</p>
@@ -532,7 +548,13 @@ function CaseCard({
   )
 }
 
-export function AdminDoctorCasesPanel({ m }: Props) {
+export function AdminDoctorCasesPanel({
+  m,
+  highlightCaseId,
+  highlightToken = 0,
+  onHighlightHandled,
+  onSeenChange,
+}: Props) {
   const { locale } = useLocaleContext()
   const { tests: catalogTests } = useTests()
   const [rows, setRows] = useState<DoctorCaseRow[]>([])
@@ -544,6 +566,7 @@ export function AdminDoctorCasesPanel({ m }: Props) {
   const [searchQuery, setSearchQuery] = useState('')
   const [busyId, setBusyId] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [activeHighlight, setActiveHighlight] = useState<string | null>(null)
 
   async function acceptCase(id: string) {
     setBusyId(id)
@@ -677,6 +700,42 @@ export function AdminDoctorCasesPanel({ m }: Props) {
     )
   }, [rows, searchQuery, doctorNames, testsByCase, catalogTests, locale])
 
+  useEffect(() => {
+    if (!highlightCaseId || !highlightToken || loading) return
+
+    const inList = filtered.some((r) => r.id === highlightCaseId)
+    if (!inList) return
+
+    setActiveHighlight(highlightCaseId)
+    setSearchQuery('')
+
+    const scrollToTarget = (attempt = 0) => {
+      const el = document.getElementById(`doctor-case-${highlightCaseId}`)
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        return
+      }
+      if (attempt < 24) {
+        window.setTimeout(() => scrollToTarget(attempt + 1), 100)
+      }
+    }
+
+    const t1 = window.setTimeout(() => scrollToTarget(0), 80)
+    const t2 = window.setTimeout(() => {
+      void markDoctorCaseSeen(highlightCaseId).then(() => {
+        onSeenChange?.()
+        onHighlightHandled?.()
+      })
+    }, 400)
+    const t3 = window.setTimeout(() => setActiveHighlight(null), HIGHLIGHT_MS)
+
+    return () => {
+      window.clearTimeout(t1)
+      window.clearTimeout(t2)
+      window.clearTimeout(t3)
+    }
+  }, [highlightCaseId, highlightToken, loading, filtered, onHighlightHandled, onSeenChange])
+
   return (
     <section
       className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
@@ -730,6 +789,7 @@ export function AdminDoctorCasesPanel({ m }: Props) {
                   onReject={(id) => void rejectCase(id)}
                   onPdf={(id, file, resultValue) => void onPdfChange(id, file, resultValue)}
                   onRefreshFiles={() => void reload()}
+                  highlighted={activeHighlight === row.id}
                 />
               ))}
             </ul>

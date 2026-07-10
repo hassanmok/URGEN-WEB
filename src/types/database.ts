@@ -318,6 +318,32 @@ export interface Database {
         >;
         Relationships: [];
       };
+      partner_submission_files: {
+        Row: {
+          id: string;
+          batch_id: string;
+          partner_user_id: string;
+          storage_path: string;
+          file_name: string;
+          mime_type: string | null;
+          byte_size: number | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          batch_id: string;
+          partner_user_id: string;
+          storage_path: string;
+          file_name: string;
+          mime_type?: string | null;
+          byte_size?: number | null;
+          created_at?: string | null;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["partner_submission_files"]["Insert"]
+        >;
+        Relationships: [];
+      };
       doctor_users: {
         Row: {
           user_id: string;
@@ -487,6 +513,14 @@ export interface Database {
         Returns: undefined;
       };
       partner_submission_seen_group_keys: {
+        Args: Record<PropertyKey, never>;
+        Returns: string[];
+      };
+      doctor_case_mark_seen: {
+        Args: { p_case_id: string };
+        Returns: undefined;
+      };
+      doctor_case_seen_ids: {
         Args: Record<PropertyKey, never>;
         Returns: string[];
       };

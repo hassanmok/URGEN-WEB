@@ -6,9 +6,41 @@ import type { Database } from '../types/database'
 import type { LabTest } from '../types/labTest'
 
 export type PartnerSubmissionRow = Database['public']['Tables']['partner_submissions']['Row']
+export type PartnerSubmissionFileRow =
+  Database['public']['Tables']['partner_submission_files']['Row']
 export type PartnerAgeUnit = 'days' | 'months' | 'years'
 
 const BUCKET = 'partner-reports'
+const FILES_BUCKET = 'partner-submission-files'
+
+const ALLOWED_MIME = new Set([
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/octet-stream',
+])
+const ALLOWED_EXT = new Set(['pdf', 'png', 'jpg', 'jpeg', 'webp', 'gif', 'doc', 'docx'])
+
+export function isAllowedPartnerSubmissionFile(file: File): boolean {
+  const mime = file.type || ''
+  if (ALLOWED_MIME.has(mime)) return true
+  if (mime.startsWith('image/')) return true
+  const ext = file.name.includes('.') ? file.name.split('.').pop()?.toLowerCase() : ''
+  return Boolean(ext && ALLOWED_EXT.has(ext))
+}
+
+export function storagePathForPartnerSubmissionFile(
+  batchId: string,
+  fileId: string,
+  fileName: string,
+) {
+  const safe = fileName.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 120) || 'file'
+  return `${batchId}/${fileId}_${safe}`
+}
 
 export function pdfPathForSubmission(submissionId: string) {
   return `${submissionId}/report.pdf`
@@ -249,6 +281,7 @@ export async function insertPartnerSubmissionBatch(input: {
   age_unit: PartnerAgeUnit
   test_slugs: string[]
   other_test_titles?: Record<string, string>
+  files?: File[]
 }): Promise<{ ok: boolean; batch_id?: string; count?: number; error?: string }> {
   if (!supabase) return { ok: false, error: 'no_supabase' }
   const slugs = [...new Set(input.test_slugs.map((s) => s.trim()).filter(Boolean))]
@@ -275,6 +308,13 @@ export async function insertPartnerSubmissionBatch(input: {
 
   const { error } = await supabase.from('partner_submissions').insert(rows)
   if (error) return { ok: false, error: error.message }
+
+  const files = input.files ?? []
+  if (files.length > 0) {
+    const uploadRes = await uploadPartnerSubmissionFiles(batch_id, uid, files)
+    if (!uploadRes.ok) return { ok: false, error: uploadRes.error, batch_id, count: slugs.length }
+  }
+
   return { ok: true, batch_id, count: slugs.length }
 }
 
@@ -290,7 +330,9 @@ export async function updatePartnerSubmissionBatch(input: {
   age_unit: PartnerAgeUnit
   test_slugs: string[]
   other_test_titles?: Record<string, string>
-}): Promise<{ ok: boolean; error?: string }> {
+  newFiles?: File[]
+  removeFileIds?: string[]
+}): Promise<{ ok: boolean; batch_id?: string; error?: string }> {
   if (!supabase) return { ok: false, error: 'no_supabase' }
 
   const { existingItems } = input
@@ -344,7 +386,19 @@ export async function updatePartnerSubmissionBatch(input: {
 
   const { error: insErr } = await supabase.from('partner_submissions').insert(rows)
   if (insErr) return { ok: false, error: insErr.message }
-  return { ok: true }
+
+  for (const fileId of input.removeFileIds ?? []) {
+    const delRes = await deletePartnerSubmissionFile(fileId)
+    if (!delRes.ok) return { ok: false, error: delRes.error, batch_id }
+  }
+
+  const newFiles = input.newFiles ?? []
+  if (newFiles.length > 0) {
+    const uploadRes = await uploadPartnerSubmissionFiles(batch_id, uid, newFiles)
+    if (!uploadRes.ok) return { ok: false, error: uploadRes.error, batch_id }
+  }
+
+  return { ok: true, batch_id }
 }
 
 /** @deprecated استخدم insertPartnerSubmissionBatch */
@@ -504,4 +558,127 @@ export async function markPartnerReportOpened(
 
   if (error) return { ok: false, error: error.message }
   return { ok: true, opened_at: (data as string | null) ?? null }
+}
+
+export async function uploadPartnerSubmissionFiles(
+  batchId: string,
+  partnerUserId: string,
+  files: File[],
+): Promise<{ ok: boolean; error?: string }> {
+  if (!supabase) return { ok: false, error: 'no_supabase' }
+  if (files.length === 0) return { ok: true }
+
+  for (const file of files) {
+    if (!isAllowedPartnerSubmissionFile(file)) {
+      return { ok: false, error: 'invalid_file_type' }
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      return { ok: false, error: 'file_too_large' }
+    }
+  }
+
+  for (const file of files) {
+    const fileId = crypto.randomUUID()
+    const path = storagePathForPartnerSubmissionFile(batchId, fileId, file.name)
+
+    const { error: upErr } = await supabase.storage.from(FILES_BUCKET).upload(path, file, {
+      upsert: false,
+      contentType: file.type || undefined,
+    })
+    if (upErr) return { ok: false, error: upErr.message }
+
+    const { error: dbErr } = await supabase.from('partner_submission_files').insert({
+      id: fileId,
+      batch_id: batchId,
+      partner_user_id: partnerUserId,
+      storage_path: path,
+      file_name: file.name,
+      mime_type: file.type || null,
+      byte_size: file.size,
+    })
+    if (dbErr) {
+      await supabase.storage.from(FILES_BUCKET).remove([path])
+      return { ok: false, error: dbErr.message }
+    }
+  }
+
+  return { ok: true }
+}
+
+export async function fetchPartnerSubmissionFilesForLab(): Promise<{
+  ok: boolean
+  rows?: PartnerSubmissionFileRow[]
+  error?: string
+}> {
+  if (!supabase) return { ok: false, error: 'no_supabase' }
+  const { data, error } = await supabase
+    .from('partner_submission_files')
+    .select('*')
+    .order('created_at', { ascending: false })
+  if (error) return { ok: false, error: error.message }
+  return { ok: true, rows: data ?? [] }
+}
+
+export async function fetchAllPartnerSubmissionFilesAdmin(): Promise<{
+  ok: boolean
+  rows?: PartnerSubmissionFileRow[]
+  error?: string
+}> {
+  if (!supabase) return { ok: false, error: 'no_supabase' }
+  const { data, error } = await supabase
+    .from('partner_submission_files')
+    .select('*')
+    .order('created_at', { ascending: false })
+  if (error) return { ok: false, error: error.message }
+  return { ok: true, rows: data ?? [] }
+}
+
+export function groupPartnerFilesByBatchId(
+  files: PartnerSubmissionFileRow[],
+): Map<string, PartnerSubmissionFileRow[]> {
+  const map = new Map<string, PartnerSubmissionFileRow[]>()
+  for (const f of files) {
+    const list = map.get(f.batch_id) ?? []
+    list.push(f)
+    map.set(f.batch_id, list)
+  }
+  return map
+}
+
+export async function deletePartnerSubmissionFile(
+  fileId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  if (!supabase) return { ok: false, error: 'no_supabase' }
+
+  const { data: row, error: fetchErr } = await supabase
+    .from('partner_submission_files')
+    .select('id, storage_path')
+    .eq('id', fileId)
+    .maybeSingle()
+
+  if (fetchErr) return { ok: false, error: fetchErr.message }
+  if (!row) return { ok: false, error: 'not_found' }
+
+  const { error: storageErr } = await supabase.storage
+    .from(FILES_BUCKET)
+    .remove([row.storage_path])
+  if (storageErr) return { ok: false, error: storageErr.message }
+
+  const { error: dbErr } = await supabase
+    .from('partner_submission_files')
+    .delete()
+    .eq('id', fileId)
+  if (dbErr) return { ok: false, error: dbErr.message }
+  return { ok: true }
+}
+
+export async function createPartnerSubmissionFileDownloadUrl(
+  storagePath: string,
+): Promise<{ ok: boolean; url?: string; error?: string }> {
+  if (!supabase || !storagePath) return { ok: false, error: 'no_file' }
+  const { data, error } = await supabase.storage
+    .from(FILES_BUCKET)
+    .createSignedUrl(storagePath, 3600)
+  if (error || !data?.signedUrl) return { ok: false, error: error?.message ?? 'sign_failed' }
+  return { ok: true, url: data.signedUrl }
 }

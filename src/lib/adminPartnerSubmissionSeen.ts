@@ -7,6 +7,22 @@ import {
 
 const STORAGE_KEY = 'urgen_admin_seen_submission_groups_v1'
 
+/** حالات تحتاج متابعة من الإدارة */
+const ACTIONABLE_PARTNER_STATUSES = new Set(['sent', 'pending', 'in_progress'])
+
+export function isActionablePartnerGroup(group: PartnerSubmissionGroup): boolean {
+  return group.items.some((row) => ACTIONABLE_PARTNER_STATUSES.has(row.status))
+}
+
+/** يظهر في الإشعارات: طلب نشط أو سبق عرضه للأدمن */
+export function isPartnerGroupInAdminNotifications(
+  group: PartnerSubmissionGroup,
+  seenKeys: Set<string>,
+): boolean {
+  if (seenKeys.has(group.groupKey)) return true
+  return isActionablePartnerGroup(group)
+}
+
 export function partnerSubmissionGroupKey(
   row: Pick<PartnerSubmissionRow, 'id' | 'batch_id'>,
 ): string {
@@ -80,4 +96,24 @@ export async function getUnseenSubmissionGroups(
 ): Promise<PartnerSubmissionGroup[]> {
   const seen = await fetchSeenSubmissionGroupKeys()
   return groupPartnerSubmissions(rows).filter((g) => !seen.has(g.groupKey))
+}
+
+/** كل طلبات المختبرات — تبقى في الإشعارات بغض النظر عن الحالة */
+export function getAdminSubmissionNotificationGroups(
+  rows: PartnerSubmissionRow[],
+): PartnerSubmissionGroup[] {
+  return groupPartnerSubmissions(rows).sort((a, b) => {
+    const ta = a.created_at ? new Date(a.created_at).getTime() : 0
+    const tb = b.created_at ? new Date(b.created_at).getTime() : 0
+    return tb - ta
+  })
+}
+
+export function countUnseenSubmissionGroups(
+  groups: PartnerSubmissionGroup[],
+  seenKeys: Set<string>,
+): number {
+  return groups.filter(
+    (g) => !seenKeys.has(g.groupKey) && isActionablePartnerGroup(g),
+  ).length
 }

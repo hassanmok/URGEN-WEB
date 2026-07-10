@@ -8,7 +8,7 @@ import {
 } from '../../lib/partnerSubmissionsStore'
 import {
   fetchSeenPartnerReportIds,
-  listUnseenPartnerReadyReports,
+  listPartnerReadyReports,
   markPartnerReportReadySeen,
   type PortalReportNotificationItem,
 } from '../../lib/portalReportNotifications'
@@ -32,7 +32,7 @@ export function PartnerReportNotificationsBell({ onSelect }: Props) {
     ])
     if (listRes.ok && listRes.rows) {
       setItems(
-        listUnseenPartnerReadyReports(listRes.rows, seen, (row) =>
+        listPartnerReadyReports(listRes.rows, seen, (row) =>
           resolvePartnerSubmissionTestTitle(row, tests, locale),
         ),
       )
@@ -44,7 +44,11 @@ export function PartnerReportNotificationsBell({ onSelect }: Props) {
 
   async function handleSelect(item: PortalReportNotificationItem) {
     await markPartnerReportReadySeen(item.id)
-    setItems((prev) => prev.filter((x) => x.id !== item.id))
+    setItems((prev) =>
+      prev.map((x) =>
+        x.id === item.id ? { ...x, seen: true, unread: false } : x,
+      ),
+    )
     onSelect(item)
   }
 

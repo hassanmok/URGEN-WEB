@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { LanguageSwitcher } from '../../components/layout/LanguageSwitcher'
 import { Button } from '../../components/ui/Button'
@@ -10,14 +10,19 @@ import { fetchDoctorProfile } from '../../lib/doctorAccess'
 import { fetchPartnerLabProfile, resolvePartnerLoginEmail } from '../../lib/partnerAccess'
 import {
   createPartnerPdfDownloadUrl,
+  createPartnerSubmissionFileDownloadUrl,
   markPartnerReportOpened,
   canEditPartnerSubmissionGroup,
+  fetchPartnerSubmissionFilesForLab,
   fetchPartnerSubmissionsForLab,
   filterPartnerSubmissionGroups,
+  groupPartnerFilesByBatchId,
   insertPartnerSubmissionBatch,
+  isAllowedPartnerSubmissionFile,
   isPartnerPdfExpired,
   resolvePartnerSubmissionTestTitle,
   type PartnerAgeUnit,
+  type PartnerSubmissionFileRow,
   type PartnerSubmissionGroup,
   type PartnerSubmissionRow,
 } from '../../lib/partnerSubmissionsStore'
@@ -60,9 +65,16 @@ export function PartnerPortalPage() {
   const [testPickerKey, setTestPickerKey] = useState(0)
   const [submitBusy, setSubmitBusy] = useState(false)
   const [submitMsg, setSubmitMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const [attachFiles, setAttachFiles] = useState<File[]>([])
+  const attachFilesRef = useRef<File[]>([])
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [rows, setRows] = useState<PartnerSubmissionRow[]>([])
+  const [filesByBatch, setFilesByBatch] = useState<Map<string, PartnerSubmissionFileRow[]>>(
+    new Map(),
+  )
   const [loadingRows, setLoadingRows] = useState(false)
+  const [fileBusyId, setFileBusyId] = useState<string | null>(null)
   const [requestsSearchQuery, setRequestsSearchQuery] = useState('')
   const [editingGroupKey, setEditingGroupKey] = useState<string | null>(null)
   const [highlightSubmissionId, setHighlightSubmissionId] = useState<string | null>(null)
@@ -113,9 +125,39 @@ export function PartnerPortalPage() {
 
   async function loadRows() {
     setLoadingRows(true)
-    const res = await fetchPartnerSubmissionsForLab()
-    if (res.ok && res.rows) setRows(res.rows)
+    const [subRes, filesRes] = await Promise.all([
+      fetchPartnerSubmissionsForLab(),
+      fetchPartnerSubmissionFilesForLab(),
+    ])
+    if (subRes.ok && subRes.rows) setRows(subRes.rows)
+    if (filesRes.ok && filesRes.rows) {
+      setFilesByBatch(groupPartnerFilesByBatchId(filesRes.rows))
+    } else {
+      setFilesByBatch(new Map())
+    }
     setLoadingRows(false)
+  }
+
+  function syncAttachFiles(next: File[]) {
+    attachFilesRef.current = next
+    setAttachFiles(next)
+  }
+
+  function addAttachFiles(list: FileList | null) {
+    if (!list?.length) return
+    const accepted: File[] = []
+    for (const file of Array.from(list)) {
+      if (!isAllowedPartnerSubmissionFile(file)) {
+        setSubmitMsg({ ok: false, text: m.invalidFileType })
+        continue
+      }
+      if (file.size > 20 * 1024 * 1024) {
+        setSubmitMsg({ ok: false, text: m.fileTooLarge })
+        continue
+      }
+      accepted.push(file)
+    }
+    if (accepted.length) syncAttachFiles([...attachFilesRef.current, ...accepted])
   }
 
   useEffect(() => {
@@ -171,6 +213,7 @@ export function PartnerPortalPage() {
     setPartnerOk(false)
     setStaffBlocking(false)
     setRows([])
+    setFilesByBatch(new Map())
     setTab('submit')
   }
 
@@ -197,10 +240,18 @@ export function PartnerPortalPage() {
       age_unit: ageUnit,
       test_slugs: [...selectedTests],
       other_test_titles: Object.fromEntries(otherTestTitles.entries()),
+      files: attachFilesRef.current,
     })
     setSubmitBusy(false)
     if (!res.ok) {
-      setSubmitMsg({ ok: false, text: `${m.submitErr}${res.error ? `: ${res.error}` : ''}` })
+      const errMap: Record<string, string> = {
+        invalid_file_type: m.invalidFileType,
+        file_too_large: m.fileTooLarge,
+      }
+      setSubmitMsg({
+        ok: false,
+        text: errMap[res.error ?? ''] ?? `${m.submitErr}${res.error ? `: ${res.error}` : ''}`,
+      })
       return
     }
     setSubmitMsg({
@@ -215,6 +266,8 @@ export function PartnerPortalPage() {
     setSelectedTests(new Set())
     setOtherTestTitles(new Map())
     setTestPickerKey((k) => k + 1)
+    syncAttachFiles([])
+    if (fileInputRef.current) fileInputRef.current.value = ''
     void loadRows()
   }
 
@@ -594,6 +647,58 @@ export function PartnerPortalPage() {
                 onRequestAddOther={() => setTestOtherDialogOpen(true)}
               />
 
+              <div>
+                <p className="text-sm font-semibold text-urgen-navy">{m.attachFiles}</p>
+                <p className="mt-1 text-xs text-slate-500">{m.attachFilesHint}</p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept="image/*,.pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  className="sr-only"
+                  onChange={(e) => {
+                    addAttachFiles(e.target.files)
+                    e.currentTarget.value = ''
+                  }}
+                />
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="text-sm"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    {m.attachFilesPick}
+                  </Button>
+                  {attachFiles.length > 0 && (
+                    <span className="text-sm font-medium text-emerald-800">
+                      {m.filesSelected.replace('{n}', String(attachFiles.length))}
+                    </span>
+                  )}
+                </div>
+                {attachFiles.length > 0 && (
+                  <ul className="mt-3 space-y-1">
+                    {attachFiles.map((f, i) => (
+                      <li
+                        key={`${f.name}-${i}`}
+                        className="flex items-center justify-between gap-2 text-sm"
+                      >
+                        <span className="truncate">{f.name}</span>
+                        <button
+                          type="button"
+                          className="text-xs font-semibold text-red-600"
+                          onClick={() =>
+                            syncAttachFiles(attachFilesRef.current.filter((_, idx) => idx !== i))
+                          }
+                        >
+                          {m.removeFile}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
               {submitMsg && (
                 <p className={submitMsg.ok ? 'text-sm text-green-700' : 'text-sm text-red-600'}>
                   {submitMsg.text}
@@ -656,6 +761,7 @@ export function PartnerPortalPage() {
                   <PartnerRequestGroup
                     key={group.groupKey}
                     group={group}
+                    files={group.batch_id ? (filesByBatch.get(group.batch_id) ?? []) : []}
                     m={m}
                     locale={locale}
                     editing={editingGroupKey === group.groupKey}
@@ -672,7 +778,14 @@ export function PartnerPortalPage() {
                     statusLabel={statusLabel}
                     statusBadgeClass={statusBadgeClass}
                     pdfBusyId={pdfBusyId}
+                    fileBusyId={fileBusyId}
                     onDownloadPdf={downloadPdf}
+                    onDownloadFile={async (file) => {
+                      setFileBusyId(file.id)
+                      const res = await createPartnerSubmissionFileDownloadUrl(file.storage_path)
+                      setFileBusyId(null)
+                      if (res.ok && res.url) window.open(res.url, '_blank', 'noopener,noreferrer')
+                    }}
                   />
                 ))}
               </ul>
@@ -686,6 +799,7 @@ export function PartnerPortalPage() {
 
 function PartnerRequestGroup({
   group,
+  files,
   m,
   locale,
   editing,
@@ -699,9 +813,12 @@ function PartnerRequestGroup({
   statusLabel,
   statusBadgeClass,
   pdfBusyId,
+  fileBusyId,
   onDownloadPdf,
+  onDownloadFile,
 }: {
   group: PartnerSubmissionGroup
+  files: PartnerSubmissionFileRow[]
   m: Messages['partnerPortal']
   locale: string
   editing: boolean
@@ -713,9 +830,11 @@ function PartnerRequestGroup({
   statusLabel: (status: string) => string
   statusBadgeClass: (status: string) => string
   pdfBusyId: string | null
+  fileBusyId: string | null
   highlightSubmissionId: string | null
   onHighlightHandled: () => void
   onDownloadPdf: (row: PartnerSubmissionRow) => void | Promise<void>
+  onDownloadFile: (file: PartnerSubmissionFileRow) => void | Promise<void>
 }) {
   const canEdit = canEditPartnerSubmissionGroup(group)
 
@@ -744,7 +863,13 @@ function PartnerRequestGroup({
   if (editing) {
     return (
       <li className="rounded-2xl border-2 border-urgen-purple/40 bg-slate-100 p-5 text-sm shadow-md">
-        <PartnerSubmissionEditForm group={group} m={m} onCancel={onCancelEdit} onSaved={onSaved} />
+        <PartnerSubmissionEditForm
+          group={group}
+          existingFiles={files}
+          m={m}
+          onCancel={onCancelEdit}
+          onSaved={onSaved}
+        />
       </li>
     )
   }
@@ -773,6 +898,32 @@ function PartnerRequestGroup({
           </div>
         )}
       </div>
+
+      {files.length > 0 && (
+        <div className="mt-3 border-b border-slate-200 pb-3">
+          <p className="text-xs font-semibold text-slate-600">{m.attachmentsTitle}</p>
+          <ul className="mt-2 space-y-2">
+            {files.map((file) => (
+              <li
+                key={file.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2"
+              >
+                <span className="truncate font-medium text-urgen-navy">{file.file_name}</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="text-xs"
+                  disabled={fileBusyId === file.id}
+                  onClick={() => void onDownloadFile(file)}
+                >
+                  {fileBusyId === file.id ? m.downloadingFile : m.downloadFile}
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <ul className="mt-3 space-y-3">
         {group.items.map((row) => {
           const expired = isPartnerPdfExpired(row)

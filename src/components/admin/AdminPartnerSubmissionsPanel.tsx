@@ -6,12 +6,16 @@ import { Button } from '../ui/Button'
 import {
   adminUpdateSubmissionStatus,
   adminUploadSubmissionPdf,
+  createPartnerSubmissionFileDownloadUrl,
+  fetchAllPartnerSubmissionFilesAdmin,
   fetchAllPartnerSubmissionsAdmin,
   fetchPartnerLabNamesMap,
   filterPartnerSubmissionGroups,
+  groupPartnerFilesByBatchId,
   partnerSubmissionsAdminListErrorMessage,
   isPartnerPdfExpired,
   resolvePartnerSubmissionTestTitle,
+  type PartnerSubmissionFileRow,
   type PartnerSubmissionGroup,
   type PartnerSubmissionRow,
 } from '../../lib/partnerSubmissionsStore'
@@ -48,6 +52,10 @@ type AdminMsgs = {
   partnerLabsRefresh: string
   partnerLabsSearchPlaceholder: string
   partnerLabsSearchNoResults: string
+  partnerLabsAttachments: string
+  partnerLabsNoAttachments: string
+  partnerLabsDownloadFile: string
+  partnerLabsDownloadingFile: string
 }
 
 const statusClass: Record<string, string> = {
@@ -209,32 +217,38 @@ function SubmissionTestRow({
 
 function GroupCard({
   group,
+  files,
   m,
   locale,
   labName,
   ageLabel,
   testTitleFor,
   busyId,
+  fileBusyId,
   highlighted,
   onOpen,
   onAccept,
   onProgress,
   onReject,
   onPdf,
+  onDownloadFile,
 }: {
   group: PartnerSubmissionGroup
+  files: PartnerSubmissionFileRow[]
   m: AdminMsgs
   locale: 'ar' | 'en'
   labName: string
   ageLabel: string
   testTitleFor: (row: PartnerSubmissionRow) => string
   busyId: string | null
+  fileBusyId: string | null
   highlighted?: boolean
   onOpen: (groupKey: string) => void
   onAccept: (id: string) => void
   onProgress: (id: string) => void
   onReject: (id: string) => void
   onPdf: (id: string, e: FormEvent<HTMLInputElement>) => void
+  onDownloadFile: (file: PartnerSubmissionFileRow) => void
 }) {
   const dateStr = group.created_at
     ? new Date(group.created_at).toLocaleString(locale === 'ar' ? 'ar-IQ' : 'en-US', {
@@ -283,6 +297,36 @@ function GroupCard({
           {m.partnerLabsTestsInRequest}: {group.items.length}
         </p>
       </div>
+
+      <div className="mt-3 border-b border-slate-200 pb-3" onClick={(e) => e.stopPropagation()}>
+        <p className="text-xs font-semibold text-slate-600">{m.partnerLabsAttachments}</p>
+        {files.length === 0 ? (
+          <p className="mt-2 text-xs text-slate-500">{m.partnerLabsNoAttachments}</p>
+        ) : (
+          <ul className="mt-2 space-y-2">
+            {files.map((file) => (
+              <li
+                key={file.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2"
+              >
+                <span className="truncate font-medium text-urgen-navy">{file.file_name}</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="text-xs"
+                  disabled={fileBusyId === file.id}
+                  onClick={() => onDownloadFile(file)}
+                >
+                  {fileBusyId === file.id
+                    ? m.partnerLabsDownloadingFile
+                    : m.partnerLabsDownloadFile}
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
       <ul className="mt-3 space-y-3" onClick={(e) => e.stopPropagation()}>
         {group.items.map((row) => (
           <SubmissionTestRow
@@ -323,9 +367,13 @@ export function AdminPartnerSubmissionsPanel({
   const { locale } = useLocaleContext()
   const { tests } = useTests()
   const [rows, setRows] = useState<PartnerSubmissionRow[]>([])
+  const [filesByBatch, setFilesByBatch] = useState<Map<string, PartnerSubmissionFileRow[]>>(
+    new Map(),
+  )
   const [labNames, setLabNames] = useState<Map<string, string>>(new Map())
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [fileBusyId, setFileBusyId] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [listError, setListError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -339,9 +387,10 @@ export function AdminPartnerSubmissionsPanel({
   async function reload() {
     setLoading(true)
     setListError(null)
-    const [list, names] = await Promise.all([
+    const [list, names, filesRes] = await Promise.all([
       fetchAllPartnerSubmissionsAdmin(),
       fetchPartnerLabNamesMap(),
+      fetchAllPartnerSubmissionFilesAdmin(),
     ])
     setLabNames(names)
     if (list.ok && list.rows) {
@@ -349,6 +398,11 @@ export function AdminPartnerSubmissionsPanel({
     } else {
       setRows([])
       setListError(partnerSubmissionsAdminListErrorMessage(list.error, m))
+    }
+    if (filesRes.ok && filesRes.rows) {
+      setFilesByBatch(groupPartnerFilesByBatchId(filesRes.rows))
+    } else {
+      setFilesByBatch(new Map())
     }
     setLoading(false)
   }
@@ -476,6 +530,14 @@ export function AdminPartnerSubmissionsPanel({
     else void reload()
   }
 
+  async function onDownloadAttachment(file: PartnerSubmissionFileRow) {
+    setFileBusyId(file.id)
+    const res = await createPartnerSubmissionFileDownloadUrl(file.storage_path)
+    setFileBusyId(null)
+    if (res.ok && res.url) window.open(res.url, '_blank', 'noopener,noreferrer')
+    else setMessage(res.error ?? m.partnerLabsErr)
+  }
+
   return (
     <section
       className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
@@ -517,6 +579,7 @@ export function AdminPartnerSubmissionsPanel({
                 <GroupCard
                   key={group.groupKey}
                   group={group}
+                  files={group.batch_id ? (filesByBatch.get(group.batch_id) ?? []) : []}
                   m={m}
                   locale={locale}
                   labName={labNames.get(group.partner_user_id) ?? group.partner_user_id.slice(0, 8)}
@@ -526,12 +589,14 @@ export function AdminPartnerSubmissionsPanel({
                   } as PartnerSubmissionRow)}
                   testTitleFor={testTitleFor}
                   busyId={busyId}
+                  fileBusyId={fileBusyId}
                   highlighted={activeHighlight === group.groupKey}
                   onOpen={openGroup}
                   onAccept={(id) => void acceptRequest(id)}
                   onProgress={(id) => void setProgress(id)}
                   onReject={(id) => void reject(id)}
                   onPdf={(id, e) => void onPdfChange(id, e)}
+                  onDownloadFile={(file) => void onDownloadAttachment(file)}
                 />
               ))}
             </ul>

@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useMemo, useRef, useState, type FormEvent } from 'react'
 import { useLocaleContext } from '../../i18n/useLocaleContext'
 import { useTests } from '../../hooks/useTests'
 import { TestCheckboxPicker } from '../shared/TestCheckboxPicker'
@@ -11,8 +11,10 @@ import {
 } from '../../lib/patientName'
 import { isCustomOtherTestSlug, newCustomOtherTestSlug } from '../../lib/doctorCasesStore'
 import {
+  isAllowedPartnerSubmissionFile,
   updatePartnerSubmissionBatch,
   type PartnerAgeUnit,
+  type PartnerSubmissionFileRow,
   type PartnerSubmissionGroup,
 } from '../../lib/partnerSubmissionsStore'
 import type { Messages } from '../../i18n/messages'
@@ -32,12 +34,19 @@ function initOtherTestTitles(group: PartnerSubmissionGroup): Map<string, string>
 
 type Props = {
   group: PartnerSubmissionGroup
+  existingFiles: PartnerSubmissionFileRow[]
   m: Messages['partnerPortal']
   onCancel: () => void
   onSaved: () => void
 }
 
-export function PartnerSubmissionEditForm({ group, m, onCancel, onSaved }: Props) {
+export function PartnerSubmissionEditForm({
+  group,
+  existingFiles,
+  m,
+  onCancel,
+  onSaved,
+}: Props) {
   const { locale } = useLocaleContext()
   const { tests, loading: loadingTests } = useTests()
 
@@ -55,6 +64,10 @@ export function PartnerSubmissionEditForm({ group, m, onCancel, onSaved }: Props
     initOtherTestTitles(group),
   )
   const [testOtherDialogOpen, setTestOtherDialogOpen] = useState(false)
+  const [keptFiles, setKeptFiles] = useState<PartnerSubmissionFileRow[]>(existingFiles)
+  const [newFiles, setNewFiles] = useState<File[]>([])
+  const newFilesRef = useRef<File[]>([])
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
@@ -70,6 +83,28 @@ export function PartnerSubmissionEditForm({ group, m, onCancel, onSaved }: Props
     }),
     [m],
   )
+
+  function syncNewFiles(next: File[]) {
+    newFilesRef.current = next
+    setNewFiles(next)
+  }
+
+  function addNewFiles(list: FileList | null) {
+    if (!list?.length) return
+    const accepted: File[] = []
+    for (const file of Array.from(list)) {
+      if (!isAllowedPartnerSubmissionFile(file)) {
+        setMsg({ ok: false, text: m.invalidFileType })
+        continue
+      }
+      if (file.size > 20 * 1024 * 1024) {
+        setMsg({ ok: false, text: m.fileTooLarge })
+        continue
+      }
+      accepted.push(file)
+    }
+    if (accepted.length) syncNewFiles([...newFilesRef.current, ...accepted])
+  }
 
   function toggleTest(slug: string) {
     setSelectedTests((prev) => {
@@ -117,6 +152,10 @@ export function PartnerSubmissionEditForm({ group, m, onCancel, onSaved }: Props
       return
     }
 
+    const removeFileIds = existingFiles
+      .filter((f) => !keptFiles.some((k) => k.id === f.id))
+      .map((f) => f.id)
+
     setBusy(true)
     const res = await updatePartnerSubmissionBatch({
       existingItems: group.items,
@@ -125,6 +164,8 @@ export function PartnerSubmissionEditForm({ group, m, onCancel, onSaved }: Props
       age_unit: ageUnit,
       test_slugs: [...selectedTests],
       other_test_titles: Object.fromEntries(otherTestTitles.entries()),
+      newFiles: newFilesRef.current,
+      removeFileIds,
     })
     setBusy(false)
 
@@ -132,6 +173,8 @@ export function PartnerSubmissionEditForm({ group, m, onCancel, onSaved }: Props
       const errMap: Record<string, string> = {
         not_editable: m.cannotEditAccepted,
         no_tests: m.selectAtLeastOneTest,
+        invalid_file_type: m.invalidFileType,
+        file_too_large: m.fileTooLarge,
       }
       setMsg({ ok: false, text: errMap[res.error ?? ''] ?? m.updateErr })
       return
@@ -210,6 +253,76 @@ export function PartnerSubmissionEditForm({ group, m, onCancel, onSaved }: Props
           onRequestAddOther={() => setTestOtherDialogOpen(true)}
           className="mt-4"
         />
+
+        <div className="mt-4">
+          <p className="text-sm font-semibold text-urgen-navy">{m.attachFiles}</p>
+          <p className="mt-1 text-xs text-slate-500">{m.attachFilesHint}</p>
+
+          {keptFiles.length > 0 && (
+            <ul className="mt-3 space-y-1">
+              {keptFiles.map((f) => (
+                <li key={f.id} className="flex items-center justify-between gap-2 text-sm">
+                  <span className="truncate">{f.file_name}</span>
+                  <button
+                    type="button"
+                    className="text-xs font-semibold text-red-600"
+                    onClick={() => setKeptFiles((prev) => prev.filter((x) => x.id !== f.id))}
+                  >
+                    {m.removeFile}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept="image/*,.pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            className="sr-only"
+            onChange={(e) => {
+              addNewFiles(e.target.files)
+              e.currentTarget.value = ''
+            }}
+          />
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              className="text-sm"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {m.attachFilesPick}
+            </Button>
+            {newFiles.length > 0 && (
+              <span className="text-sm font-medium text-emerald-800">
+                {m.filesSelected.replace('{n}', String(newFiles.length))}
+              </span>
+            )}
+          </div>
+          {newFiles.length > 0 && (
+            <ul className="mt-3 space-y-1">
+              {newFiles.map((f, i) => (
+                <li
+                  key={`${f.name}-${i}`}
+                  className="flex items-center justify-between gap-2 text-sm"
+                >
+                  <span className="truncate">{f.name}</span>
+                  <button
+                    type="button"
+                    className="text-xs font-semibold text-red-600"
+                    onClick={() =>
+                      syncNewFiles(newFilesRef.current.filter((_, idx) => idx !== i))
+                    }
+                  >
+                    {m.removeFile}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
 
         {msg && (
           <p className={`mt-4 text-sm ${msg.ok ? 'text-green-700' : 'text-red-600'}`}>{msg.text}</p>

@@ -78,7 +78,15 @@ export function AdminPage() {
     groupKey: string
     token: number
   } | null>(null)
-  const [unseenSubmissionCount, setUnseenSubmissionCount] = useState(0)
+  const [highlightDoctorCase, setHighlightDoctorCase] = useState<{
+    caseId: string
+    token: number
+  } | null>(null)
+  const [unseenCounts, setUnseenCounts] = useState({
+    partner: 0,
+    doctor: 0,
+    total: 0,
+  })
   const [submissionSeenRefresh, setSubmissionSeenRefresh] = useState(0)
   const [isPartnerStaffBlocked, setIsPartnerStaffBlocked] = useState<boolean | null>(null)
 
@@ -361,11 +369,15 @@ export function AdminPage() {
             <AdminPartnerSubmissionNotifications
               m={m.admin}
               refreshToken={submissionSeenRefresh}
-              onOpenGroup={(groupKey) => {
+              onOpenPartnerGroup={(groupKey) => {
                 setTab('partnerLabs')
                 setHighlightSubmission({ groupKey, token: Date.now() })
               }}
-              onUnseenCountChange={setUnseenSubmissionCount}
+              onOpenDoctorCase={(caseId) => {
+                setTab('doctorRequests')
+                setHighlightDoctorCase({ caseId, token: Date.now() })
+              }}
+              onUnseenCountChange={setUnseenCounts}
             />
             <Link to="/events">
               <Button variant="outline" className="text-sm">
@@ -460,13 +472,18 @@ export function AdminPage() {
           <button
             type="button"
             onClick={() => setTab('doctorRequests')}
-            className={`rounded-xl px-4 py-2 text-sm font-semibold ${
+            className={`relative rounded-xl px-4 py-2 text-sm font-semibold ${
               tab === 'doctorRequests'
                 ? 'bg-urgen-purple text-white'
                 : 'bg-white text-slate-600 ring-1 ring-slate-200'
             }`}
           >
             {m.admin.tabDoctorRequests}
+            {unseenCounts.doctor > 0 && tab !== 'doctorRequests' && (
+              <span className="absolute -end-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[9px] font-bold text-white">
+                {unseenCounts.doctor > 99 ? '99+' : unseenCounts.doctor}
+              </span>
+            )}
           </button>
           <button
             type="button"
@@ -478,9 +495,9 @@ export function AdminPage() {
             }`}
           >
             {m.admin.tabPartnerLabs}
-            {unseenSubmissionCount > 0 && tab !== 'partnerLabs' && (
+            {unseenCounts.partner > 0 && tab !== 'partnerLabs' && (
               <span className="absolute -end-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[9px] font-bold text-white">
-                {unseenSubmissionCount > 99 ? '99+' : unseenSubmissionCount}
+                {unseenCounts.partner > 99 ? '99+' : unseenCounts.partner}
               </span>
             )}
           </button>
@@ -499,7 +516,13 @@ export function AdminPage() {
         ) : tab === 'doctorAccounts' ? (
           <AdminDoctorUsersPanel m={m.admin} />
         ) : tab === 'doctorRequests' ? (
-          <AdminDoctorCasesPanel m={m.admin} />
+          <AdminDoctorCasesPanel
+            m={m.admin}
+            highlightCaseId={highlightDoctorCase?.caseId ?? null}
+            highlightToken={highlightDoctorCase?.token ?? 0}
+            onHighlightHandled={() => setHighlightDoctorCase(null)}
+            onSeenChange={() => setSubmissionSeenRefresh((n) => n + 1)}
+          />
         ) : tab === 'data' ? (
           <AdminDataPanel m={m.admin} />
         ) : tab === 'tests' ? (

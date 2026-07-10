@@ -95,7 +95,7 @@ export function PortalReportNotifications({
     return () => document.removeEventListener('mousedown', onDocClick)
   }, [open, useOverlay])
 
-  const count = items.length
+  const unseenCount = items.filter((item) => item.unread).length
 
   function formatDate(iso: string | null) {
     if (!iso) return '—'
@@ -114,9 +114,9 @@ export function PortalReportNotifications({
     <>
       <div className="border-b border-slate-100 px-4 py-3">
         <p className="text-sm font-bold text-urgen-navy">{m.notificationsTitle}</p>
-        {count > 0 && (
+        {unseenCount > 0 && (
           <p className="mt-0.5 text-xs text-slate-500">
-            {m.notificationsCount.replace('{n}', String(count))}
+            {m.notificationsCount.replace('{n}', String(unseenCount))}
           </p>
         )}
       </div>
@@ -134,10 +134,14 @@ export function PortalReportNotifications({
               <button
                 type="button"
                 role="menuitem"
-                className="w-full border-b border-slate-50 px-4 py-3 text-start transition hover:bg-urgen-purple/5"
+                className={`w-full border-b border-slate-50 px-4 py-3 text-start transition hover:bg-urgen-purple/5 ${
+                  item.seen ? 'opacity-70' : ''
+                }`}
                 onClick={() => handlePick(item)}
               >
-                <p className="font-semibold text-urgen-navy">{item.patientName}</p>
+                <p className={`text-urgen-navy ${item.unread ? 'font-semibold' : 'font-medium'}`}>
+                  {item.patientName}
+                </p>
                 <p className="mt-0.5 text-xs text-emerald-800">{m.notificationsReady}</p>
                 <p className="mt-1 text-xs text-slate-600">{item.label}</p>
                 <p className="mt-1 text-xs text-slate-500">
@@ -174,9 +178,9 @@ export function PortalReportNotifications({
             d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
           />
         </svg>
-        {count > 0 && (
+        {unseenCount > 0 && (
           <span className="absolute -end-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">
-            {count > 99 ? '99+' : count}
+            {unseenCount > 99 ? '99+' : unseenCount}
           </span>
         )}
       </button>
