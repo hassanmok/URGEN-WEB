@@ -52,10 +52,6 @@ export interface Database {
           turnaround_en: string | null;
           price_display_ar: string | null;
           price_display_en: string | null;
-          preparation_ar: string | null;
-          preparation_en: string | null;
-          limitation_note_ar: string | null;
-          limitation_note_en: string | null;
           image_url: string | null;
           sort_order: number | null;
           created_at: string | null;
@@ -80,10 +76,6 @@ export interface Database {
           turnaround_en?: string | null;
           price_display_ar?: string | null;
           price_display_en?: string | null;
-          preparation_ar?: string | null;
-          preparation_en?: string | null;
-          limitation_note_ar?: string | null;
-          limitation_note_en?: string | null;
           image_url?: string | null;
           sort_order?: number | null;
           created_at?: string | null;

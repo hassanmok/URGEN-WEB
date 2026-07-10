@@ -23,10 +23,6 @@ create table if not exists public.tests (
   turnaround_en text,
   price_display_ar text,
   price_display_en text,
-  preparation_ar text,
-  preparation_en text,
-  limitation_note_ar text,
-  limitation_note_en text,
   image_url text,
   sort_order int default 0,
   created_at timestamptz default now()
@@ -47,10 +43,12 @@ alter table public.tests add column if not exists turnaround_ar text;
 alter table public.tests add column if not exists turnaround_en text;
 alter table public.tests add column if not exists price_display_ar text;
 alter table public.tests add column if not exists price_display_en text;
-alter table public.tests add column if not exists preparation_ar text;
-alter table public.tests add column if not exists preparation_en text;
-alter table public.tests add column if not exists limitation_note_ar text;
-alter table public.tests add column if not exists limitation_note_en text;
+
+-- إزالة أعمدة التحضير والملاحظات إن وُجدت (لم تعد مستخدمة)
+alter table public.tests drop column if exists preparation_ar;
+alter table public.tests drop column if exists preparation_en;
+alter table public.tests drop column if exists limitation_note_ar;
+alter table public.tests drop column if exists limitation_note_en;
 
 -- محتوى الموقع القابل للتعديل (نصوص الصفحات الرئيسية وغيرها)
 create table if not exists public.site_content (
@@ -149,11 +147,12 @@ create policy "test_categories_admin_delete" on public.test_categories
 
 insert into public.test_categories (slug, title_ar, title_en, sort_order)
 values
-  ('oncology_somatic', 'الأورام والجسيمي', 'Oncology / Somatic', 1),
-  ('hereditary_cancer', 'السرطان الوراثي', 'Hereditary cancer', 2),
-  ('reproductive', 'الإنجاب وصحة المرأة/الرجل', 'Reproductive & women/men health', 3),
-  ('nipt', 'NIPT — قبل الولادة غير جراحي', 'NIPT (non-invasive prenatal testing)', 4),
-  ('pediatric_newborn', 'الأطفال وحديثو الولادة', 'Pediatric & newborn', 5)
+  ('immunohistochemistry', 'الكيمياء المناعية النسيجية', 'Immunohistochemistry', 1),
+  ('oncology_somatic', 'الأورام والجسيمي', 'Oncology / Somatic', 2),
+  ('hereditary_cancer', 'السرطان الوراثي', 'Hereditary cancer', 3),
+  ('reproductive', 'الإنجاب وصحة المرأة/الرجل', 'Reproductive & women/men health', 4),
+  ('nipt', 'NIPT — قبل الولادة غير جراحي', 'NIPT (non-invasive prenatal testing)', 5),
+  ('pediatric_newborn', 'الأطفال وحديثو الولادة', 'Pediatric & newborn', 6)
 on conflict (slug) do update set
   title_ar = excluded.title_ar,
   title_en = excluded.title_en,

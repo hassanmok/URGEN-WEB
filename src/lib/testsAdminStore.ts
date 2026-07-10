@@ -38,10 +38,6 @@ function normalizeTestInput(input: TestAdminInput): TestAdminInput {
     turnaround_en: input.turnaround_en?.trim() || null,
     price_display_ar: input.price_display_ar?.trim() || null,
     price_display_en: input.price_display_en?.trim() || null,
-    preparation_ar: input.preparation_ar?.trim() || null,
-    preparation_en: input.preparation_en?.trim() || null,
-    limitation_note_ar: input.limitation_note_ar?.trim() || null,
-    limitation_note_en: input.limitation_note_en?.trim() || null,
     image_url: input.image_url?.trim() || null,
     sort_order: input.sort_order ?? 0,
   }
@@ -95,10 +91,6 @@ export const emptyTestAdminInput = (): TestAdminInput => ({
   turnaround_en: '',
   price_display_ar: '',
   price_display_en: '',
-  preparation_ar: '',
-  preparation_en: '',
-  limitation_note_ar: '',
-  limitation_note_en: '',
   image_url: null,
   sort_order: 0,
 })
@@ -123,10 +115,6 @@ export function testToAdminInput(test: LabTest): TestAdminInput {
     turnaround_en: test.turnaround_en ?? '',
     price_display_ar: test.price_display_ar ?? '',
     price_display_en: test.price_display_en ?? '',
-    preparation_ar: test.preparation_ar ?? '',
-    preparation_en: test.preparation_en ?? '',
-    limitation_note_ar: test.limitation_note_ar ?? '',
-    limitation_note_en: test.limitation_note_en ?? '',
     image_url: test.image_url,
     sort_order: test.sort_order ?? 0,
   }

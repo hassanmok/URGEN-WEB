@@ -1,6 +1,7 @@
 import type { TestRow } from '../types/database'
 
 const CATEGORY_LABELS: Record<string, { ar: string; en: string }> = {
+  immunohistochemistry: { ar: 'كيمياء مناعية نسيجية', en: 'Immunohistochemistry' },
   oncology_somatic: { ar: 'أورام / جسيمي', en: 'Oncology / somatic' },
   hereditary_cancer: { ar: 'سرطان وراثي', en: 'Hereditary cancer' },
   reproductive: { ar: 'إنجاب', en: 'Reproductive' },

@@ -37,451 +37,589 @@
   </url>
   <url>
     <loc>https://www.urgenlab.com/tests/slide-review</loc>
-    <lastmod>2026-05-15</lastmod>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/prenatal</loc>
-    <lastmod>2026-05-15</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://www.urgenlab.com/tests/genetic-disease</loc>
-    <lastmod>2026-05-15</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://www.urgenlab.com/tests/ihc-pdl1</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/immunohistochemistry-pdl-1</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.urgenlab.com/tests/ihc-marker</loc>
-    <lastmod>2026-05-15</lastmod>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/mmr-ihc</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/mmr</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/brca1-brca2-somatic</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/her2-neu-amp-ish</loc>
+    <lastmod>2026-07-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.urgenlab.com/tests/brca1-and-brca2-somatic</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.urgenlab.com/tests/hrr-somatic</loc>
-    <lastmod>2026-05-15</lastmod>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.urgenlab.com/tests/hrd-somatic</loc>
-    <lastmod>2026-05-15</lastmod>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/breast-cancer-panel-somatic</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/breast-cancer-gene-markers-ngs-panel-somatic</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/ovarian-cancer-panel-somatic</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/ovarian-cancer-gene-markers-ngs-panel-somatic</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/prostate-cancer-panel-somatic</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/prostate-cancer-gene-markers-ngs-panel-somatic</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/pancreatic-cancer-panel-somatic</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/pancreatic-cancer-gene-marker-ngs-panel-somatic</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/colon-cancer-panel-somatic</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/colon-cancer-gene-marker-ngs-panel-somatic</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/melanoma-panel-somatic</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/melanoma-cancer-gene-marker-ngs-panel-somatic</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/gastric-cancer-panel-somatic</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/gastric-cancer-gene-marker-ngs-panel-somatic</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/uterine-cancer-panel-somatic</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/uterine-cancer-gene-marker-ngs-panel-somatic</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/npc-panel-somatic</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/nasopharyngeal-carcinoma-gene-marker-ngs-panel-somatic</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/mtc-panel-somatic</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/medullary-thyroid-cancer-mtc-ngs-panel-somatic</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/brain-tumor-panel-somatic</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/brain-tumor-gliomas-medulloblastoma-other-brain-tumor-ngs-panel-somatic</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.urgenlab.com/tests/sarcoma-ngs-panel</loc>
-    <lastmod>2026-05-15</lastmod>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/tumor-mutational-burden</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/tumor-mutational-burden-tmb</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/carcinoma-unknown-primary</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/carcinoma-of-unknown-primary-cup</loc>
+    <lastmod>2026-07-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.urgenlab.com/tests/urgen-comprehensive-ngs-panel</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.urgenlab.com/tests/pole-mutations</loc>
-    <lastmod>2026-05-15</lastmod>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/msi-testing</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/microsatellite-instability-msi</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/egfr-alk-ros1</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/egfr-alk-ros1-mutations</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/egfr-mutations-tissue</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/egfr-mutations</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/egfr-mutations-cfdna</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/egfr-mutations-ctdna</loc>
+    <lastmod>2026-07-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.urgenlab.com/tests/alk-fusion</loc>
+    <lastmod>2026-07-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.urgenlab.com/tests/ros1-fusion</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.urgenlab.com/tests/pan-lung-cancer-panel</loc>
-    <lastmod>2026-05-15</lastmod>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/kras-nras-braf</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/pan-lung-cancer-fusion-panel</loc>
+    <lastmod>2026-07-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.urgenlab.com/tests/kras-nras-braf-mutations-detection</loc>
+    <lastmod>2026-07-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.urgenlab.com/tests/kras-nras-braf-mutations-detection-ctdna</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.urgenlab.com/tests/pik3ca-mutation</loc>
-    <lastmod>2026-05-15</lastmod>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/ntrk-fusions</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/pik3ca-mutation-ctdna</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/esr1-mutations-tissue</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/ntrk1-2-3</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/esr1-mutations-cfdna</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/esr1</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/brca-germline</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/esr1-ctdna</loc>
+    <lastmod>2026-07-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.urgenlab.com/tests/c-kit-mutation</loc>
+    <lastmod>2026-07-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.urgenlab.com/tests/idh1-2-detection-differentiation</loc>
+    <lastmod>2026-07-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.urgenlab.com/tests/mgmt-methylation</loc>
+    <lastmod>2026-07-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.urgenlab.com/tests/braf-mutations</loc>
+    <lastmod>2026-07-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.urgenlab.com/tests/dpd-dpyd-mutation-analysis</loc>
+    <lastmod>2026-07-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.urgenlab.com/tests/brca1-and-brca2-germline</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.urgenlab.com/tests/hrr-germline</loc>
-    <lastmod>2026-05-15</lastmod>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/breast-cancer-panel-germline</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/breast-cancer-gene-markers-ngs-panel-germline</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/ovarian-cancer-panel-germline</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/ovarian-cancer-gene-markers-ngs-panel-germline</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/prostate-cancer-panel-germline</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/prostate-cancer-gene-markers-ngs-panel-germline</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/pancreatic-cancer-panel-germline</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/pancreatic-cancer-gene-marker-ngs-panel-germline</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/colon-cancer-panel-germline</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/colon-cancer-gene-marker-ngs-panel-germline</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/melanoma-panel-germline</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/melanoma-cancer-gene-marker-ngs-panel-germline</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/gastric-cancer-panel-germline</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/gastric-cancer-gene-marker-ngs-panel-germline</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/biliary-cancer-panel-germline</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/biliary-tract-cancer-gene-marker-ngs-panel-germline</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/uterine-cancer-panel-germline</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/uterine-cancer-gene-marker-ngs-panel-germline</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/npc-panel-germline</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/nasopharyngeal-carcinoma-gene-marker-ngs-panel-germline</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/mtc-panel-germline</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/medullary-thyroid-cancer-mtc-ngs-panel-germline</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/brain-tumor-panel-germline</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/brain-tumor-gliomas-medulloblastoma-other-brain-tumor-ngs-panel-germline</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/hereditary-cancer-panel-89</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/hereditary-cancer-panel</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.urgenlab.com/tests/sperm-dna-fragmentation</loc>
-    <lastmod>2026-05-15</lastmod>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/karyotyping-reproductive</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/conventional-karyotyping-reproductive</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.urgenlab.com/tests/y-chromosome-microdeletions</loc>
-    <lastmod>2026-05-15</lastmod>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.urgenlab.com/tests/hpv-21-genotype</loc>
-    <lastmod>2026-05-15</lastmod>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.urgenlab.com/tests/pap-smear</loc>
-    <lastmod>2026-05-15</lastmod>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/thalassemia-ab-reproductive</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/thalassemia%CE%B1%2B%CE%B2-reproductive</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/wes-reproductive</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/bgi-whole-exome-sequencing-reproductive</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/wgs-reproductive</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/centogene-whole-exome-sequencing-cover-exon-regions-and-mitochondrial-genome-of-about-20-000-genes-in-human-genome-reproductive</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/fetal-miscarriage-genetic</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/revvity-whole-exome-sequencing-cover-exon-regions-and-mitochondrial-genome-of-about-20-000-genes-in-human-genome-reproductive</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/pgt-a-day3</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/core-whole-exome-sequencing-cover-exon-regions-and-mitochondrial-genome-of-about-20-000-genes-in-human-genome</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/pgt-a-day5</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/whole-genome-sequencing-reproductive</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/pgt-m</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/fetal-miscarriage-genetic-testing</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/nipt-single-twins-xy-extended</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/preimplantation-genetic-testing-aneuploidies-day3</loc>
+    <lastmod>2026-07-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.urgenlab.com/tests/preimplantation-genetic-testing-aneuploidies-day-5</loc>
+    <lastmod>2026-07-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.urgenlab.com/tests/preimplantation-genetic-testing-mutations</loc>
+    <lastmod>2026-07-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.urgenlab.com/tests/fetal-rhd-testing</loc>
+    <lastmod>2026-07-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.urgenlab.com/tests/nipt-single-or-twins-xy</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.urgenlab.com/tests/nipt-twins-trisomy</loc>
-    <lastmod>2026-05-15</lastmod>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.urgenlab.com/tests/nipt-single-plus-xy</loc>
-    <lastmod>2026-05-15</lastmod>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/nipt-single-trisomy-gender</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/nipt-single-trisomy13-18-21-gender</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/nipt-single-trisomy-only</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/nipt-single-trisomy-13-18-21</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.urgenlab.com/tests/nipt-gender-xy</loc>
-    <lastmod>2026-05-15</lastmod>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/karyotyping-pediatric</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/conventional-karyotyping-pediatric</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/nbs-basic</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/newborn-screening-nbs-basic</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/nbs-expanded</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/newborn-screening-nbs-expanded</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/allergy-screen-295</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/phenylalanine-tyrosine-ratio-blood-spot</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/newborn-genetic-screening-246</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/tetrahydrobiopterin-bh4</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/thalassemia-ab-pediatric</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/folate-receptor-antibodies-binding-blocking-quantitative</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/wes-pediatric</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/folate-receptor-autoantibodies-total-qualitative</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.urgenlab.com/tests/wgs-pediatric</loc>
-    <lastmod>2026-05-15</lastmod>
+    <loc>https://www.urgenlab.com/tests/allergy-screen-comprehensive-panel-295-allergens</loc>
+    <lastmod>2026-07-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.urgenlab.com/tests/food-print-food-intolerance-test</loc>
+    <lastmod>2026-07-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.urgenlab.com/tests/newborn-genetic-screening</loc>
+    <lastmod>2026-07-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.urgenlab.com/tests/thalassemia%CE%B1%2B%CE%B2-pediatric</loc>
+    <lastmod>2026-07-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.urgenlab.com/tests/bgi-whole-exome-sequencing-pediatric</loc>
+    <lastmod>2026-07-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.urgenlab.com/tests/centogene-whole-exome-sequencing-cover-exon-regions-and-mitochondrial-genome-of-about-20-000-genes-in-human-genome-pediatric</loc>
+    <lastmod>2026-07-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.urgenlab.com/tests/revvity-whole-exome-sequencing-cover-exon-regions-and-mitochondrial-genome-of-about-20-000-genes-in-human-genome-pediatric</loc>
+    <lastmod>2026-07-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.urgenlab.com/tests/whole-genome-sequencing-pediatric</loc>
+    <lastmod>2026-07-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.urgenlab.com/tests/wilson-disease-atp7b-gene-sequencing</loc>
+    <lastmod>2026-07-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.urgenlab.com/tests/cystic-fibrosis</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>

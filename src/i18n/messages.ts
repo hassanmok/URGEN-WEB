@@ -211,6 +211,7 @@ export const messagesAr = {
     fallbackNotice:
       "تعذّر تحميل أحدث قائمة الفحوصات. المعروض أدناه قد لا يشمل كل التحديثات.",
     categories: {
+      immunohistochemistry: "الكيمياء المناعية النسيجية",
       oncology_somatic: "الأورام والجسيمي",
       hereditary_cancer: "السرطان الوراثي",
       reproductive: "الإنجاب وصحة المرأة/الرجل",
@@ -232,8 +233,6 @@ export const messagesAr = {
     sample: "العينة المطلوبة",
     method: "الطريقة والتقنية",
     turnaround: "زمن الإنجاز",
-    preparation: "التحضير وجمع العينة",
-    limitations: "تنويهات وحدود",
   },
   bookPage: {
     eyebrow: "حجز موعد",
@@ -386,8 +385,6 @@ export const messagesAr = {
     testsMethod: "الطريقة",
     testsTurnaround: "مدة النتيجة",
     testsPrice: "السعر المعروض",
-    testsPreparation: "التحضير",
-    testsLimitation: "ملاحظات",
     testsLangAr: "عربي",
     testsLangEn: "إنجليزي",
     testsCreate: "إضافة التحليل",
@@ -426,7 +423,7 @@ export const messagesAr = {
     dataTitle: "مزامنة البيانات إلى Supabase",
     dataSubtitle:
       "ارفع قائمة الفحوصات الكاملة ونصوص الصفحات الرئيسية من الكود إلى قاعدة البيانات. نفّذ schema.sql أولاً.",
-    syncTests: "مزامنة الفحوصات (73+)",
+    syncTests: "مزامنة الفحوصات (98)",
     syncingTests: "جاري مزامنة الفحوصات…",
     syncTestsOk: "تم رفع {n} فحصاً إلى Supabase.",
     syncTestsFailed: "تعذرت مزامنة الفحوصات. تحقق من الجدول والصلاحيات.",
@@ -1201,6 +1198,7 @@ export const messagesEn = {
     fallbackNotice:
       "Could not load the latest test catalog. The list below may not include all updates.",
     categories: {
+      immunohistochemistry: "Immunohistochemistry",
       oncology_somatic: "Oncology / Somatic",
       hereditary_cancer: "Hereditary cancer",
       reproductive: "Reproductive & women/men health",
@@ -1222,8 +1220,6 @@ export const messagesEn = {
     sample: "Sample required",
     method: "Method / technology",
     turnaround: "Turnaround time",
-    preparation: "Preparation & collection",
-    limitations: "Notes & limitations",
   },
   bookPage: {
     eyebrow: "Book an appointment",
@@ -1377,8 +1373,6 @@ export const messagesEn = {
     testsMethod: "Method",
     testsTurnaround: "Turnaround",
     testsPrice: "Displayed price",
-    testsPreparation: "Preparation",
-    testsLimitation: "Limitations",
     testsLangAr: "Arabic",
     testsLangEn: "English",
     testsCreate: "Add test",
@@ -1418,7 +1412,7 @@ export const messagesEn = {
     dataTitle: "Sync data to Supabase",
     dataSubtitle:
       "Upload the full test catalog and main page copy from code to the database. Run schema.sql first.",
-    syncTests: "Sync tests catalog (73+)",
+    syncTests: "Sync tests catalog (98)",
     syncingTests: "Syncing tests…",
     syncTestsOk: "Synced {n} tests to Supabase.",
     syncTestsFailed: "Could not sync tests. Check table and permissions.",

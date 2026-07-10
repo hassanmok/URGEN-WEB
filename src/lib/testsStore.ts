@@ -22,10 +22,6 @@ function catalogRowToDb(row: LabTestCatalogEntry) {
     turnaround_en: row.turnaround_en,
     price_display_ar: row.price_display_ar,
     price_display_en: row.price_display_en,
-    preparation_ar: row.preparation_ar,
-    preparation_en: row.preparation_en,
-    limitation_note_ar: row.limitation_note_ar ?? null,
-    limitation_note_en: row.limitation_note_en ?? null,
     image_url: row.image_url,
     sort_order: row.sort_order,
   }

@@ -224,7 +224,7 @@ export function AdminTestsPanel({ m }: Props) {
               onChange={(e) => setCatForm((f) => ({ ...f, slug: e.target.value }))}
               className={inputClass}
               dir="ltr"
-              placeholder="oncology_somatic"
+              placeholder="immunohistochemistry"
             />
           </FormRow>
           <FormRow label={m.testsCategorySort}>
@@ -412,8 +412,6 @@ export function AdminTestsPanel({ m }: Props) {
                   ['method', m.testsMethod],
                   ['turnaround', m.testsTurnaround],
                   ['price_display', m.testsPrice],
-                  ['preparation', m.testsPreparation],
-                  ['limitation_note', m.testsLimitation],
                 ] as const
               ).map(([key, legend]) => (
                 <div key={key} className="grid gap-3 sm:grid-cols-2">

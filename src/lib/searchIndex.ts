@@ -197,10 +197,6 @@ export function buildSearchDocuments(
       t.method_en ?? '',
       t.turnaround_ar ?? '',
       t.turnaround_en ?? '',
-      t.preparation_ar ?? '',
-      t.preparation_en ?? '',
-      t.limitation_note_ar ?? '',
-      t.limitation_note_en ?? '',
       categoryLabel,
     )
 

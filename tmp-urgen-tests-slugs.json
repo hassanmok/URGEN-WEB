@@ -1,0 +1,590 @@
+[
+  {
+    "order": 1,
+    "slug": "slide-review",
+    "category": "immunohistochemistry",
+    "title_en": "Slide review"
+  },
+  {
+    "order": 2,
+    "slug": "immunohistochemistry-pdl-1",
+    "category": "immunohistochemistry",
+    "title_en": "Immunohistochemistry (PDL-1)"
+  },
+  {
+    "order": 3,
+    "slug": "ihc-marker",
+    "category": "immunohistochemistry",
+    "title_en": "IHC Marker"
+  },
+  {
+    "order": 4,
+    "slug": "mmr",
+    "category": "immunohistochemistry",
+    "title_en": "Mismatch Repair (MMR)"
+  },
+  {
+    "order": 5,
+    "slug": "her2-neu-amp-ish",
+    "category": "immunohistochemistry",
+    "title_en": "HER2/NEU amp, ISH"
+  },
+  {
+    "order": 6,
+    "slug": "brca1-and-brca2-somatic",
+    "category": "oncology_somatic",
+    "title_en": "BRCA1 and BRCA2 (Somatic)"
+  },
+  {
+    "order": 7,
+    "slug": "hrr-somatic",
+    "category": "oncology_somatic",
+    "title_en": "HRR (Homologous Recombination Repair) (Somatic)"
+  },
+  {
+    "order": 8,
+    "slug": "hrd-somatic",
+    "category": "oncology_somatic",
+    "title_en": "HRD (Homologous Recombination Deficiency) (Somatic)"
+  },
+  {
+    "order": 9,
+    "slug": "breast-cancer-gene-markers-ngs-panel-somatic",
+    "category": "oncology_somatic",
+    "title_en": "Breast Cancer Gene Markers NGS Panel (Somatic)"
+  },
+  {
+    "order": 10,
+    "slug": "ovarian-cancer-gene-markers-ngs-panel-somatic",
+    "category": "oncology_somatic",
+    "title_en": "Ovarian Cancer Gene Markers NGS Panel (Somatic)"
+  },
+  {
+    "order": 11,
+    "slug": "prostate-cancer-gene-markers-ngs-panel-somatic",
+    "category": "oncology_somatic",
+    "title_en": "Prostate Cancer Gene Markers NGS Panel (Somatic)"
+  },
+  {
+    "order": 12,
+    "slug": "pancreatic-cancer-gene-marker-ngs-panel-somatic",
+    "category": "oncology_somatic",
+    "title_en": "Pancreatic Cancer Gene Marker NGS Panel (Somatic)"
+  },
+  {
+    "order": 13,
+    "slug": "colon-cancer-gene-marker-ngs-panel-somatic",
+    "category": "oncology_somatic",
+    "title_en": "Colon Cancer Gene Marker NGS Panel (Somatic)"
+  },
+  {
+    "order": 14,
+    "slug": "melanoma-cancer-gene-marker-ngs-panel-somatic",
+    "category": "oncology_somatic",
+    "title_en": "Melanoma  Cancer Gene Marker NGS Panel (Somatic)"
+  },
+  {
+    "order": 15,
+    "slug": "gastric-cancer-gene-marker-ngs-panel-somatic",
+    "category": "oncology_somatic",
+    "title_en": "Gastric Cancer Gene Marker NGS Panel (Somatic)"
+  },
+  {
+    "order": 16,
+    "slug": "uterine-cancer-gene-marker-ngs-panel-somatic",
+    "category": "oncology_somatic",
+    "title_en": "Uterine Cancer Gene Marker NGS Panel (Somatic)"
+  },
+  {
+    "order": 17,
+    "slug": "nasopharyngeal-carcinoma-gene-marker-ngs-panel-somatic",
+    "category": "oncology_somatic",
+    "title_en": "Nasopharyngeal carcinoma Gene Marker NGS Panel (Somatic)"
+  },
+  {
+    "order": 18,
+    "slug": "medullary-thyroid-cancer-mtc-ngs-panel-somatic",
+    "category": "oncology_somatic",
+    "title_en": "Medullary thyroid cancer (MTC) NGS Panel (Somatic)"
+  },
+  {
+    "order": 19,
+    "slug": "brain-tumor-gliomas-medulloblastoma-other-brain-tumor-ngs-panel-somatic",
+    "category": "oncology_somatic",
+    "title_en": "Brain tumor (Gliomas, Medulloblastoma, Other Brain Tumor) NGS Panel (Somatic)"
+  },
+  {
+    "order": 20,
+    "slug": "sarcoma-ngs-panel",
+    "category": "oncology_somatic",
+    "title_en": "Sarcoma NGS panel"
+  },
+  {
+    "order": 21,
+    "slug": "tumor-mutational-burden-tmb",
+    "category": "oncology_somatic",
+    "title_en": "Tumor Mutational Burden (TMB)"
+  },
+  {
+    "order": 22,
+    "slug": "carcinoma-of-unknown-primary-cup",
+    "category": "oncology_somatic",
+    "title_en": "Carcinoma of unknown primary (CUP)"
+  },
+  {
+    "order": 23,
+    "slug": "urgen-comprehensive-ngs-panel",
+    "category": "oncology_somatic",
+    "title_en": "URGEN Comprehensive NGS Panel"
+  },
+  {
+    "order": 24,
+    "slug": "pole-mutations",
+    "category": "oncology_somatic",
+    "title_en": "POLE mutations"
+  },
+  {
+    "order": 25,
+    "slug": "microsatellite-instability-msi",
+    "category": "oncology_somatic",
+    "title_en": "Microsatellite instability (MSI)"
+  },
+  {
+    "order": 26,
+    "slug": "egfr-alk-ros1-mutations",
+    "category": "oncology_somatic",
+    "title_en": "EGFR/ALK/ROS1 Mutations"
+  },
+  {
+    "order": 27,
+    "slug": "egfr-mutations",
+    "category": "oncology_somatic",
+    "title_en": "EGFR Mutations"
+  },
+  {
+    "order": 28,
+    "slug": "egfr-mutations-ctdna",
+    "category": "oncology_somatic",
+    "title_en": "EGFR Mutations (ctDNA)"
+  },
+  {
+    "order": 29,
+    "slug": "alk-fusion",
+    "category": "oncology_somatic",
+    "title_en": "ALK Fusion"
+  },
+  {
+    "order": 30,
+    "slug": "ros1-fusion",
+    "category": "oncology_somatic",
+    "title_en": "ROS1 Fusion"
+  },
+  {
+    "order": 31,
+    "slug": "pan-lung-cancer-panel",
+    "category": "oncology_somatic",
+    "title_en": "Pan Lung Cancer Panel"
+  },
+  {
+    "order": 32,
+    "slug": "pan-lung-cancer-fusion-panel",
+    "category": "oncology_somatic",
+    "title_en": "Pan Lung Cancer Fusion Panel"
+  },
+  {
+    "order": 33,
+    "slug": "kras-nras-braf-mutations-detection",
+    "category": "oncology_somatic",
+    "title_en": "KRAS/NRAS/BRAF Mutations Detection"
+  },
+  {
+    "order": 34,
+    "slug": "kras-nras-braf-mutations-detection-ctdna",
+    "category": "oncology_somatic",
+    "title_en": "KRAS/NRAS/BRAF Mutations Detection (ctDNA)"
+  },
+  {
+    "order": 35,
+    "slug": "pik3ca-mutation",
+    "category": "oncology_somatic",
+    "title_en": "PIK3CA Mutation"
+  },
+  {
+    "order": 36,
+    "slug": "pik3ca-mutation-ctdna",
+    "category": "oncology_somatic",
+    "title_en": "PIK3CA Mutation  (ctDNA)"
+  },
+  {
+    "order": 37,
+    "slug": "ntrk1-2-3",
+    "category": "oncology_somatic",
+    "title_en": "NTRK1,2,3"
+  },
+  {
+    "order": 38,
+    "slug": "esr1",
+    "category": "oncology_somatic",
+    "title_en": "ESR1"
+  },
+  {
+    "order": 39,
+    "slug": "esr1-ctdna",
+    "category": "oncology_somatic",
+    "title_en": "ESR1-ctDNA"
+  },
+  {
+    "order": 40,
+    "slug": "c-kit-mutation",
+    "category": "oncology_somatic",
+    "title_en": "C Kit Mutation"
+  },
+  {
+    "order": 41,
+    "slug": "idh1-2-detection-differentiation",
+    "category": "oncology_somatic",
+    "title_en": "IDH1/2 Detection & Differentiation"
+  },
+  {
+    "order": 42,
+    "slug": "mgmt-methylation",
+    "category": "oncology_somatic",
+    "title_en": "MGMT Methylation"
+  },
+  {
+    "order": 43,
+    "slug": "braf-mutations",
+    "category": "oncology_somatic",
+    "title_en": "BRAF Mutations"
+  },
+  {
+    "order": 44,
+    "slug": "dpd-dpyd-mutation-analysis",
+    "category": "oncology_somatic",
+    "title_en": "DPD/DPYD mutation analysis"
+  },
+  {
+    "order": 45,
+    "slug": "brca1-and-brca2-germline",
+    "category": "hereditary_cancer",
+    "title_en": "BRCA1 and BRCA2 (Germline)"
+  },
+  {
+    "order": 46,
+    "slug": "hrr-germline",
+    "category": "hereditary_cancer",
+    "title_en": "HRR (Homologous Recombination Repair) (Germline)"
+  },
+  {
+    "order": 47,
+    "slug": "breast-cancer-gene-markers-ngs-panel-germline",
+    "category": "hereditary_cancer",
+    "title_en": "Breast Cancer Gene Markers NGS Panel (Germline)"
+  },
+  {
+    "order": 48,
+    "slug": "ovarian-cancer-gene-markers-ngs-panel-germline",
+    "category": "hereditary_cancer",
+    "title_en": "Ovarian Cancer Gene Markers NGS Panel (Germline)"
+  },
+  {
+    "order": 49,
+    "slug": "prostate-cancer-gene-markers-ngs-panel-germline",
+    "category": "hereditary_cancer",
+    "title_en": "Prostate Cancer Gene Markers NGS Panel (Germline)"
+  },
+  {
+    "order": 50,
+    "slug": "pancreatic-cancer-gene-marker-ngs-panel-germline",
+    "category": "hereditary_cancer",
+    "title_en": "Pancreatic Cancer Gene Marker NGS Panel (Germline)"
+  },
+  {
+    "order": 51,
+    "slug": "colon-cancer-gene-marker-ngs-panel-germline",
+    "category": "hereditary_cancer",
+    "title_en": "Colon Cancer Gene Marker NGS Panel (Germline)"
+  },
+  {
+    "order": 52,
+    "slug": "melanoma-cancer-gene-marker-ngs-panel-germline",
+    "category": "hereditary_cancer",
+    "title_en": "Melanoma Cancer Gene Marker NGS Panel (Germline)"
+  },
+  {
+    "order": 53,
+    "slug": "gastric-cancer-gene-marker-ngs-panel-germline",
+    "category": "hereditary_cancer",
+    "title_en": "Gastric Cancer Gene Marker NGS Panel (Germline)"
+  },
+  {
+    "order": 54,
+    "slug": "biliary-tract-cancer-gene-marker-ngs-panel-germline",
+    "category": "hereditary_cancer",
+    "title_en": "Biliary tract Cancer Gene Marker NGS Panel (Germline)"
+  },
+  {
+    "order": 55,
+    "slug": "uterine-cancer-gene-marker-ngs-panel-germline",
+    "category": "hereditary_cancer",
+    "title_en": "Uterine Cancer Gene Marker NGS Panel (Germline)"
+  },
+  {
+    "order": 56,
+    "slug": "nasopharyngeal-carcinoma-gene-marker-ngs-panel-germline",
+    "category": "hereditary_cancer",
+    "title_en": "Nasopharyngeal carcinoma Gene Marker NGS Panel (Germline)"
+  },
+  {
+    "order": 57,
+    "slug": "medullary-thyroid-cancer-mtc-ngs-panel-germline",
+    "category": "hereditary_cancer",
+    "title_en": "Medullary thyroid cancer (MTC) NGS Panel (Germline)"
+  },
+  {
+    "order": 58,
+    "slug": "brain-tumor-gliomas-medulloblastoma-other-brain-tumor-ngs-panel-germline",
+    "category": "hereditary_cancer",
+    "title_en": "Brain tumor (Gliomas, Medulloblastoma, Other Brain Tumor) NGS Panel (Germline)"
+  },
+  {
+    "order": 59,
+    "slug": "hereditary-cancer-panel",
+    "category": "hereditary_cancer",
+    "title_en": "Hereditary Cancer Panel"
+  },
+  {
+    "order": 60,
+    "slug": "sperm-dna-fragmentation",
+    "category": "reproductive",
+    "title_en": "Sperm DNA Fragmentation"
+  },
+  {
+    "order": 61,
+    "slug": "conventional-karyotyping-reproductive",
+    "category": "reproductive",
+    "title_en": "Conventional Karyotyping"
+  },
+  {
+    "order": 62,
+    "slug": "y-chromosome-microdeletions",
+    "category": "reproductive",
+    "title_en": "Y- Chromosome microdeletions"
+  },
+  {
+    "order": 63,
+    "slug": "hpv-21-genotype",
+    "category": "reproductive",
+    "title_en": "HPV 21 Genotype"
+  },
+  {
+    "order": 64,
+    "slug": "pap-smear",
+    "category": "reproductive",
+    "title_en": "Pap smear"
+  },
+  {
+    "order": 65,
+    "slug": "thalassemiaα+β-reproductive",
+    "category": "reproductive",
+    "title_en": "Thalassemia(α+β)"
+  },
+  {
+    "order": 66,
+    "slug": "bgi-whole-exome-sequencing-reproductive",
+    "category": "reproductive",
+    "title_en": "BGI Whole-Exome Sequencing"
+  },
+  {
+    "order": 67,
+    "slug": "centogene-whole-exome-sequencing-cover-exon-regions-and-mitochondrial-genome-of-about-20-000-genes-in-human-genome-reproductive",
+    "category": "reproductive",
+    "title_en": "CENTOGENE Whole-Exome Sequencing Cover Exon regions and mitochondrial genome of about 20,000 genes in human genome"
+  },
+  {
+    "order": 68,
+    "slug": "revvity-whole-exome-sequencing-cover-exon-regions-and-mitochondrial-genome-of-about-20-000-genes-in-human-genome-reproductive",
+    "category": "reproductive",
+    "title_en": "REVVITY Whole-Exome Sequencing Cover Exon regions and mitochondrial genome of about 20,000 genes in human genome"
+  },
+  {
+    "order": 69,
+    "slug": "core-whole-exome-sequencing-cover-exon-regions-and-mitochondrial-genome-of-about-20-000-genes-in-human-genome",
+    "category": "reproductive",
+    "title_en": "CORE Whole-Exome Sequencing Cover Exon regions and mitochondrial genome of about 20,000 genes in human genome"
+  },
+  {
+    "order": 70,
+    "slug": "whole-genome-sequencing-reproductive",
+    "category": "reproductive",
+    "title_en": "Whole Genome Sequencing"
+  },
+  {
+    "order": 71,
+    "slug": "fetal-miscarriage-genetic-testing",
+    "category": "reproductive",
+    "title_en": "Fetal Miscarriage Genetic Testing"
+  },
+  {
+    "order": 72,
+    "slug": "preimplantation-genetic-testing-aneuploidies-day3",
+    "category": "reproductive",
+    "title_en": "Preimplantation Genetic Testing-Aneuploidies Day3"
+  },
+  {
+    "order": 73,
+    "slug": "preimplantation-genetic-testing-aneuploidies-day-5",
+    "category": "reproductive",
+    "title_en": "Preimplantation Genetic Testing-Aneuploidies Day 5"
+  },
+  {
+    "order": 74,
+    "slug": "preimplantation-genetic-testing-mutations",
+    "category": "reproductive",
+    "title_en": "Preimplantation Genetic Testing-Mutations"
+  },
+  {
+    "order": 75,
+    "slug": "fetal-rhd-testing",
+    "category": "nipt",
+    "title_en": "Fetal RhD Testing"
+  },
+  {
+    "order": 76,
+    "slug": "nipt-single-or-twins-xy",
+    "category": "nipt",
+    "title_en": "NIPT  Single or Twins XY"
+  },
+  {
+    "order": 77,
+    "slug": "nipt-twins-trisomy",
+    "category": "nipt",
+    "title_en": "NIPT Twins Trisomy"
+  },
+  {
+    "order": 78,
+    "slug": "nipt-single-plus-xy",
+    "category": "nipt",
+    "title_en": "NIPT Single Plus, XY"
+  },
+  {
+    "order": 79,
+    "slug": "nipt-single-trisomy13-18-21-gender",
+    "category": "nipt",
+    "title_en": "NIPT Single (Trisomy13, 18, 21 & Gender)"
+  },
+  {
+    "order": 80,
+    "slug": "nipt-single-trisomy-13-18-21",
+    "category": "nipt",
+    "title_en": "NIPT Single (Trisomy 13, 18, 21)"
+  },
+  {
+    "order": 81,
+    "slug": "nipt-gender-xy",
+    "category": "nipt",
+    "title_en": "NIPT Gender XY"
+  },
+  {
+    "order": 82,
+    "slug": "conventional-karyotyping-pediatric",
+    "category": "pediatric_newborn",
+    "title_en": "Conventional Karyotyping"
+  },
+  {
+    "order": 83,
+    "slug": "newborn-screening-nbs-basic",
+    "category": "pediatric_newborn",
+    "title_en": "Newborn Screening NBS (Basic)"
+  },
+  {
+    "order": 84,
+    "slug": "newborn-screening-nbs-expanded",
+    "category": "pediatric_newborn",
+    "title_en": "Newborn Screening NBS (Expanded)"
+  },
+  {
+    "order": 85,
+    "slug": "phenylalanine-tyrosine-ratio-blood-spot",
+    "category": "pediatric_newborn",
+    "title_en": "Phenylalanine/Tyrosine Ratio, Blood Spot"
+  },
+  {
+    "order": 86,
+    "slug": "tetrahydrobiopterin-bh4",
+    "category": "pediatric_newborn",
+    "title_en": "Tetrahydrobiopterin (BH4)"
+  },
+  {
+    "order": 87,
+    "slug": "folate-receptor-antibodies-binding-blocking-quantitative",
+    "category": "pediatric_newborn",
+    "title_en": "Folate Receptor Antibodies (binding & blocking), Quantitative"
+  },
+  {
+    "order": 88,
+    "slug": "folate-receptor-autoantibodies-total-qualitative",
+    "category": "pediatric_newborn",
+    "title_en": "Folate Receptor Autoantibodies (Total), Qualitative"
+  },
+  {
+    "order": 89,
+    "slug": "allergy-screen-comprehensive-panel-295-allergens",
+    "category": "pediatric_newborn",
+    "title_en": "Allergy Screen (Comprehensive Panel): 295 allergens"
+  },
+  {
+    "order": 90,
+    "slug": "food-print-food-intolerance-test",
+    "category": "pediatric_newborn",
+    "title_en": "Food Print (Food Intolerance Test)"
+  },
+  {
+    "order": 91,
+    "slug": "newborn-genetic-screening",
+    "category": "pediatric_newborn",
+    "title_en": "Newborn Genetic Screening"
+  },
+  {
+    "order": 92,
+    "slug": "thalassemiaα+β-pediatric",
+    "category": "pediatric_newborn",
+    "title_en": "Thalassemia(α+β)"
+  },
+  {
+    "order": 93,
+    "slug": "bgi-whole-exome-sequencing-pediatric",
+    "category": "pediatric_newborn",
+    "title_en": "BGI Whole-Exome Sequencing"
+  },
+  {
+    "order": 94,
+    "slug": "centogene-whole-exome-sequencing-cover-exon-regions-and-mitochondrial-genome-of-about-20-000-genes-in-human-genome-pediatric",
+    "category": "pediatric_newborn",
+    "title_en": "CENTOGENE Whole-Exome Sequencing Cover Exon regions and mitochondrial genome of about 20,000 genes in human genome"
+  },
+  {
+    "order": 95,
+    "slug": "revvity-whole-exome-sequencing-cover-exon-regions-and-mitochondrial-genome-of-about-20-000-genes-in-human-genome-pediatric",
+    "category": "pediatric_newborn",
+    "title_en": "REVVITY Whole-Exome Sequencing Cover Exon regions and mitochondrial genome of about 20,000 genes in human genome"
+  },
+  {
+    "order": 96,
+    "slug": "whole-genome-sequencing-pediatric",
+    "category": "pediatric_newborn",
+    "title_en": "Whole Genome Sequencing (WGS)"
+  },
+  {
+    "order": 97,
+    "slug": "wilson-disease-atp7b-gene-sequencing",
+    "category": "pediatric_newborn",
+    "title_en": "Wilson Disease - ATP7B Gene Sequencing"
+  },
+  {
+    "order": 98,
+    "slug": "cystic-fibrosis",
+    "category": "pediatric_newborn",
+    "title_en": "Cystic Fibrosis"
+  }
+]

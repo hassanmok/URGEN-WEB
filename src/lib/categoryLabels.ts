@@ -2,6 +2,7 @@ import type { TestCategoryRecord } from '../types/testCategory'
 import type { Locale } from '../i18n/messages'
 
 const I18N_FALLBACK_AR: Record<string, string> = {
+  immunohistochemistry: 'الكيمياء المناعية النسيجية',
   oncology_somatic: 'الأورام والجسيمي',
   hereditary_cancer: 'السرطان الوراثي',
   reproductive: 'الإنجاب وصحة المرأة/الرجل',
@@ -10,6 +11,7 @@ const I18N_FALLBACK_AR: Record<string, string> = {
 }
 
 const I18N_FALLBACK_EN: Record<string, string> = {
+  immunohistochemistry: 'Immunohistochemistry',
   oncology_somatic: 'Oncology / Somatic',
   hereditary_cancer: 'Hereditary cancer',
   reproductive: 'Reproductive & women/men health',

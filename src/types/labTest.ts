@@ -2,6 +2,7 @@ import type { TestRow } from './database'
 
 /** يطابق أقسام قائمة الموقع في دليل المحتوى */
 export type TestCategoryId =
+  | 'immunohistochemistry'
   | 'oncology_somatic'
   | 'hereditary_cancer'
   | 'reproductive'
@@ -22,10 +23,6 @@ export type LabTestMeta = {
   turnaround_en: string
   price_display_ar: string
   price_display_en: string
-  preparation_ar: string
-  preparation_en: string
-  limitation_note_ar?: string
-  limitation_note_en?: string
 }
 
 /** سجل فحص كامل للواجهة (الاحتياطي المحلي أو دمج أعمدة اختيارية لاحقاً) */
@@ -50,8 +47,6 @@ export function isFullLabTest(t: LabTest): t is TestRow & LabTestMeta {
     t.method_ar &&
     t.method_en &&
     t.turnaround_ar &&
-    t.turnaround_en &&
-    t.preparation_ar &&
-    t.preparation_en,
+    t.turnaround_en,
   )
 }

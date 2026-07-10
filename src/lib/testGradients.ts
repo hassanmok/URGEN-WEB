@@ -1,6 +1,7 @@
 import type { TestCategoryId } from '../types/labTest'
 
 const categoryGradients: Record<TestCategoryId, string> = {
+  immunohistochemistry: 'from-[#00695c] via-[#26a69a] to-urgen-sky',
   oncology_somatic: 'from-urgen-navy via-[#3949ab] to-urgen-purple',
   hereditary_cancer: 'from-[#4a148c] via-urgen-purple to-urgen-magenta',
   reproductive: 'from-[#01579b] via-[#5c6bc0] to-urgen-purple',

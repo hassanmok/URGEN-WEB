@@ -1,13 +1,15 @@
 import type { LabTestCatalogEntry } from '../types/labTest'
 import { hereditaryCancerCatalog } from './catalog/hereditaryCancer'
+import { immunohistochemistryCatalog } from './catalog/immunohistochemistry'
 import { niptCatalog } from './catalog/nipt'
 import { oncologySomaticCatalog } from './catalog/oncologySomatic'
 import { pediatricNewbornCatalog } from './catalog/pediatricNewborn'
 import { reproductiveCatalog } from './catalog/reproductive'
 
-/** ترتيب العرض: أورام/جسيمي → وراثي سرطان → إنجاب → NIPT → أطفال/مواليد */
+/** ترتيب العرض كما في قائمة URGEN: IHC → أورام → وراثي → إنجاب → NIPT → أطفال */
 export const labTestsCatalogEntries: LabTestCatalogEntry[] = (() => {
   const merged: Omit<LabTestCatalogEntry, 'sort_order'>[] = [
+    ...immunohistochemistryCatalog,
     ...oncologySomaticCatalog,
     ...hereditaryCancerCatalog,
     ...reproductiveCatalog,

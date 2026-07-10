@@ -15,8 +15,6 @@ function detailFields(test: LabTest, locale: 'ar' | 'en') {
     sample: ar ? test.sample_ar : test.sample_en,
     method: ar ? test.method_ar : test.method_en,
     turnaround: ar ? test.turnaround_ar : test.turnaround_en,
-    preparation: ar ? test.preparation_ar : test.preparation_en,
-    limitation: ar ? test.limitation_note_ar : test.limitation_note_en,
   }
 }
 
@@ -115,20 +113,6 @@ export function TestDetailPage() {
                 </dt>
                 <dd className="mt-1">{d.turnaround}</dd>
               </div>
-              <div>
-                <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                  {m.testDetail.preparation}
-                </dt>
-                <dd className="mt-1 leading-relaxed">{d.preparation}</dd>
-              </div>
-              {d.limitation && (
-                <div className="rounded-xl border border-amber-100 bg-amber-50/90 p-4">
-                  <dt className="text-xs font-bold uppercase tracking-wide text-amber-900">
-                    {m.testDetail.limitations}
-                  </dt>
-                  <dd className="mt-2 text-sm leading-relaxed text-amber-950">{d.limitation}</dd>
-                </div>
-              )}
             </dl>
           ) : (
             <div className="rounded-2xl bg-urgen-sky-soft/80 p-6 text-slate-700 sm:p-8">
