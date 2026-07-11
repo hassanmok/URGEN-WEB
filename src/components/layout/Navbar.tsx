@@ -238,72 +238,98 @@ export function Navbar() {
 
       {desktopSearchOverlay}
 
-      {open && (
-        <div
-          id="mobile-nav"
-          className="border-t border-slate-100 bg-white px-4 py-4 md:hidden"
-        >
-          <SearchBar className="mb-4 w-full" onNavigate={() => setOpen(false)} />
-          <nav className="flex flex-col gap-1" aria-label={m.nav.mobile}>
-            {links.map((l) =>
-              l.kind === 'external' && l.href.includes('genome') ? (
-                <a
-                  key={l.href}
-                  href={l.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => setOpen(false)}
-                  className="genome-banner my-1 flex items-center gap-2 overflow-hidden rounded-2xl px-3 py-2 shadow-lg shadow-purple-900/30"
-                >
-                  <img
-                    src="/images/genome-dna.png"
-                    alt=""
-                    aria-hidden
-                    className="genome-dna relative z-10 h-14 w-14 shrink-0 object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.35)]"
-                  />
-                  <span
-                    className={`relative z-10 min-w-0 flex-1 text-center font-bold text-white drop-shadow-[0_2px_10px_rgba(255,255,255,0.35)] ${
-                      isArabic
-                        ? 'font-sans text-2xl'
-                        : 'font-serif text-3xl uppercase tracking-[0.12em]'
+      <div
+        className={`grid overflow-hidden transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] md:hidden ${
+          open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+        }`}
+      >
+        <div className="min-h-0 overflow-hidden">
+          <div
+            id="mobile-nav"
+            aria-hidden={!open}
+            className={`border-t border-slate-100 bg-white px-4 py-4 transition-opacity duration-300 ${
+              open ? 'opacity-100' : 'pointer-events-none opacity-0'
+            }`}
+          >
+            <div
+              className={`mb-4 transition-all duration-300 ease-out ${
+                open ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0'
+              }`}
+              style={{ transitionDelay: open ? '60ms' : '0ms' }}
+            >
+              <SearchBar className="w-full" onNavigate={() => setOpen(false)} />
+            </div>
+            <nav className="flex flex-col gap-1" aria-label={m.nav.mobile}>
+              {links.map((l, i) => {
+                const item =
+                  l.kind === 'external' && l.href.includes('genome') ? (
+                    <a
+                      href={l.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setOpen(false)}
+                      className="genome-banner my-1 flex items-center gap-2 overflow-hidden rounded-2xl px-3 py-2 shadow-lg shadow-purple-900/30"
+                    >
+                      <img
+                        src="/images/genome-dna.png"
+                        alt=""
+                        aria-hidden
+                        className="genome-dna relative z-10 h-14 w-14 shrink-0 object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.35)]"
+                      />
+                      <span
+                        className={`relative z-10 min-w-0 flex-1 text-center font-bold text-white drop-shadow-[0_2px_10px_rgba(255,255,255,0.35)] ${
+                          isArabic
+                            ? 'font-sans text-2xl'
+                            : 'font-serif text-3xl uppercase tracking-[0.12em]'
+                        }`}
+                      >
+                        {l.label}
+                      </span>
+                      <span className="genome-cta relative z-10 shrink-0 rounded-full bg-gradient-to-b from-white to-cyan-50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-purple-700">
+                        {m.nav.genomeCta}
+                      </span>
+                    </a>
+                  ) : l.kind === 'external' ? (
+                    <a
+                      href={l.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setOpen(false)}
+                      className="block rounded-xl px-4 py-3 text-base font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+                    >
+                      {l.label}
+                    </a>
+                  ) : (
+                    <NavLink
+                      to={l.to}
+                      onClick={() => setOpen(false)}
+                      className={({ isActive }) =>
+                        `block rounded-xl px-4 py-3 text-base font-semibold transition-colors ${
+                          isActive ? 'bg-urgen-purple/10 text-urgen-purple' : 'text-slate-700 hover:bg-slate-50'
+                        }`
+                      }
+                      end={l.to === '/'}
+                    >
+                      {l.label}
+                    </NavLink>
+                  )
+
+                return (
+                  <div
+                    key={l.kind === 'external' ? l.href : l.to}
+                    className={`transition-all duration-300 ease-out ${
+                      open ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0'
                     }`}
+                    style={{ transitionDelay: open ? `${110 + i * 45}ms` : '0ms' }}
                   >
-                    {l.label}
-                  </span>
-                  <span className="genome-cta relative z-10 shrink-0 rounded-full bg-gradient-to-b from-white to-cyan-50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-purple-700">
-                    {m.nav.genomeCta}
-                  </span>
-                </a>
-              ) : l.kind === 'external' ? (
-                <a
-                  key={l.href}
-                  href={l.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => setOpen(false)}
-                  className="rounded-xl px-4 py-3 text-base font-semibold text-slate-700"
-                >
-                  {l.label}
-                </a>
-              ) : (
-                <NavLink
-                  key={l.to}
-                  to={l.to}
-                  onClick={() => setOpen(false)}
-                  className={({ isActive }) =>
-                    `rounded-xl px-4 py-3 text-base font-semibold ${
-                      isActive ? 'bg-urgen-purple/10 text-urgen-purple' : 'text-slate-700'
-                    }`
-                  }
-                  end={l.to === '/'}
-                >
-                  {l.label}
-                </NavLink>
-              ),
-            )}
-          </nav>
+                    {item}
+                  </div>
+                )
+              })}
+            </nav>
+          </div>
         </div>
-      )}
+      </div>
     </header>
   )
 }
