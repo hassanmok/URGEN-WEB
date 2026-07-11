@@ -117,6 +117,107 @@
   }
 }
 
+/* ===== Genome mobile-menu banner animations ===== */
+.genome-banner {
+  position: relative;
+  background-image: linear-gradient(
+    100deg,
+    #7b2ff7 0%,
+    #c026d3 14%,
+    #7c3aed 42%,
+    #3b2a8c 66%,
+    #6d3bd1 86%,
+    #b98be0 100%
+  );
+  background-size: 220% 100%;
+  animation: genome-gradient-shift 7s ease-in-out infinite;
+}
+
+/* لمعان ينزلق عبر الشريط */
+.genome-banner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.28) 45%,
+    rgba(255, 255, 255, 0.45) 50%,
+    rgba(255, 255, 255, 0.28) 55%,
+    transparent 80%
+  );
+  transform: translateX(-120%);
+  animation: genome-shine 4.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* نسخة مصغّرة للشريط العلوي على سطح المكتب */
+.genome-chip {
+  animation:
+    genome-gradient-shift 7s ease-in-out infinite,
+    genome-glow 2.6s ease-in-out infinite;
+}
+
+.genome-dna {
+  animation: genome-float 3.5s ease-in-out infinite;
+}
+
+@keyframes genome-glow {
+  0%,
+  100% {
+    box-shadow: 0 4px 14px rgba(124, 58, 237, 0.35);
+  }
+  50% {
+    box-shadow:
+      0 0 18px rgba(217, 70, 239, 0.7),
+      0 4px 18px rgba(124, 58, 237, 0.55);
+  }
+}
+
+.genome-cta {
+  animation: genome-pulse 2.2s ease-in-out infinite;
+}
+
+@keyframes genome-gradient-shift {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes genome-shine {
+  0% {
+    transform: translateX(-120%);
+  }
+  60%,
+  100% {
+    transform: translateX(120%);
+  }
+}
+
+@keyframes genome-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-3px) rotate(-4deg);
+  }
+}
+
+@keyframes genome-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 8px rgba(103, 232, 249, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 18px rgba(103, 232, 249, 1);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .doctor-analytics-enter,
   .doctor-analytics-scale,
@@ -127,5 +228,13 @@
     opacity: 1 !important;
     transform: none !important;
     stroke-dashoffset: 0 !important;
+  }
+
+  .genome-banner,
+  .genome-banner::after,
+  .genome-chip,
+  .genome-dna,
+  .genome-cta {
+    animation: none !important;
   }
 }

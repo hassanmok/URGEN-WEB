@@ -12,7 +12,8 @@ export function Navbar() {
   const [portalReady, setPortalReady] = useState(false)
   const [overlayEntered, setOverlayEntered] = useState(false)
   const { pathname } = useLocation()
-  const { messages: m } = useLocaleContext()
+  const { messages: m, locale } = useLocaleContext()
+  const isArabic = locale === 'ar'
 
   useEffect(() => {
     setPortalReady(true)
@@ -134,7 +135,29 @@ export function Navbar() {
           aria-label={m.nav.main}
         >
           {links.map((l) =>
-            l.kind === 'external' ? (
+            l.kind === 'external' && l.href.includes('genome') ? (
+              <a
+                key={l.href}
+                href={l.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="genome-banner genome-chip relative mx-1 inline-flex items-center gap-1.5 overflow-hidden rounded-full py-1 pl-2 pr-4 transition-transform duration-300 hover:scale-[1.05]"
+              >
+                <img
+                  src="/images/genome-dna.png"
+                  alt=""
+                  aria-hidden
+                  className="genome-dna relative z-10 h-9 w-9 shrink-0 object-contain drop-shadow-[0_1px_4px_rgba(0,0,0,0.35)]"
+                />
+                <span
+                  className={`relative z-10 font-bold text-white drop-shadow-[0_1px_6px_rgba(255,255,255,0.4)] ${
+                    isArabic ? 'font-sans text-sm' : 'font-serif text-sm uppercase tracking-[0.14em]'
+                  }`}
+                >
+                  {l.label}
+                </span>
+              </a>
+            ) : l.kind === 'external' ? (
               <a
                 key={l.href}
                 href={l.href}
@@ -223,7 +246,35 @@ export function Navbar() {
           <SearchBar className="mb-4 w-full" onNavigate={() => setOpen(false)} />
           <nav className="flex flex-col gap-1" aria-label={m.nav.mobile}>
             {links.map((l) =>
-              l.kind === 'external' ? (
+              l.kind === 'external' && l.href.includes('genome') ? (
+                <a
+                  key={l.href}
+                  href={l.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setOpen(false)}
+                  className="genome-banner my-1 flex items-center gap-2 overflow-hidden rounded-2xl px-3 py-2 shadow-lg shadow-purple-900/30"
+                >
+                  <img
+                    src="/images/genome-dna.png"
+                    alt=""
+                    aria-hidden
+                    className="genome-dna relative z-10 h-14 w-14 shrink-0 object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.35)]"
+                  />
+                  <span
+                    className={`relative z-10 min-w-0 flex-1 text-center font-bold text-white drop-shadow-[0_2px_10px_rgba(255,255,255,0.35)] ${
+                      isArabic
+                        ? 'font-sans text-2xl'
+                        : 'font-serif text-3xl uppercase tracking-[0.12em]'
+                    }`}
+                  >
+                    {l.label}
+                  </span>
+                  <span className="genome-cta relative z-10 shrink-0 rounded-full bg-gradient-to-b from-white to-cyan-50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-purple-700">
+                    {m.nav.genomeCta}
+                  </span>
+                </a>
+              ) : l.kind === 'external' ? (
                 <a
                   key={l.href}
                   href={l.href}
