@@ -1,4 +1,5 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useTests } from '../hooks/useTests'
 import { useTestCategories } from '../hooks/useTestCategories'
 import { useLocaleContext } from '../i18n/useLocaleContext'
@@ -47,7 +48,10 @@ function CategoryAccordionRow({
   const panelId = `${sectionId}-panel`
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div
+      id={sectionId}
+      className="scroll-mt-28 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+    >
       <button
         type="button"
         id={headerId}
@@ -85,6 +89,20 @@ export function TestsPage() {
   const { categories } = useTestCategories()
   const { locale, messages: m } = useLocaleContext()
   const [openSection, setOpenSection] = useState<OpenSection>(null)
+  const location = useLocation()
+
+  /** فتح القسم المطلوب والتمرير إليه عند القدوم عبر رابط مثل /tests#cat-<slug> */
+  useEffect(() => {
+    if (loading) return
+    const hash = location.hash.replace('#', '')
+    if (!hash.startsWith('cat-')) return
+    const slug = hash.slice(4)
+    const id = requestAnimationFrame(() => {
+      setOpenSection(slug)
+      document.getElementById(hash)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+    return () => cancelAnimationFrame(id)
+  }, [loading, location.hash])
 
   const sortedCategories = useMemo(() => sortCategories(categories), [categories])
 
