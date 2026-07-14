@@ -8,6 +8,7 @@ import {
   createDoctorCaseFileDownloadUrl,
   createDoctorResultPdfDownloadUrl,
   markDoctorReportOpened,
+  markDoctorCaseTestReportOpened,
   doctorCaseMatchesPatientSearch,
   doctorDiseaseTypeLabel,
   fetchDoctorCaseFiles,
@@ -167,15 +168,30 @@ function CaseCard({
   const [files, setFiles] = useState<DoctorCaseFileRow[]>([])
   const [filesLoading, setFilesLoading] = useState(false)
   const [pdfBusy, setPdfBusy] = useState(false)
-  const [resultPdfBusy, setResultPdfBusy] = useState(false)
+  const [resultPdfBusy, setResultPdfBusy] = useState<string | null>(null)
   const [expanded, setExpanded] = useState(false)
   const [editing, setEditing] = useState(false)
   const [reportOpenedAt, setReportOpenedAt] = useState(row.report_first_opened_at)
+  const [testOpenedAt, setTestOpenedAt] = useState<Record<string, string | null>>(() => {
+    const map: Record<string, string | null> = {}
+    for (const t of caseTests) map[t.id] = t.report_first_opened_at
+    return map
+  })
   const status = normalizeDoctorCaseStatus(row.status)
   const canEdit = status === 'sent'
   const resultExpired = isDoctorResultPdfExpired(row)
-  const resultPdfReady = status === 'done' && row.pdf_storage_path && !resultExpired
+  const hasPerTestReports = caseTests.some((t) => Boolean(t.pdf_storage_path))
+  const legacyPdfReady = status === 'done' && row.pdf_storage_path && !resultExpired && !hasPerTestReports
+  const testsWithReadyPdf = caseTests.filter(
+    (t) => t.pdf_storage_path && !isDoctorResultPdfExpired(t),
+  )
   const diseaseLabel = doctorDiseaseTypeLabel(row, diseaseLabels)
+
+  useEffect(() => {
+    const map: Record<string, string | null> = {}
+    for (const t of caseTests) map[t.id] = t.report_first_opened_at
+    setTestOpenedAt(map)
+  }, [caseTests])
 
   function statusLabel(s: ReturnType<typeof normalizeDoctorCaseStatus>) {
     switch (s) {
@@ -195,13 +211,25 @@ function CaseCard({
   }
 
   async function downloadResultPdf(storagePath: string) {
-    setResultPdfBusy(true)
+    setResultPdfBusy('case')
     const markRes = await markDoctorReportOpened(row.id)
     if (markRes.ok && markRes.opened_at) {
       setReportOpenedAt(markRes.opened_at)
     }
     const res = await createDoctorResultPdfDownloadUrl(storagePath)
-    setResultPdfBusy(false)
+    setResultPdfBusy(null)
+    if (res.ok && res.url) window.open(res.url, '_blank', 'noopener,noreferrer')
+  }
+
+  async function downloadTestResultPdf(test: DoctorCaseTestRow) {
+    if (!test.pdf_storage_path) return
+    setResultPdfBusy(test.id)
+    const markRes = await markDoctorCaseTestReportOpened(test.id)
+    if (markRes.ok && markRes.opened_at) {
+      setTestOpenedAt((prev) => ({ ...prev, [test.id]: markRes.opened_at ?? null }))
+    }
+    const res = await createDoctorResultPdfDownloadUrl(test.pdf_storage_path)
+    setResultPdfBusy(null)
     if (res.ok && res.url) window.open(res.url, '_blank', 'noopener,noreferrer')
   }
 
@@ -342,7 +370,7 @@ function CaseCard({
           {row.rejection_reason}
         </p>
       )}
-      {status === 'done' && row.result_value && (
+      {status === 'done' && !hasPerTestReports && row.result_value && (
         <p className="mt-3 text-sm">
           <span className="font-semibold text-urgen-navy">{m.colResult}: </span>
           <span
@@ -359,10 +387,88 @@ function CaseCard({
       {status === 'sent' && (
         <p className="mt-3 text-xs text-slate-500">{m.resultPdfAwaitAcceptance}</p>
       )}
-      {!resultPdfReady && status !== 'done' && status !== 'sent' && status !== 'rejected' && (
-        <p className="mt-3 text-xs text-slate-500">{m.resultPdfLocked}</p>
+      {!legacyPdfReady &&
+        testsWithReadyPdf.length === 0 &&
+        status !== 'done' &&
+        status !== 'sent' &&
+        status !== 'rejected' && (
+          <p className="mt-3 text-xs text-slate-500">{m.resultPdfLocked}</p>
+        )}
+      {hasPerTestReports && (
+        <ul className="mt-3 space-y-3">
+          {caseTests.map((t) => {
+            const title = resolveDoctorCaseTestTitle(t, catalogTests, locale)
+            const expired = isDoctorResultPdfExpired(t)
+            const ready = Boolean(t.pdf_storage_path) && !expired
+            const opened = testOpenedAt[t.id]
+            return (
+              <li
+                key={t.id}
+                className="rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-3"
+              >
+                <p className="text-sm font-semibold text-urgen-navy">{title}</p>
+                {t.result_value && (
+                  <p className="mt-1 text-xs">
+                    <span className="font-semibold text-urgen-navy">{m.colResult}: </span>
+                    <span
+                      className={
+                        t.result_value === 'positive'
+                          ? 'font-semibold text-emerald-700'
+                          : 'font-semibold text-slate-700'
+                      }
+                    >
+                      {t.result_value === 'positive' ? m.resultPositive : m.resultNegative}
+                    </span>
+                  </p>
+                )}
+                {t.pdf_storage_path && t.pdf_expires_at && (
+                  <p
+                    className={`mt-1 text-xs font-medium ${expired ? 'text-amber-900' : 'text-emerald-800'}`}
+                  >
+                    {expired ? m.resultPdfExpiredAt : m.resultPdfValidUntil}
+                    {': '}
+                    <span dir="ltr" className="inline-block font-normal tabular-nums">
+                      {new Date(t.pdf_expires_at).toLocaleString(
+                        locale === 'ar' ? 'ar-IQ' : 'en-US',
+                      )}
+                    </span>
+                  </p>
+                )}
+                {!t.pdf_storage_path && status !== 'rejected' && (
+                  <p className="mt-1 text-xs text-slate-500">{m.resultPdfLockedPerTest}</p>
+                )}
+                {t.pdf_storage_path && expired && (
+                  <p className="mt-1 text-xs text-slate-600">{m.resultPdfExpired}</p>
+                )}
+                {ready && (
+                  <div className="mt-2">
+                    <Button
+                      type="button"
+                      className="text-sm"
+                      disabled={resultPdfBusy === t.id}
+                      onClick={() => void downloadTestResultPdf(t)}
+                    >
+                      {resultPdfBusy === t.id ? '…' : m.resultPdfDownload}
+                    </Button>
+                  </div>
+                )}
+                {opened && (
+                  <p className="mt-2 text-xs font-medium text-slate-700">
+                    {m.reportFirstOpened.replace(
+                      '{date}',
+                      new Date(opened).toLocaleString(locale === 'ar' ? 'ar-IQ' : 'en-US', {
+                        dateStyle: 'medium',
+                        timeStyle: 'short',
+                      }),
+                    )}
+                  </p>
+                )}
+              </li>
+            )
+          })}
+        </ul>
       )}
-      {status === 'done' && row.pdf_storage_path && row.pdf_expires_at && (
+      {!hasPerTestReports && status === 'done' && row.pdf_storage_path && row.pdf_expires_at && (
         <p
           className={`mt-3 text-xs font-medium ${resultExpired ? 'text-amber-900' : 'text-emerald-800'}`}
         >
@@ -373,22 +479,22 @@ function CaseCard({
           </span>
         </p>
       )}
-      {status === 'done' && resultExpired && (
+      {!hasPerTestReports && status === 'done' && resultExpired && (
         <p className="mt-2 text-xs text-slate-600">{m.resultPdfExpired}</p>
       )}
-      {resultPdfReady && (
+      {legacyPdfReady && (
         <div className="mt-3">
           <Button
             type="button"
             className="text-sm"
-            disabled={resultPdfBusy}
+            disabled={resultPdfBusy === 'case'}
             onClick={() => void downloadResultPdf(row.pdf_storage_path!)}
           >
-            {resultPdfBusy ? '…' : m.resultPdfDownload}
+            {resultPdfBusy === 'case' ? '…' : m.resultPdfDownload}
           </Button>
         </div>
       )}
-      {reportOpenedAt && (
+      {!hasPerTestReports && reportOpenedAt && (
         <p className="mt-2 text-xs font-medium text-slate-700">
           {m.reportFirstOpened.replace(
             '{date}',

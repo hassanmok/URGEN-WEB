@@ -29,9 +29,13 @@ export function pdfPathForDoctorCase(caseId: string) {
   return `${caseId}/report.pdf`
 }
 
+export function pdfPathForDoctorCaseTest(caseId: string, testId: string) {
+  return `${caseId}/${testId}/report.pdf`
+}
+
 /** صلاحية رابط التحميل للطبيب انتهت (لا يُعتبر منتهياً إذا لم يُحدَّد تاريخ). */
 export function isDoctorResultPdfExpired(
-  row: Pick<DoctorCaseRow, 'pdf_expires_at'>,
+  row: Pick<DoctorCaseRow | DoctorCaseTestRow, 'pdf_expires_at'>,
 ): boolean {
   if (row.pdf_expires_at == null) return false
   return new Date(row.pdf_expires_at).getTime() <= Date.now()
@@ -900,6 +904,19 @@ export async function adminUpdateDoctorCaseStatus(
     return { ok: false, error: error.message }
   }
   if (!data) return { ok: false, error: 'update_blocked' }
+
+  if (status === 'rejected') {
+    await supabase
+      .from('doctor_case_tests')
+      .update({
+        pdf_storage_path: null,
+        pdf_expires_at: null,
+        result_value: null,
+        report_first_opened_at: null,
+      })
+      .eq('case_id', id)
+  }
+
   return { ok: true }
 }
 
@@ -955,6 +972,83 @@ export async function adminUploadDoctorCaseResultPdf(
   return { ok: true }
 }
 
+/** رفع تقرير PDF لنتيجة تحليل واحد ضمن الطلب */
+export async function adminUploadDoctorCaseTestResultPdf(
+  caseId: string,
+  testId: string,
+  file: File,
+  resultValue: DoctorResultValue,
+): Promise<{ ok: boolean; error?: string }> {
+  if (!supabase) return { ok: false, error: 'no_supabase' }
+  if (!file.type.includes('pdf')) return { ok: false, error: 'not_pdf' }
+  if (resultValue !== 'positive' && resultValue !== 'negative') {
+    return { ok: false, error: 'result_required' }
+  }
+
+  const canonicalPath = pdfPathForDoctorCaseTest(caseId, testId)
+
+  const { data: existing } = await supabase
+    .from('doctor_case_tests')
+    .select('pdf_storage_path')
+    .eq('id', testId)
+    .eq('case_id', caseId)
+    .maybeSingle()
+
+  const pathsToRemove = new Set<string>([canonicalPath])
+  if (existing?.pdf_storage_path) pathsToRemove.add(existing.pdf_storage_path)
+
+  const { error: removeErr } = await supabase.storage.from(RESULT_BUCKET).remove([...pathsToRemove])
+  if (removeErr && !removeErr.message.includes('not found')) {
+    /* ignore */
+  }
+
+  const { error: upErr } = await supabase.storage.from(RESULT_BUCKET).upload(canonicalPath, file, {
+    cacheControl: '3600',
+    upsert: true,
+    contentType: 'application/pdf',
+  })
+
+  if (upErr) return { ok: false, error: upErr.message }
+
+  const expires = new Date()
+  expires.setDate(expires.getDate() + 30)
+
+  const { error: dbErr } = await supabase
+    .from('doctor_case_tests')
+    .update({
+      pdf_storage_path: canonicalPath,
+      pdf_expires_at: expires.toISOString(),
+      result_value: resultValue,
+      report_first_opened_at: null,
+    })
+    .eq('id', testId)
+    .eq('case_id', caseId)
+
+  if (dbErr) return { ok: false, error: dbErr.message }
+
+  const { data: allTests, error: listErr } = await supabase
+    .from('doctor_case_tests')
+    .select('id, pdf_storage_path')
+    .eq('case_id', caseId)
+
+  if (listErr) return { ok: false, error: listErr.message }
+
+  const tests = allTests ?? []
+  const allHavePdf =
+    tests.length > 0 && tests.every((t) => Boolean(t.pdf_storage_path))
+
+  const { error: caseErr } = await supabase
+    .from('doctor_cases')
+    .update({
+      status: allHavePdf ? 'done' : 'in_progress',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', caseId)
+
+  if (caseErr) return { ok: false, error: caseErr.message }
+  return { ok: true }
+}
+
 export async function createDoctorResultPdfDownloadUrl(
   storagePath: string | null,
 ): Promise<{ ok: boolean; url?: string; error?: string }> {
@@ -976,6 +1070,19 @@ export async function markDoctorReportOpened(
 
   const { data, error } = await supabase.rpc('doctor_case_mark_report_opened', {
     p_case_id: caseId,
+  })
+
+  if (error) return { ok: false, error: error.message }
+  return { ok: true, opened_at: (data as string | null) ?? null }
+}
+
+export async function markDoctorCaseTestReportOpened(
+  testId: string,
+): Promise<{ ok: boolean; opened_at?: string | null; error?: string }> {
+  if (!supabase) return { ok: false, error: 'no_supabase' }
+
+  const { data, error } = await supabase.rpc('doctor_case_test_mark_report_opened', {
+    p_test_id: testId,
   })
 
   if (error) return { ok: false, error: error.message }

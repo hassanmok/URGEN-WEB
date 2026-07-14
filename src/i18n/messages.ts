@@ -510,6 +510,8 @@ export const messagesAr = {
     doctorRequestsRejectPrompt: "سبب الرفض (اختياري)",
     doctorRequestsRejectionReason: "سبب الرفض",
     doctorRequestsUploadPdf: "رفع تقرير PDF للطبيب",
+    doctorRequestsUploadPdfForTest: "رفع تقرير PDF لهذا التحليل",
+    doctorRequestsPerTestReports: "تقارير التحاليل المطلوبة",
     doctorRequestsUploading: "جاري الرفع…",
     doctorRequestsPdfExpires: "صلاحية تحميل التقرير للطبيب حتى",
     doctorRequestsPdfExpiredNotice: "انتهت صلاحية التحميل للطبيب في",
@@ -529,7 +531,7 @@ export const messagesAr = {
     doctorRequestsForbidden:
       "هذا الحساب مسجّل كطبيب أو مختبر — سجّل الخروج وادخل بحساب إدارة URGEN فقط.",
     doctorRequestsStatusMigration:
-      "نفّذ ملف supabase/doctor-case-results-flow.sql في SQL Editor ثم أعد المحاولة.",
+      "نفّذ ملف supabase/doctor-case-test-results.sql في SQL Editor ثم أعد المحاولة.",
     doctorUsersTitle: "إنشاء حسابات الأطباء",
     doctorUsersIntro:
       "يُنشأ الحساب من هنا؛ يسجّل الطبيب الدخول من /doctor باسم المستخدم وكلمة المرور.",
@@ -902,6 +904,7 @@ export const messagesAr = {
     rejectionReason: "سبب الرفض",
     resultPdfAwaitAcceptance: "في انتظار قبول الطلب من URGEN قبل بدء المعالجة.",
     resultPdfLocked: "تقرير التحليل سيُفعّل بعد إكمال المعالجة.",
+    resultPdfLockedPerTest: "تقرير هذا التحليل غير جاهز بعد.",
     resultPdfDownload: "تحميل تقرير التحليل (PDF)",
     resultPdfValidUntil: "صلاحية تحميل التقرير حتى",
     resultPdfExpiredAt: "انتهت صلاحية التحميل في",
@@ -1503,6 +1506,8 @@ export const messagesEn = {
     doctorRequestsRejectPrompt: "Rejection reason (optional)",
     doctorRequestsRejectionReason: "Rejection reason",
     doctorRequestsUploadPdf: "Upload result PDF for doctor",
+    doctorRequestsUploadPdfForTest: "Upload result PDF for this test",
+    doctorRequestsPerTestReports: "Reports for requested tests",
     doctorRequestsUploading: "Uploading…",
     doctorRequestsPdfExpires: "Doctor download valid until",
     doctorRequestsPdfExpiredNotice: "Doctor download expired on",
@@ -1521,7 +1526,7 @@ export const messagesEn = {
     doctorRequestsForbidden:
       "This account is a doctor or partner — sign out and use a URGEN staff admin account only.",
     doctorRequestsStatusMigration:
-      "Run supabase/doctor-case-results-flow.sql in the SQL Editor, then try again.",
+      "Run supabase/doctor-case-test-results.sql in the SQL Editor, then try again.",
     doctorUsersTitle: "Create doctor accounts",
     doctorUsersIntro:
       "Accounts are created here; doctors sign in at /doctor with username and password.",
@@ -1903,6 +1908,7 @@ export const messagesEn = {
       "Awaiting URGEN acceptance before processing starts.",
     resultPdfLocked:
       "The analysis report will be available when processing is complete.",
+    resultPdfLockedPerTest: "This test report is not ready yet.",
     resultPdfDownload: "Download analysis report (PDF)",
     resultPdfValidUntil: "Report download valid until",
     resultPdfExpiredAt: "Download expired on",

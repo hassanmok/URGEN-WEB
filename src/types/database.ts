@@ -431,6 +431,10 @@ export interface Database {
           case_id: string;
           test_slug: string;
           test_title_override: string | null;
+          pdf_storage_path: string | null;
+          pdf_expires_at: string | null;
+          result_value: string | null;
+          report_first_opened_at: string | null;
           created_at: string | null;
         };
         Insert: {
@@ -438,6 +442,10 @@ export interface Database {
           case_id: string;
           test_slug: string;
           test_title_override?: string | null;
+          pdf_storage_path?: string | null;
+          pdf_expires_at?: string | null;
+          result_value?: string | null;
+          report_first_opened_at?: string | null;
           created_at?: string | null;
         };
         Update: Partial<
@@ -549,6 +557,10 @@ export interface Database {
       };
       doctor_case_mark_report_opened: {
         Args: { p_case_id: string };
+        Returns: string;
+      };
+      doctor_case_test_mark_report_opened: {
+        Args: { p_test_id: string };
         Returns: string;
       };
     };

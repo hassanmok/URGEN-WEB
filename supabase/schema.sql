@@ -1176,12 +1176,20 @@ alter table public.doctor_cases add constraint doctor_cases_disease_type_check
   check (disease_type in ('oncology', 'reproductive', 'pediatric', 'other'));
 
 alter table public.doctor_case_tests add column if not exists test_title_override text;
+alter table public.doctor_case_tests add column if not exists pdf_storage_path text;
+alter table public.doctor_case_tests add column if not exists pdf_expires_at timestamptz;
+alter table public.doctor_case_tests add column if not exists result_value text;
+alter table public.doctor_case_tests add column if not exists report_first_opened_at timestamptz;
 
 create table if not exists public.doctor_case_tests (
   id uuid primary key default gen_random_uuid(),
   case_id uuid not null references public.doctor_cases (id) on delete cascade,
   test_slug text not null,
   test_title_override text,
+  pdf_storage_path text,
+  pdf_expires_at timestamptz,
+  result_value text,
+  report_first_opened_at timestamptz,
   created_at timestamptz default now(),
   unique (case_id, test_slug)
 );
@@ -1237,7 +1245,19 @@ create policy "doctor_case_tests_staff_select" on public.doctor_case_tests
     and not public.auth_is_doctor_user()
   );
 
-grant select, insert, delete on table public.doctor_case_tests to authenticated;
+drop policy if exists "doctor_case_tests_staff_update" on public.doctor_case_tests;
+create policy "doctor_case_tests_staff_update" on public.doctor_case_tests
+  for update to authenticated
+  using (
+    not public.auth_is_partner_lab_user()
+    and not public.auth_is_doctor_user()
+  )
+  with check (
+    not public.auth_is_partner_lab_user()
+    and not public.auth_is_doctor_user()
+  );
+
+grant select, insert, update, delete on table public.doctor_case_tests to authenticated;
 
 grant select, delete on table public.doctor_case_files to authenticated;
 

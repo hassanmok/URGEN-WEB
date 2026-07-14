@@ -5,6 +5,7 @@ import { Button } from '../ui/Button'
 import {
   adminUpdateDoctorCaseStatus,
   adminUploadDoctorCaseResultPdf,
+  adminUploadDoctorCaseTestResultPdf,
   normalizeDoctorCaseStatus,
   isDoctorResultPdfExpired,
   doctorDiseaseTypeLabel,
@@ -169,6 +170,127 @@ function ResultPdfUploadBlock({
   )
 }
 
+function TestResultPdfUploadBlock({
+  test,
+  title,
+  m,
+  locale,
+  busyId,
+  onPdf,
+}: {
+  test: DoctorCaseTestRow
+  title: string
+  m: Messages['admin']
+  locale: string
+  busyId: string | null
+  onPdf: (testId: string, file: File, resultValue: DoctorResultValue) => void
+}) {
+  const initial =
+    test.result_value === 'positive' || test.result_value === 'negative'
+      ? test.result_value
+      : ('' as const)
+  const [resultValue, setResultValue] = useState<DoctorResultValue | ''>(initial)
+  const hasPdf = Boolean(test.pdf_storage_path)
+  const expired = isDoctorResultPdfExpired(test)
+
+  function formatTs(iso: string) {
+    return new Date(iso).toLocaleString(locale === 'ar' ? 'ar-IQ' : 'en-US')
+  }
+
+  useEffect(() => {
+    if (test.result_value === 'positive' || test.result_value === 'negative') {
+      setResultValue(test.result_value)
+    }
+  }, [test.result_value])
+
+  function onFileChange(e: FormEvent<HTMLInputElement>) {
+    const input = e.currentTarget
+    const file = input.files?.[0]
+    input.value = ''
+    if (!file) return
+    if (resultValue !== 'positive' && resultValue !== 'negative') {
+      window.alert(m.doctorRequestsResultRequired)
+      return
+    }
+    onPdf(test.id, file, resultValue)
+  }
+
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white/70 p-3">
+      <p className="text-sm font-semibold text-urgen-navy">{title}</p>
+      {hasPdf && test.result_value && (
+        <p className="mt-1 text-xs text-slate-600">
+          <span className="font-semibold">{m.doctorRequestsResultLabel}: </span>
+          {test.result_value === 'positive'
+            ? m.doctorRequestsResultPositive
+            : m.doctorRequestsResultNegative}
+        </p>
+      )}
+      {hasPdf && test.pdf_expires_at != null && (
+        <p className="mt-1 text-xs text-slate-600">
+          {expired ? (
+            <span className="font-semibold text-amber-900">
+              {m.doctorRequestsPdfExpiredNotice}:{' '}
+              <span dir="ltr" className="font-normal tabular-nums">
+                {formatTs(test.pdf_expires_at)}
+              </span>
+            </span>
+          ) : (
+            <>
+              {m.doctorRequestsPdfExpires}:{' '}
+              <span dir="ltr" className="tabular-nums">
+                {formatTs(test.pdf_expires_at)}
+              </span>
+            </>
+          )}
+        </p>
+      )}
+      <div className="mt-2 flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+        <fieldset className="flex flex-wrap items-center gap-3">
+          <legend className="sr-only">{m.doctorRequestsResultLabel}</legend>
+          <span className="text-xs font-semibold text-slate-600">{m.doctorRequestsResultLabel}:</span>
+          <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-medium text-urgen-navy">
+            <input
+              type="radio"
+              name={`test-result-${test.id}`}
+              value="positive"
+              checked={resultValue === 'positive'}
+              disabled={busyId === test.id}
+              onChange={() => setResultValue('positive')}
+            />
+            {m.doctorRequestsResultPositive}
+          </label>
+          <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-medium text-urgen-navy">
+            <input
+              type="radio"
+              name={`test-result-${test.id}`}
+              value="negative"
+              checked={resultValue === 'negative'}
+              disabled={busyId === test.id}
+              onChange={() => setResultValue('negative')}
+            />
+            {m.doctorRequestsResultNegative}
+          </label>
+        </fieldset>
+        <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-urgen-purple px-3 py-2 text-xs font-semibold text-white hover:brightness-105 disabled:opacity-50">
+          <input
+            type="file"
+            accept="application/pdf"
+            className="hidden"
+            disabled={busyId === test.id}
+            onChange={onFileChange}
+          />
+          {busyId === test.id
+            ? m.doctorRequestsUploading
+            : hasPdf
+              ? m.doctorRequestsReplacePdf
+              : m.doctorRequestsUploadPdfForTest}
+        </label>
+      </div>
+    </div>
+  )
+}
+
 function CaseCard({
   row,
   files,
@@ -182,6 +304,7 @@ function CaseCard({
   onProgress,
   onReject,
   onPdf,
+  onPdfTest,
   onRefreshFiles,
   highlighted,
 }: {
@@ -197,6 +320,7 @@ function CaseCard({
   onProgress: (id: string) => void
   onReject: (id: string) => void
   onPdf: (id: string, file: File, resultValue: DoctorResultValue) => void
+  onPdfTest: (testId: string, file: File, resultValue: DoctorResultValue) => void
   onRefreshFiles: () => void
   highlighted?: boolean
 }) {
@@ -432,8 +556,27 @@ function CaseCard({
       )}
 
       {caseStatus === 'in_progress' && (
-        <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-200 pt-4">
-          <ResultPdfUploadBlock row={row} m={m} busyId={busyId} onPdf={onPdf} />
+        <div className="mt-4 space-y-3 border-t border-slate-200 pt-4">
+          {caseTests.length > 0 ? (
+            <>
+              <p className="text-xs font-semibold text-slate-600">
+                {m.doctorRequestsPerTestReports}
+              </p>
+              {caseTests.map((t) => (
+                <TestResultPdfUploadBlock
+                  key={t.id}
+                  test={t}
+                  title={testTitleFor(t, catalogTests, locale)}
+                  m={m}
+                  locale={locale}
+                  busyId={busyId}
+                  onPdf={onPdfTest}
+                />
+              ))}
+            </>
+          ) : (
+            <ResultPdfUploadBlock row={row} m={m} busyId={busyId} onPdf={onPdf} />
+          )}
           <Button
             type="button"
             variant="outline"
@@ -447,41 +590,62 @@ function CaseCard({
       )}
 
       {caseStatus === 'done' && (
-        <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-200 pt-4">
-          {row.result_value && (
-            <p className="w-full text-xs text-slate-600">
-              <span className="font-semibold">{m.doctorRequestsResultLabel}: </span>
-              {row.result_value === 'positive'
-                ? m.doctorRequestsResultPositive
-                : m.doctorRequestsResultNegative}
-            </p>
-          )}
-          {row.pdf_expires_at != null && (
-            <p className="w-full text-xs text-slate-600">
-              {isDoctorResultPdfExpired(row) ? (
-                <span className="font-semibold text-amber-900">
-                  {m.doctorRequestsPdfExpiredNotice}:{' '}
-                  <span dir="ltr" className="font-normal tabular-nums">
-                    {formatPdfTs(row.pdf_expires_at)}
-                  </span>
-                </span>
-              ) : (
-                <>
-                  {m.doctorRequestsPdfExpires}:{' '}
-                  <span dir="ltr" className="tabular-nums">
-                    {formatPdfTs(row.pdf_expires_at)}
-                  </span>
-                </>
+        <div className="mt-4 space-y-3 border-t border-slate-200 pt-4">
+          {caseTests.length > 0 ? (
+            <>
+              <p className="text-xs font-semibold text-slate-600">
+                {m.doctorRequestsPerTestReports}
+              </p>
+              {caseTests.map((t) => (
+                <TestResultPdfUploadBlock
+                  key={t.id}
+                  test={t}
+                  title={testTitleFor(t, catalogTests, locale)}
+                  m={m}
+                  locale={locale}
+                  busyId={busyId}
+                  onPdf={onPdfTest}
+                />
+              ))}
+            </>
+          ) : (
+            <>
+              {row.result_value && (
+                <p className="w-full text-xs text-slate-600">
+                  <span className="font-semibold">{m.doctorRequestsResultLabel}: </span>
+                  {row.result_value === 'positive'
+                    ? m.doctorRequestsResultPositive
+                    : m.doctorRequestsResultNegative}
+                </p>
               )}
-            </p>
+              {row.pdf_expires_at != null && (
+                <p className="w-full text-xs text-slate-600">
+                  {isDoctorResultPdfExpired(row) ? (
+                    <span className="font-semibold text-amber-900">
+                      {m.doctorRequestsPdfExpiredNotice}:{' '}
+                      <span dir="ltr" className="font-normal tabular-nums">
+                        {formatPdfTs(row.pdf_expires_at)}
+                      </span>
+                    </span>
+                  ) : (
+                    <>
+                      {m.doctorRequestsPdfExpires}:{' '}
+                      <span dir="ltr" className="tabular-nums">
+                        {formatPdfTs(row.pdf_expires_at)}
+                      </span>
+                    </>
+                  )}
+                </p>
+              )}
+              <ResultPdfUploadBlock
+                row={row}
+                m={m}
+                busyId={busyId}
+                onPdf={onPdf}
+                uploadLabel={m.doctorRequestsReplacePdf}
+              />
+            </>
           )}
-          <ResultPdfUploadBlock
-            row={row}
-            m={m}
-            busyId={busyId}
-            onPdf={onPdf}
-            uploadLabel={m.doctorRequestsReplacePdf}
-          />
         </div>
       )}
 
@@ -611,6 +775,26 @@ export function AdminDoctorCasesPanel({
     setBusyId(id)
     setActionError(null)
     const res = await adminUploadDoctorCaseResultPdf(id, file, resultValue)
+    setBusyId(null)
+    if (!res.ok) {
+      const errMap: Record<string, string> = {
+        result_required: m.doctorRequestsResultRequired,
+      }
+      setActionError(errMap[res.error ?? ''] ?? res.error ?? m.doctorRequestsActionErr)
+    } else void reload()
+  }
+
+  async function onPdfTestChange(testId: string, file: File, resultValue: DoctorResultValue) {
+    const caseId = [...testsByCase.entries()].find(([, tests]) =>
+      tests.some((t) => t.id === testId),
+    )?.[0]
+    if (!caseId) {
+      setActionError(m.doctorRequestsActionErr)
+      return
+    }
+    setBusyId(testId)
+    setActionError(null)
+    const res = await adminUploadDoctorCaseTestResultPdf(caseId, testId, file, resultValue)
     setBusyId(null)
     if (!res.ok) {
       const errMap: Record<string, string> = {
@@ -788,6 +972,9 @@ export function AdminDoctorCasesPanel({
                   onProgress={(id) => void setProgress(id)}
                   onReject={(id) => void rejectCase(id)}
                   onPdf={(id, file, resultValue) => void onPdfChange(id, file, resultValue)}
+                  onPdfTest={(testId, file, resultValue) =>
+                    void onPdfTestChange(testId, file, resultValue)
+                  }
                   onRefreshFiles={() => void reload()}
                   highlighted={activeHighlight === row.id}
                 />
